@@ -1,27 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, ShoppingCart, Package, User, Menu, X, Plus, Minus, Check } from 'lucide-react';
 
-// Mock data
+// Dados mock para funcionar sem backend
 const mockProducts = [
-  { id: 1, name: 'Luva Térmica Profissional', category: 'EPI', price: 45.90, unit: 'par', supplier: 'EPI Sul', minOrder: 10, image: '🧤' },
-  { id: 2, name: 'Óleo Lubrificante Industrial 20L', category: 'Manutenção', price: 189.90, unit: 'balde', supplier: 'Lubrimax', minOrder: 1, image: '🛢️' },
-  { id: 3, name: 'Caixa Térmica EPS 20kg', category: 'Embalagem', price: 35.50, unit: 'unidade', supplier: 'Embala PR', minOrder: 50, image: '📦' },
-  { id: 4, name: 'Disco de Corte 7"', category: 'Ferramenta', price: 8.90, unit: 'unidade', supplier: 'Ferramentas DV', minOrder: 20, image: '⚙️' },
-  { id: 5, name: 'Detergente Industrial 5L', category: 'Limpeza', price: 28.90, unit: 'galão', supplier: 'Química Oeste', minOrder: 4, image: '🧴' },
+  {
+    id: 1,
+    name: 'Luva Térmica Profissional',
+    category: 'EPI',
+    price: 45.90,
+    unit: 'par',
+    supplier: 'EPI Sul',
+    minOrder: 10,
+    image: '🧤'
+  },
+  {
+    id: 2,
+    name: 'Óleo Lubrificante Industrial 20L',
+    category: 'Manutenção',
+    price: 189.90,
+    unit: 'balde',
+    supplier: 'Lubrimax',
+    minOrder: 1,
+    image: '🛢️'
+  },
+  {
+    id: 3,
+    name: 'Caixa Térmica EPS 20kg',
+    category: 'Embalagem',
+    price: 35.50,
+    unit: 'unidade',
+    supplier: 'Embala PR',
+    minOrder: 50,
+    image: '📦'
+  },
+  {
+    id: 4,
+    name: 'Disco de Corte 7"',
+    category: 'Ferramenta',
+    price: 8.90,
+    unit: 'unidade',
+    supplier: 'Ferramentas DV',
+    minOrder: 20,
+    image: '⚙️'
+  },
+  {
+    id: 5,
+    name: 'Detergente Industrial 5L',
+    category: 'Limpeza',
+    price: 28.90,
+    unit: 'galão',
+    supplier: 'Química Oeste',
+    minOrder: 4,
+    image: '🧴'
+  }
 ];
 
-const categories = ['Todos', 'EPI', 'Manutenção', 'Embalagem', 'Ferramenta', 'Limpeza'];
+const categories = ['Todas', 'EPI', 'Manutenção', 'Embalagem', 'Ferramenta', 'Limpeza'];
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showQuoteSuccess, setShowQuoteSuccess] = useState(false);
 
   const filteredProducts = mockProducts.filter(product => {
-    const matchesCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'Todas' || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -75,7 +120,7 @@ function App() {
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden">
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-              <h1 className="text-xl font-bold">B2B Industrial DV</h1>
+              <h1 className="text-xl font-bold">B2B Marketplace</h1>
             </div>
             
             <div className="hidden md:flex items-center space-x-6">
@@ -123,7 +168,7 @@ function App() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Buscar produtos para sua indústria..."
+                placeholder="Buscar produtos para sua empresa..."
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -153,14 +198,14 @@ function App() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 px-4">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Cotação Rápida para sua Indústria
+            Cotação Rápida para sua Empresa
           </h2>
           <p className="text-xl mb-6">
             Compare preços de múltiplos fornecedores em segundos
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
-              ✓ Entrega em Dois Vizinhos
+              ✓ Entrega Garantida
             </div>
             <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
               ✓ Pagamento 30 dias
