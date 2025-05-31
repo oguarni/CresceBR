@@ -1,0 +1,31 @@
+version: '3.3'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: b2b_marketplace
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/b2b_marketplace
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:3001/api
+    depends_on:
+      - backend
