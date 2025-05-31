@@ -1,9 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './App.css';
+import React, { useState } from 'react';
 import { Search, ShoppingCart, Package, User, Menu, X, Plus, Minus, Check } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Dados mock para funcionar sem backend
+const mockProducts = [
+  {
+    id: 1,
+    name: 'Luva Térmica Profissional',
+    category: 'EPI',
+    price: 45.90,
+    unit: 'par',
+    supplier: 'EPI Sul',
+    minOrder: 10,
+    image: '🧤'
+  },
+  {
+    id: 2,
+    name: 'Óleo Lubrificante Industrial 20L',
+    category: 'Manutenção',
+    price: 189.90,
+    unit: 'balde',
+    supplier: 'Lubrimax',
+    minOrder: 1,
+    image: '🛢️'
+  },
+  {
+    id: 3,
+    name: 'Caixa Térmica EPS 20kg',
+    category: 'Embalagem',
+    price: 35.50,
+    unit: 'unidade',
+    supplier: 'Embala PR',
+    minOrder: 50,
+    image: '📦'
+  },
+  {
+    id: 4,
+    name: 'Disco de Corte 7"',
+    category: 'Ferramenta',
+    price: 8.90,
+    unit: 'unidade',
+    supplier: 'Ferramentas DV',
+    minOrder: 20,
+    image: '⚙️'
+  },
+  {
+    id: 5,
+    name: 'Detergente Industrial 5L',
+    category: 'Limpeza',
+    price: 28.90,
+    unit: 'galão',
+    supplier: 'Química Oeste',
+    minOrder: 4,
+    image: '🧴'
+  }
+];
+
+const categories = ['Todas', 'EPI', 'Manutenção', 'Embalagem', 'Ferramenta', 'Limpeza'];
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,49 +64,8 @@ function App() {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showQuoteSuccess, setShowQuoteSuccess] = useState(false);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState(['Todas']);
-  const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    checkAuth();
-  }, []);
-
-  const checkAuth = () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setIsAuthenticated(true);
-      // Fetch user profile
-    }
-  };
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API_URL}/products`);
-      setProducts(response.data.products || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/categories`);
-      const categoryNames = response.data.map(cat => cat.name);
-      setCategories(['Todas', ...categoryNames]);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = mockProducts.filter(product => {
     const matchesCategory = selectedCategory === 'Todas' || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -65,18 +76,18 @@ function App() {
     if (existingItem) {
       setCart(cart.map(item => 
         item.id === product.id 
-          ? { ...item, quantity: item.quantity + (product.minOrder || 1) }
+          ? { ...item, quantity: item.quantity + product.minOrder }
           : item
       ));
     } else {
-      setCart([...cart, { ...product, quantity: product.minOrder || 1 }]);
+      setCart([...cart, { ...product, quantity: product.minOrder }]);
     }
   };
 
   const updateQuantity = (id, delta) => {
     setCart(cart.map(item => {
       if (item.id === id) {
-        const newQuantity = Math.max(item.minOrder || 1, item.quantity + delta);
+        const newQuantity = Math.max(item.minOrder, item.quantity + delta);
         return { ...item, quantity: newQuantity };
       }
       return item;
@@ -90,34 +101,13 @@ function App() {
   const getTotalItems = () => cart.reduce((total, item) => total + item.quantity, 0);
   const getTotalValue = () => cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  const requestQuote = async () => {
-    if (!isAuthenticated) {
-      alert('Por favor, faça login para solicitar cotação');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const items = cart.map(item => ({
-        productId: item.id,
-        quantity: item.quantity
-      }));
-
-      await axios.post(`${API_URL}/quotes/request`, 
-        { items },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setShowQuoteSuccess(true);
-      setTimeout(() => {
-        setShowQuoteSuccess(false);
-        setCart([]);
-        setShowCart(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Error requesting quote:', error);
-      alert('Erro ao solicitar cotação');
-    }
+  const requestQuote = () => {
+    setShowQuoteSuccess(true);
+    setTimeout(() => {
+      setShowQuoteSuccess(false);
+      setCart([]);
+      setShowCart(false);
+    }, 3000);
   };
 
   return (
@@ -154,9 +144,7 @@ function App() {
               </button>
               <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
                 <User size={20} className="inline mr-2" />
-                <span className="hidden sm:inline">
-                  {isAuthenticated ? 'Perfil' : 'Login'}
-                </span>
+                <span className="hidden sm:inline">Login</span>
               </button>
             </div>
           </div>
@@ -217,13 +205,13 @@ function App() {
           </p>
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
+              ✓ Entrega Garantida
+            </div>
+            <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
               ✓ Pagamento 30 dias
             </div>
             <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
               ✓ Fornecedores verificados
-            </div>
-            <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
-              ✓ Entrega garantida
             </div>
           </div>
         </div>
@@ -231,47 +219,36 @@ function App() {
 
       {/* Products Grid */}
       <div className="container mx-auto px-4 py-8">
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Carregando produtos...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="p-4">
-                  <div className="text-4xl mb-3 text-center">
-                    <Package size={48} className="mx-auto text-gray-400" />
-                  </div>
-                  <h3 className="font-semibold text-gray-800 mb-2">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Fornecedor: {product.Supplier?.companyName || 'Sem fornecedor'}
-                  </p>
-                  
-                  <div className="flex items-baseline justify-between mb-3">
-                    <span className="text-2xl font-bold text-blue-600">
-                      R$ {Number(product.price).toFixed(2)}
-                    </span>
-                    <span className="text-sm text-gray-500">/{product.unit || 'unidade'}</span>
-                  </div>
-                  
-                  <div className="text-sm text-gray-600 mb-4">
-                    Pedido mínimo: {product.minOrder || 1} {product.unit || 'unidade'}s
-                  </div>
-                  
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Plus size={18} />
-                    <span>Adicionar à Cotação</span>
-                  </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map(product => (
+            <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+              <div className="p-4">
+                <div className="text-4xl mb-3 text-center">{product.image}</div>
+                <h3 className="font-semibold text-gray-800 mb-2">{product.name}</h3>
+                <p className="text-sm text-gray-600 mb-3">Fornecedor: {product.supplier}</p>
+                
+                <div className="flex items-baseline justify-between mb-3">
+                  <span className="text-2xl font-bold text-blue-600">
+                    R$ {product.price.toFixed(2)}
+                  </span>
+                  <span className="text-sm text-gray-500">/{product.unit}</span>
                 </div>
+                
+                <div className="text-sm text-gray-600 mb-4">
+                  Pedido mínimo: {product.minOrder} {product.unit}s
+                </div>
+                
+                <button
+                  onClick={() => addToCart(product)}
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Plus size={18} />
+                  <span>Adicionar à Cotação</span>
+                </button>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Cart Sidebar */}
@@ -301,9 +278,7 @@ function App() {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <h4 className="font-semibold">{item.name}</h4>
-                          <p className="text-sm text-gray-600">
-                            {item.Supplier?.companyName || 'Sem fornecedor'}
-                          </p>
+                          <p className="text-sm text-gray-600">{item.supplier}</p>
                         </div>
                         <button
                           onClick={() => removeFromCart(item.id)}
@@ -316,23 +291,23 @@ function App() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => updateQuantity(item.id, -(item.minOrder || 1))}
+                            onClick={() => updateQuantity(item.id, -item.minOrder)}
                             className="bg-gray-200 p-1 rounded hover:bg-gray-300"
                           >
                             <Minus size={16} />
                           </button>
                           <span className="w-16 text-center">
-                            {item.quantity} {item.unit || 'unidade'}s
+                            {item.quantity} {item.unit}s
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.id, item.minOrder || 1)}
+                            onClick={() => updateQuantity(item.id, item.minOrder)}
                             className="bg-gray-200 p-1 rounded hover:bg-gray-300"
                           >
                             <Plus size={16} />
                           </button>
                         </div>
                         <span className="font-semibold">
-                          R$ {(Number(item.price) * item.quantity).toFixed(2)}
+                          R$ {(item.price * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     </div>
