@@ -1,16 +1,14 @@
 {
   "name": "b2b-marketplace-frontend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
     "react-router-dom": "^6.14.2",
-    "axios": "^1.4.0",
-    "@mui/material": "^5.14.1",
-    "@mui/icons-material": "^5.14.1",
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0"
+    "lucide-react": "^0.263.1",
+    "axios": "^1.5.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -18,8 +16,10 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "devDependencies": {
-    "react-scripts": "5.0.1"
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
   },
   "browserslist": {
     "production": [

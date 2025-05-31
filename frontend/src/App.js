@@ -1,915 +1,378 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { 
-  Container, Typography, Box, Button, Card, CardContent, Grid, 
-  AppBar, Toolbar, TextField, Alert, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, Paper
-} from '@mui/material';
+import axios from 'axios';
+import './App.css';
+import { Search, ShoppingCart, Package, User, Menu, X, Plus, Minus, Check } from 'lucide-react';
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
-// API Configuration
-const API_BASE_URL = 'http://localhost:3001/api';
-
-// API Helper functions with error handling
-const apiCall = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('token');
-  const defaultOptions = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...defaultOptions,
-      ...options,
-      headers: {
-        ...defaultOptions.headers,
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP Error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`API call failed for ${endpoint}:`, error);
-    throw error;
-  }
-};
-
-// API service methods
-const apiService = {
-  // Authentication
-  login: (credentials) => apiCall('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(credentials),
-  }),
-  
-  register: (userData) => apiCall('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(userData),
-  }),
-
-  // Products
-  getProducts: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiCall(`/products${queryString ? `?${queryString}` : ''}`);
-  },
-
-  // Dashboard
-  getDashboardStats: () => apiCall('/dashboard/stats'),
-
-  // Orders
-  getOrders: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiCall(`/orders${queryString ? `?${queryString}` : ''}`);
-  },
-
-  // Suppliers
-  getSuppliers: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiCall(`/suppliers${queryString ? `?${queryString}` : ''}`);
-  },
-};
-
-// Navbar Component
-function Navbar() {
-  const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('token'));
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setIsLoggedIn(false);
-    navigate('/');
-  };
-  
-  return (
-    <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }} 
-                    onClick={() => navigate('/')}>
-          B2B Marketplace
-        </Typography>
-        <Button color="inherit" onClick={() => navigate('/products')}>
-          Produtos
-        </Button>
-        {isLoggedIn ? (
-          <>
-            <Button color="inherit" onClick={() => navigate('/dashboard')}>
-              Dashboard
-            </Button>
-            <Button color="inherit" onClick={() => navigate('/orders')}>
-              Pedidos
-            </Button>
-            <Button color="inherit" onClick={() => navigate('/suppliers')}>
-              Fornecedores
-            </Button>
-            <Button color="inherit" onClick={handleLogout}>
-              Logout
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button color="inherit" onClick={() => navigate('/login')}>
-              Login
-            </Button>
-            <Button color="inherit" onClick={() => navigate('/register')}>
-              Cadastrar
-            </Button>
-          </>
-        )}
-      </Toolbar>
-    </AppBar>
-  );
-}
-
-// Home Component
-function Home() {
-  const navigate = useNavigate();
-  
-  return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h2" component="h1" gutterBottom align="center">
-          B2B Marketplace
-        </Typography>
-        <Typography variant="h5" component="h2" gutterBottom align="center" color="text.secondary">
-          Conectando fornecedores e compradores
-        </Typography>
-        
-        <Box sx={{ mt: 6, mb: 4 }}>
-          <Typography variant="body1" paragraph align="center" sx={{ fontSize: '1.1rem' }}>
-            Sistema completo de marketplace B2B para gestão de produtos, cotações e pedidos industriais.
-          </Typography>
-        </Box>
-        
-        <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button variant="contained" color="primary" size="large" onClick={() => navigate('/products')}>
-            Explorar Produtos
-          </Button>
-          <Button variant="outlined" color="primary" size="large" onClick={() => navigate('/register')}>
-            Cadastrar como Fornecedor
-          </Button>
-          <Button variant="text" color="primary" size="large" onClick={() => navigate('/login')}>
-            Login
-          </Button>
-        </Box>
-
-        <Grid container spacing={4} sx={{ mt: 6 }}>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  Sistema de Cotações B2B
-                </Typography>
-                <Typography variant="body2">
-                  Solicite cotações de múltiplos fornecedores simultaneamente e compare preços em tempo real.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  Fornecedores Verificados
-                </Typography>
-                <Typography variant="body2">
-                  Trabalhe apenas com fornecedores verificados e confiáveis para sua indústria.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  Dashboard de Analytics
-                </Typography>
-                <Typography variant="body2">
-                  Acompanhe métricas de vendas, performance e histórico de transações.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        <Box sx={{ mt: 8, p: 4, backgroundColor: 'grey.100', borderRadius: 2 }}>
-          <Typography variant="h5" gutterBottom align="center">
-            Funcionalidades Principais
-          </Typography>
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body1" component="div">
-                • Catálogo de produtos industriais<br/>
-                • Sistema de avaliações e reviews<br/>
-                • Gestão completa de pedidos<br/>
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body1" component="div">
-                • Painel administrativo<br/>
-                • Notificações em tempo real<br/>
-                • Relatórios de vendas<br/>
-              </Typography>
-            </Grid>
-          </Grid>
-        </Box>
-      </Box>
-    </Container>
-  );
-}
-
-// Products Component
-function Products() {
+function App() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [showQuoteSuccess, setShowQuoteSuccess] = useState(false);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [categories, setCategories] = useState(['Todas']);
+  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const data = await apiService.getProducts();
-        setProducts(data.products || data || []);
-      } catch (err) {
-        console.warn('API call failed, using mock data:', err.message);
-        setError('Usando catálogo local...');
-        
-        // Fallback to mock data
-        setProducts([
-          {
-            id: 1,
-            name: 'Furadeira Industrial 1200W',
-            description: 'Furadeira industrial de alta potência',
-            price: '450.00'
-          },
-          {
-            id: 2,
-            name: 'Compressor de Ar 50L',
-            description: 'Compressor de ar comprimido 2HP',
-            price: '1200.00'
-          },
-          {
-            id: 3,
-            name: 'Multímetro Digital',
-            description: 'Multímetro digital com display LCD',
-            price: '89.90'
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProducts();
+    fetchCategories();
+    checkAuth();
   }, []);
 
-  return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Produtos
-        </Typography>
-        
-        {loading ? (
-          <Typography>Carregando produtos...</Typography>
-        ) : products.length === 0 ? (
-          <Alert severity="info">
-            Nenhum produto encontrado. O catálogo está sendo construído.
-          </Alert>
-        ) : (
-          <Grid container spacing={3}>
-            {products.map((product) => (
-              <Grid item xs={12} sm={6} md={4} key={product.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {product.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {product.description}
-                    </Typography>
-                    <Typography variant="h6" color="primary" sx={{ mt: 2 }}>
-                      R$ {product.price}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </Box>
-    </Container>
-  );
-}
-
-// Login Component
-function Login() {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        navigate('/dashboard');
-      } else {
-        setError('Credenciais inválidas');
-      }
-    } catch (err) {
-      setError('Erro ao fazer login');
-    }
-  };
-
-  return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Login
-        </Typography>
-        
-        <Card>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Senha"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                margin="normal"
-                required
-              />
-              {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-              >
-                Entrar
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </Box>
-    </Container>
-  );
-}
-
-// Register Component
-function Register() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    cpf: '',
-    role: 'buyer'
-  });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      if (response.ok) {
-        setSuccess('Cadastro realizado com sucesso! Redirecionando...');
-        setTimeout(() => navigate('/login'), 2000);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Erro ao cadastrar');
-      }
-    } catch (err) {
-      setError('Erro ao cadastrar');
-    }
-  };
-
-  return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Cadastro
-        </Typography>
-        
-        <Card>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <TextField
-                fullWidth
-                label="Nome Completo"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="CPF"
-                value={formData.cpf}
-                onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Senha"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                margin="normal"
-                required
-              />
-              {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-              {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, mb: 2 }}
-              >
-                Cadastrar
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </Box>
-    </Container>
-  );
-}
-
-// Dashboard Component
-function Dashboard() {
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalOrders: 0,
-    totalSuppliers: 0,
-    totalRevenue: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-
-  useEffect(() => {
+  const checkAuth = () => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
+    if (token) {
+      setIsAuthenticated(true);
+      // Fetch user profile
+    }
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/products`);
+      setProducts(response.data.products || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/categories`);
+      const categoryNames = response.data.map(cat => cat.name);
+      setCategories(['Todas', ...categoryNames]);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'Todas' || product.category === selectedCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const addToCart = (product) => {
+    const existingItem = cart.find(item => item.id === product.id);
+    if (existingItem) {
+      setCart(cart.map(item => 
+        item.id === product.id 
+          ? { ...item, quantity: item.quantity + (product.minOrder || 1) }
+          : item
+      ));
+    } else {
+      setCart([...cart, { ...product, quantity: product.minOrder || 1 }]);
+    }
+  };
+
+  const updateQuantity = (id, delta) => {
+    setCart(cart.map(item => {
+      if (item.id === id) {
+        const newQuantity = Math.max(item.minOrder || 1, item.quantity + delta);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id) => {
+    setCart(cart.filter(item => item.id !== id));
+  };
+
+  const getTotalItems = () => cart.reduce((total, item) => total + item.quantity, 0);
+  const getTotalValue = () => cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  const requestQuote = async () => {
+    if (!isAuthenticated) {
+      alert('Por favor, faça login para solicitar cotação');
       return;
     }
 
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        
-        // Try to fetch real data from API
-        const data = await apiService.getDashboardStats();
-        setStats({
-          totalProducts: data.totalProducts || 0,
-          totalOrders: data.totalOrders || 0,
-          totalSuppliers: data.totalSuppliers || 0,
-          totalRevenue: data.totalRevenue || 0
-        });
-      } catch (err) {
-        console.warn('API call failed, using mock data:', err.message);
-        setError('Conectando com dados locais...');
-        
-        // Fallback to mock data if API fails
-        setStats({
-          totalProducts: 8,
-          totalOrders: 12,
-          totalSuppliers: 3,
-          totalRevenue: 15420.50
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const token = localStorage.getItem('token');
+      const items = cart.map(item => ({
+        productId: item.id,
+        quantity: item.quantity
+      }));
 
-    fetchDashboardData();
-  }, [navigate]);
+      await axios.post(`${API_URL}/quotes/request`, 
+        { items },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-  return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Dashboard
-        </Typography>
-        
-        {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <Typography>Carregando dados do dashboard...</Typography>
-          </Box>
-        ) : (
-          <>
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Total de Produtos
-                </Typography>
-                <Typography variant="h4">
-                  {stats.totalProducts}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Total de Pedidos
-                </Typography>
-                <Typography variant="h4">
-                  {stats.totalOrders}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Fornecedores
-                </Typography>
-                <Typography variant="h4">
-                  {stats.totalSuppliers}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Receita Total
-                </Typography>
-                <Typography variant="h4">
-                  R$ {stats.totalRevenue.toFixed(2)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Ações Rápidas
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Button 
-                    variant="contained" 
-                    onClick={() => navigate('/products')}
-                    fullWidth
-                  >
-                    Ver Produtos
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    onClick={() => navigate('/orders')}
-                    fullWidth
-                  >
-                    Gerenciar Pedidos
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    onClick={() => navigate('/suppliers')}
-                    fullWidth
-                  >
-                    Ver Fornecedores
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Status do Sistema
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • API Backend conectada<br/>
-                  • Banco de dados PostgreSQL ativo<br/>
-                  • Sistema de autenticação funcionando<br/>
-                  • Pronto para receber pedidos
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-          </>
-        )}
-      </Box>
-    </Container>
-  );
-}
-
-// Orders Component
-function Orders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const data = await apiService.getOrders();
-        setOrders(data.orders || data || []);
-      } catch (err) {
-        console.warn('API call failed, using mock data:', err.message);
-        setError('Usando dados locais...');
-        
-        // Fallback to mock data
-        setOrders([
-          {
-            id: 1,
-            customer_name: 'João Silva',
-            total: '1250.00',
-            status: 'Pendente',
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            customer_name: 'Maria Santos',
-            total: '850.50',
-            status: 'Aprovado',
-            created_at: new Date().toISOString()
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, []);
-
-  return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Pedidos
-        </Typography>
-        
-        {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {loading ? (
-          <Typography>Carregando pedidos...</Typography>
-        ) : orders.length === 0 ? (
-          <Alert severity="info">
-            Nenhum pedido encontrado. Crie seu primeiro pedido!
-          </Alert>
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Cliente</TableCell>
-                  <TableCell>Total</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Data</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.customer_name || 'N/A'}</TableCell>
-                    <TableCell>R$ {order.total || '0.00'}</TableCell>
-                    <TableCell>{order.status || 'Pendente'}</TableCell>
-                    <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Box>
-    </Container>
-  );
-}
-
-// Suppliers Component
-function Suppliers() {
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Mock suppliers data for fallback
-  const mockSuppliers = [
-    {
-      id: 1,
-      name: "Tech Supplies Corp",
-      description: "Fornecedor especializado em componentes eletrônicos e tecnologia",
-      contact_info: "contato@techsupplies.com | (11) 9999-0001"
-    },
-    {
-      id: 2,
-      name: "Industrial Materials Ltd",
-      description: "Materiais industriais e equipamentos de alta qualidade",
-      contact_info: "vendas@industrial.com | (11) 9999-0002"
-    },
-    {
-      id: 3,
-      name: "Office Solutions",
-      description: "Soluções completas para escritório e ambiente corporativo",
-      contact_info: "office@solutions.com | (11) 9999-0003"
-    },
-    {
-      id: 4,
-      name: "Green Packaging Co",
-      description: "Embalagens sustentáveis e ecológicas para diversos setores",
-      contact_info: "green@packaging.com | (11) 9999-0004"
+      setShowQuoteSuccess(true);
+      setTimeout(() => {
+        setShowQuoteSuccess(false);
+        setCart([]);
+        setShowCart(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error requesting quote:', error);
+      alert('Erro ao solicitar cotação');
     }
-  ];
-
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await apiService.getSuppliers();
-        setSuppliers(Array.isArray(data.suppliers) ? data.suppliers : Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.warn('API call failed, using mock data:', error.message);
-        setError('Não foi possível conectar com o servidor. Exibindo dados locais.');
-        setSuppliers(mockSuppliers);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSuppliers();
-  }, []);
+  };
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Fornecedores
-        </Typography>
-        
-        {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-blue-600 text-white sticky top-0 z-40 shadow-md">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden">
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+              <h1 className="text-xl font-bold">B2B Marketplace</h1>
+            </div>
+            
+            <div className="hidden md:flex items-center space-x-6">
+              <a href="#" className="hover:text-blue-200">Fornecedores</a>
+              <a href="#" className="hover:text-blue-200">Como Funciona</a>
+              <a href="#" className="hover:text-blue-200">Contato</a>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => setShowCart(true)}
+                className="relative bg-blue-700 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center space-x-2"
+              >
+                <ShoppingCart size={20} />
+                <span className="hidden sm:inline">Cotação</span>
+                {cart.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center">
+                    {getTotalItems()}
+                  </span>
+                )}
+              </button>
+              <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                <User size={20} className="inline mr-2" />
+                <span className="hidden sm:inline">
+                  {isAuthenticated ? 'Perfil' : 'Login'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-blue-700 px-4 py-3 space-y-2">
+            <a href="#" className="block py-2 hover:text-blue-200">Fornecedores</a>
+            <a href="#" className="block py-2 hover:text-blue-200">Como Funciona</a>
+            <a href="#" className="block py-2 hover:text-blue-200">Contato</a>
+          </div>
         )}
-        
+      </header>
+
+      {/* Search and Categories */}
+      <div className="bg-white shadow-sm sticky top-14 z-30">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Buscar produtos para sua empresa..."
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 px-4">
+        <div className="container mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Cotação Rápida para sua Empresa
+          </h2>
+          <p className="text-xl mb-6">
+            Compare preços de múltiplos fornecedores em segundos
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
+              ✓ Pagamento 30 dias
+            </div>
+            <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
+              ✓ Fornecedores verificados
+            </div>
+            <div className="bg-white/20 backdrop-blur px-4 py-2 rounded-lg">
+              ✓ Entrega garantida
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Products Grid */}
+      <div className="container mx-auto px-4 py-8">
         {loading ? (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Carregando fornecedores...
-          </Alert>
-        ) : suppliers.length === 0 ? (
-          <Alert severity="info">
-            Nenhum fornecedor encontrado. O cadastro está sendo construído.
-          </Alert>
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">Carregando produtos...</p>
+          </div>
         ) : (
-          <Grid container spacing={3}>
-            {suppliers.map((supplier) => (
-              <Grid item xs={12} sm={6} md={4} key={supplier.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {supplier.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {supplier.description}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      <strong>Contato:</strong> {supplier.contact_info}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map(product => (
+              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="p-4">
+                  <div className="text-4xl mb-3 text-center">
+                    <Package size={48} className="mx-auto text-gray-400" />
+                  </div>
+                  <h3 className="font-semibold text-gray-800 mb-2">{product.name}</h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Fornecedor: {product.Supplier?.companyName || 'Sem fornecedor'}
+                  </p>
+                  
+                  <div className="flex items-baseline justify-between mb-3">
+                    <span className="text-2xl font-bold text-blue-600">
+                      R$ {Number(product.price).toFixed(2)}
+                    </span>
+                    <span className="text-sm text-gray-500">/{product.unit || 'unidade'}</span>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600 mb-4">
+                    Pedido mínimo: {product.minOrder || 1} {product.unit || 'unidade'}s
+                  </div>
+                  
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Plus size={18} />
+                    <span>Adicionar à Cotação</span>
+                  </button>
+                </div>
+              </div>
             ))}
-          </Grid>
+          </div>
         )}
-      </Box>
-    </Container>
-  );
-}
+      </div>
 
-// Layout with Navbar
-function Layout({ children }) {
-  return (
-    <>
-      <Navbar />
-      {children}
-    </>
-  );
-}
+      {/* Cart Sidebar */}
+      {showCart && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="flex-1 bg-black/50" onClick={() => setShowCart(false)} />
+          <div className="w-full max-w-md bg-white h-full overflow-y-auto">
+            <div className="p-4 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Sua Cotação</h2>
+                <button onClick={() => setShowCart(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            {cart.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <ShoppingCart size={48} className="mx-auto mb-4 opacity-50" />
+                <p>Sua cotação está vazia</p>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 space-y-4">
+                  {cart.map(item => (
+                    <div key={item.id} className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{item.name}</h4>
+                          <p className="text-sm text-gray-600">
+                            {item.Supplier?.companyName || 'Sem fornecedor'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => updateQuantity(item.id, -(item.minOrder || 1))}
+                            className="bg-gray-200 p-1 rounded hover:bg-gray-300"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <span className="w-16 text-center">
+                            {item.quantity} {item.unit || 'unidade'}s
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.minOrder || 1)}
+                            className="bg-gray-200 p-1 rounded hover:bg-gray-300"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        <span className="font-semibold">
+                          R$ {(Number(item.price) * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="border-t p-4">
+                  <div className="flex justify-between mb-4">
+                    <span className="text-lg font-semibold">Total Estimado:</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      R$ {getTotalValue().toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <button
+                    onClick={requestQuote}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  >
+                    Solicitar Cotação
+                  </button>
+                  
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Você receberá propostas de todos os fornecedores em até 24h
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
-// Main App Component
-function App() {
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-        </Routes>
-      </Router>
-    </ThemeProvider>
+      {/* Success Message */}
+      {showQuoteSuccess && (
+        <div className="fixed top-20 right-4 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-2 z-50">
+          <Check size={24} />
+          <span>Cotação enviada com sucesso!</span>
+        </div>
+      )}
+    </div>
   );
 }
 
 export default App;
-
-FROM node:18 AS build
-WORKDIR /app
-COPY package.json ./
-COPY package-lock.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]

@@ -1,6 +1,6 @@
 # B2B Marketplace
 
-Sistema de marketplace B2B com gestão de fornecedores, produtos, cotações e pedidos.
+Sistema de marketplace B2B para Comércio Eletrônico - UTFPR
 
 ## Funcionalidades
 
@@ -14,26 +14,18 @@ Sistema de marketplace B2B com gestão de fornecedores, produtos, cotações e p
 
 ## Tecnologias
 
-### Backend
-- Node.js + Express
-- PostgreSQL + Sequelize ORM
-- JWT para autenticação
-- Express Validator
-- Bcrypt para criptografia
+- **Backend**: Node.js + Express + PostgreSQL + Sequelize
+- **Frontend**: React 18 + Tailwind CSS
+- **Autenticação**: JWT
+- **Docker**: Para containerização
 
-### Frontend
-- React 18
-- Material-UI
-- React Router
-- Axios
-
-## Como executar com Docker (RÁPIDO)
+## Como Executar
 
 ### Pré-requisitos
 - Docker
 - Docker Compose
 
-### Passos RÁPIDOS
+### Executar o Projeto
 
 1. Clone o repositório:
 ```bash
@@ -41,42 +33,58 @@ git clone <repository-url>
 cd MarketPlace_B2B
 ```
 
-2. **OPCIONAL** - Copie o arquivo de ambiente:
+2. Execute com Docker:
 ```bash
-cp backend/.env.example backend/.env
-```
-
-3. **Execute IMEDIATAMENTE**:
-```bash
-# Usando o docker-compose simples
-docker-compose -f docker-compose.simple.yml up --build
-
-# OU usando o docker-compose principal
 docker-compose up --build
 ```
 
-4. Acesse a aplicação:
+3. Acesse:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:3001
 - PostgreSQL: localhost:5434
 
-### Para desenvolvimento
+### Seed de Dados
 
-Para executar apenas o backend:
+Após subir os containers, acesse o endpoint para popular o banco:
 ```bash
-docker-compose up postgres backend
+curl -X POST http://localhost:3001/api/seed
 ```
 
-Para executar apenas o frontend:
-```bash
-docker-compose up frontend
-```
+### Credenciais de Teste
+- **Admin**: admin@b2bmarketplace.com / 123456
+- **Comprador**: joao@empresa.com / 123456
 
-### Se der erro, limpe tudo:
+### Comandos Úteis
+
 ```bash
+# Parar containers
+docker-compose down
+
+# Limpar volumes
 docker-compose down -v
-docker system prune -f
-docker-compose up --build --force-recreate
+
+# Logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+## Estrutura do Projeto
+
+```
+MarketPlace_B2B/
+├── backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   └── middleware/
+│   ├── server.js
+│   └── Dockerfile
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── Dockerfile
+└── docker-compose.yml
 ```
 
 ## API Endpoints
@@ -100,25 +108,6 @@ docker-compose up --build --force-recreate
 - POST `/api/orders` - Criar pedido
 - GET `/api/orders` - Listar pedidos do usuário
 - PUT `/api/orders/:id/status` - Atualizar status
-
-## Estrutura do Projeto
-
-```
-MarketPlace_B2B/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   └── middleware/
-│   ├── server.js
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   └── Dockerfile
-└── docker-compose.yml
-```
 
 ## Contribuição
 
