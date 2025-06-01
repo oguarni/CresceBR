@@ -23,7 +23,7 @@ const ModalsContainer = ({
         setAuthForm={auth.form.updateField}
         handleAuth={auth.handleAuth}
         loading={auth.loading}
-        validationErrors={auth.validationErrors}
+        error={auth.error}
       />
 
       <QuotesSidebar 
