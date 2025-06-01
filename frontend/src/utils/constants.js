@@ -1,8 +1,34 @@
-export const categories = ['Todas', 'Maquinário', 'Matéria-Prima', 'Componentes'];
+export const categories = [
+  'Todas', 
+  'Maquinário', 
+  'Matéria-Prima', 
+  'Componentes', 
+  'Ferramentas', 
+  'Equipamentos'
+];
 
-export const calculateShipping = (cep) => {
-  const cepPrefix = cep.substring(0, 2);
-  if (cepPrefix >= '80' && cepPrefix <= '87') return 15.90;
-  if (cepPrefix >= '88' && cepPrefix <= '89') return 25.90;
-  return 35.90;
+export const industrialSectors = [
+  'metalurgia',
+  'automotivo', 
+  'petrochemical',
+  'alimenticio',
+  'textil',
+  'construcao',
+  'eletroeletronico',
+  'farmaceutico',
+  'papel',
+  'outros'
+];
+
+export const urgencyLevels = {
+  normal: { label: 'Normal', days: 30 },
+  urgent: { label: 'Urgente', days: 15 },
+  express: { label: 'Express', days: 7 }
+};
+
+export const quoteStatuses = {
+  pending: 'Aguardando resposta',
+  responded: 'Cotação recebida', 
+  accepted: 'Cotação aceita',
+  rejected: 'Cotação rejeitada'
 };

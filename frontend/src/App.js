@@ -18,7 +18,7 @@ function App() {
   const quotes = useQuotes();
   const products = useProducts();
 
-  // Forms - Ajustados para workflow B2B
+  // Forms - B2B Workflow
   const authForm = useForm({ 
     email: '', 
     password: '', 
@@ -49,17 +49,17 @@ function App() {
     minQuantity: 1
   });
 
-  // UI States - Ajustados para workflow de cotações
+  // UI States - B2B focused
   const [uiState, setUiState] = useState({
     isMenuOpen: false,
     selectedCategory: 'Todas',
     searchTerm: '',
-    showQuotes: false,        // Substitui showCart
+    showQuotes: false,
     showAuth: false,
-    showQuoteModal: false,    // Substitui showCheckout
+    showQuoteModal: false,
     showAdmin: false,
-    showQuoteSuccess: false,  // Substitui showOrderSuccess
-    showQuoteComparison: false, // Nova funcionalidade
+    showQuoteSuccess: false,
+    showQuoteComparison: false,
     isLogin: true
   });
 
@@ -83,7 +83,7 @@ function App() {
     products.loadProducts(filters);
   }, [uiState.selectedCategory, uiState.searchTerm]);
 
-  // Handlers - Workflow B2B
+  // Handlers - B2B Workflow
   const handleAuth = async () => {
     const success = uiState.isLogin 
       ? await auth.login(authForm.form.email, authForm.form.password)
@@ -96,7 +96,7 @@ function App() {
     }
   };
 
-  // Nova função: Solicitar cotação
+  // Solicitar cotação
   const handleRequestQuote = (product) => {
     if (!auth.user) {
       updateUI({ showAuth: true });
@@ -119,7 +119,7 @@ function App() {
     updateUI({ showQuoteModal: true });
   };
 
-  // Nova função: Submeter cotação
+  // Submeter cotação
   const handleSubmitQuote = async () => {
     if (!selectedProduct) return;
 
@@ -185,7 +185,6 @@ function App() {
         setShowQuotes={(show) => updateUI({ showQuotes: show })}
         setShowAuth={(show) => updateUI({ showAuth: show })}
         setShowAdmin={(show) => updateUI({ showAdmin: show })}
-        setShowQuoteComparison={(show) => updateUI({ showQuoteComparison: show })}
         handleLogout={auth.logout}
         seedData={seedData}
         isMenuOpen={uiState.isMenuOpen}
