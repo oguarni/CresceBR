@@ -1,6 +1,8 @@
 import React from 'react';
 import { X, Building, Users, ShoppingCart } from 'lucide-react';
 import { formatCNPJ } from '../../utils/validation';
+import { useValidation } from '../../hooks/useValidation';
+import ErrorHandler from '../common/ErrorHandler';
 
 const AuthModal = ({ 
   showAuth, 
@@ -11,31 +13,84 @@ const AuthModal = ({
   setAuthForm, 
   handleAuth, 
   loading,
-  validationErrors = {}
+  error
 }) => {
+  const { validateField, hasError, getError, setFieldTouched } = useValidation();
+
   if (!showAuth) return null;
+
+  const validationRules = {
+    name: { required: true, label: 'Nome', minLength: 2 },
+    email: { required: true, type: 'email', label: 'Email' },
+    password: { required: true, type: 'password', label: 'Senha' },
+    cnpj: { required: true, type: 'cnpj', label: 'CNPJ' },
+    companyName: { required: true, label: 'Razão Social', minLength: 3 },
+    role: { required: true, label: 'Tipo de usuário' },
+    address: { required: true, label: 'Endereço', minLength: 10 },
+    phone: { required: true, type: 'phone', label: 'Telefone' },
+    sector: { required: true, label: 'Setor' }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     handleAuth();
   };
 
-  const handleCNPJChange = (e) => {
-    const formatted = formatCNPJ(e.target.value);
-    setAuthForm({...authForm, cnpj: formatted});
+  const handleFieldChange = (field, value) => {
+    if (field === 'cnpj') {
+      value = formatCNPJ(value);
+    } else if (field === 'phone') {
+      value = value.replace(/\D/g, '')
+        .replace(/^(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2')
+        .substring(0, 15);
+    }
+    
+    setAuthForm({...authForm, [field]: value});
+    validateField(field, value, validationRules[field]);
   };
 
-  const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '');
-    const formatted = value
-      .replace(/^(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .substring(0, 15);
-    setAuthForm({...authForm, phone: formatted});
+  const handleFieldBlur = (field) => {
+    setFieldTouched(field);
+    validateField(field, authForm[field], validationRules[field]);
   };
 
-  const getFieldError = (field) => validationErrors[field];
-  const hasError = (field) => !!getFieldError(field);
+  const InputField = ({ 
+    field, 
+    type = 'text', 
+    placeholder, 
+    required = false,
+    maxLength,
+    as = 'input',
+    rows 
+  }) => {
+    const Component = as;
+    return (
+      <div>
+        <Component
+          type={type}
+          placeholder={`${placeholder}${required ? ' *' : ''}`}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+            hasError(field) ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+          value={authForm[field] || ''}
+          onChange={(e) => handleFieldChange(field, e.target.value)}
+          onBlur={() => handleFieldBlur(field)}
+          maxLength={maxLength}
+          rows={rows}
+          required={required}
+          aria-label={placeholder}
+          aria-invalid={hasError(field)}
+          aria-describedby={hasError(field) ? `${field}-error` : undefined}
+        />
+        {hasError(field) && (
+          <p id={`${field}-error`} className="text-red-500 text-xs mt-1" role="alert">
+            {getError(field)}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 modal-backdrop">
@@ -43,6 +98,7 @@ const AuthModal = ({
         <button 
           onClick={() => setShowAuth(false)} 
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          aria-label="Fechar modal"
         >
           <X size={24} />
         </button>
@@ -56,67 +112,46 @@ const AuthModal = ({
             {isLogin ? 'Entre com suas credenciais' : 'Registre sua empresa no marketplace'}
           </p>
         </div>
+
+        {error && (
+          <ErrorHandler 
+            error={error} 
+            className="mb-4"
+          />
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
-              {/* Nome do responsável */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="Nome do responsável *"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasError('name') ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={authForm.name || ''}
-                  onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
-                />
-                {hasError('name') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('name')}</p>
-                )}
-              </div>
+              <InputField 
+                field="name" 
+                placeholder="Nome do responsável" 
+                required 
+              />
 
-              {/* Razão Social */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="Razão Social da Empresa *"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasError('companyName') ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={authForm.companyName || ''}
-                  onChange={(e) => setAuthForm({...authForm, companyName: e.target.value})}
-                />
-                {hasError('companyName') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('companyName')}</p>
-                )}
-              </div>
+              <InputField 
+                field="companyName" 
+                placeholder="Razão Social da Empresa" 
+                required 
+              />
 
-              {/* CNPJ */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="CNPJ *"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasError('cnpj') ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={authForm.cnpj || ''}
-                  onChange={handleCNPJChange}
-                  maxLength={18}
-                />
-                {hasError('cnpj') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('cnpj')}</p>
-                )}
-              </div>
+              <InputField 
+                field="cnpj" 
+                placeholder="CNPJ" 
+                maxLength={18}
+                required 
+              />
 
-              {/* Setor Industrial */}
               <div>
                 <select
                   className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     hasError('sector') ? 'border-red-500' : 'border-gray-300'
                   }`}
                   value={authForm.sector || ''}
-                  onChange={(e) => setAuthForm({...authForm, sector: e.target.value})}
+                  onChange={(e) => handleFieldChange('sector', e.target.value)}
+                  onBlur={() => handleFieldBlur('sector')}
+                  required
+                  aria-label="Setor industrial"
                 >
                   <option value="">Selecione o setor industrial *</option>
                   <option value="metalurgia">Metalurgia</option>
@@ -131,11 +166,10 @@ const AuthModal = ({
                   <option value="outros">Outros</option>
                 </select>
                 {hasError('sector') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('sector')}</p>
+                  <p className="text-red-500 text-xs mt-1">{getError('sector')}</p>
                 )}
               </div>
 
-              {/* Tipo de Usuário */}
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Tipo de empresa *</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -149,7 +183,7 @@ const AuthModal = ({
                       name="role"
                       value="buyer"
                       checked={authForm.role === 'buyer'}
-                      onChange={(e) => setAuthForm({...authForm, role: e.target.value})}
+                      onChange={(e) => handleFieldChange('role', e.target.value)}
                       className="sr-only"
                     />
                     <div className="text-center">
@@ -169,7 +203,7 @@ const AuthModal = ({
                       name="role"
                       value="supplier"
                       checked={authForm.role === 'supplier'}
-                      onChange={(e) => setAuthForm({...authForm, role: e.target.value})}
+                      onChange={(e) => handleFieldChange('role', e.target.value)}
                       className="sr-only"
                     />
                     <div className="text-center">
@@ -180,84 +214,48 @@ const AuthModal = ({
                   </label>
                 </div>
                 {hasError('role') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('role')}</p>
+                  <p className="text-red-500 text-xs mt-1">{getError('role')}</p>
                 )}
               </div>
             </>
           )}
           
-          {/* Email */}
-          <div>
-            <input
-              type="email"
-              placeholder="Email empresarial *"
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                hasError('email') ? 'border-red-500' : 'border-gray-300'
-              }`}
-              value={authForm.email || ''}
-              onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-            />
-            {hasError('email') && (
-              <p className="text-red-500 text-xs mt-1">{getFieldError('email')}</p>
-            )}
-          </div>
+          <InputField 
+            field="email" 
+            type="email"
+            placeholder="Email empresarial" 
+            required 
+          />
           
-          {/* Senha */}
-          <div>
-            <input
-              type="password"
-              placeholder={isLogin ? "Senha" : "Senha (mín. 6 caracteres) *"}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                hasError('password') ? 'border-red-500' : 'border-gray-300'
-              }`}
-              value={authForm.password || ''}
-              onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-            />
-            {hasError('password') && (
-              <p className="text-red-500 text-xs mt-1">{getFieldError('password')}</p>
-            )}
-          </div>
+          <InputField 
+            field="password" 
+            type="password"
+            placeholder={isLogin ? "Senha" : "Senha (mín. 6 caracteres)"} 
+            required 
+          />
           
           {!isLogin && (
             <>
-              {/* Telefone */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="Telefone empresarial *"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasError('phone') ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={authForm.phone || ''}
-                  onChange={handlePhoneChange}
-                  maxLength={15}
-                />
-                {hasError('phone') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('phone')}</p>
-                )}
-              </div>
+              <InputField 
+                field="phone" 
+                placeholder="Telefone empresarial" 
+                maxLength={15}
+                required 
+              />
 
-              {/* Endereço */}
-              <div>
-                <textarea
-                  placeholder="Endereço completo da empresa *"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                    hasError('address') ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  rows={3}
-                  value={authForm.address || ''}
-                  onChange={(e) => setAuthForm({...authForm, address: e.target.value})}
-                />
-                {hasError('address') && (
-                  <p className="text-red-500 text-xs mt-1">{getFieldError('address')}</p>
-                )}
-              </div>
+              <InputField 
+                field="address" 
+                placeholder="Endereço completo da empresa" 
+                as="textarea"
+                rows={3}
+                required 
+              />
             </>
           )}
           
           <button 
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
             disabled={loading}
           >
             {loading ? (
