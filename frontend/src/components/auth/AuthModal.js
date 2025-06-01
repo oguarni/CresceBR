@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Building, Users, ShoppingCart } from 'lucide-react';
 import { formatCNPJ } from '../../utils/validation';
-import { useValidation } from '../../hooks/useValidation';
 import ErrorHandler from '../common/ErrorHandler';
 
 const AuthModal = ({ 
@@ -15,21 +14,7 @@ const AuthModal = ({
   loading,
   error
 }) => {
-  const { validateField, hasError, getError, setFieldTouched } = useValidation();
-
   if (!showAuth) return null;
-
-  const validationRules = {
-    name: { required: true, label: 'Nome', minLength: 2 },
-    email: { required: true, type: 'email', label: 'Email' },
-    password: { required: true, type: 'password', label: 'Senha' },
-    cnpj: { required: true, type: 'cnpj', label: 'CNPJ' },
-    companyName: { required: true, label: 'Razão Social', minLength: 3 },
-    role: { required: true, label: 'Tipo de usuário' },
-    address: { required: true, label: 'Endereço', minLength: 10 },
-    phone: { required: true, type: 'phone', label: 'Telefone' },
-    sector: { required: true, label: 'Setor' }
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -47,12 +32,6 @@ const AuthModal = ({
     }
     
     setAuthForm({...authForm, [field]: value});
-    validateField(field, value, validationRules[field]);
-  };
-
-  const handleFieldBlur = (field) => {
-    setFieldTouched(field);
-    validateField(field, authForm[field], validationRules[field]);
   };
 
   const InputField = ({ 
@@ -66,29 +45,17 @@ const AuthModal = ({
   }) => {
     const Component = as;
     return (
-      <div>
-        <Component
-          type={type}
-          placeholder={`${placeholder}${required ? ' *' : ''}`}
-          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-            hasError(field) ? 'border-red-500 bg-red-50' : 'border-gray-300'
-          }`}
-          value={authForm[field] || ''}
-          onChange={(e) => handleFieldChange(field, e.target.value)}
-          onBlur={() => handleFieldBlur(field)}
-          maxLength={maxLength}
-          rows={rows}
-          required={required}
-          aria-label={placeholder}
-          aria-invalid={hasError(field)}
-          aria-describedby={hasError(field) ? `${field}-error` : undefined}
-        />
-        {hasError(field) && (
-          <p id={`${field}-error`} className="text-red-500 text-xs mt-1" role="alert">
-            {getError(field)}
-          </p>
-        )}
-      </div>
+      <Component
+        type={type}
+        placeholder={`${placeholder}${required ? ' *' : ''}`}
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        value={authForm[field] || ''}
+        onChange={(e) => handleFieldChange(field, e.target.value)}
+        maxLength={maxLength}
+        rows={rows}
+        required={required}
+        aria-label={placeholder}
+      />
     );
   };
 
@@ -142,33 +109,25 @@ const AuthModal = ({
                 required 
               />
 
-              <div>
-                <select
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasError('sector') ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  value={authForm.sector || ''}
-                  onChange={(e) => handleFieldChange('sector', e.target.value)}
-                  onBlur={() => handleFieldBlur('sector')}
-                  required
-                  aria-label="Setor industrial"
-                >
-                  <option value="">Selecione o setor industrial *</option>
-                  <option value="metalurgia">Metalurgia</option>
-                  <option value="automotivo">Automotivo</option>
-                  <option value="petrochemical">Petroquímico</option>
-                  <option value="alimenticio">Alimentício</option>
-                  <option value="textil">Têxtil</option>
-                  <option value="construcao">Construção Civil</option>
-                  <option value="eletroeletronico">Eletroeletrônico</option>
-                  <option value="farmaceutico">Farmacêutico</option>
-                  <option value="papel">Papel e Celulose</option>
-                  <option value="outros">Outros</option>
-                </select>
-                {hasError('sector') && (
-                  <p className="text-red-500 text-xs mt-1">{getError('sector')}</p>
-                )}
-              </div>
+              <select
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={authForm.sector || ''}
+                onChange={(e) => handleFieldChange('sector', e.target.value)}
+                required
+                aria-label="Setor industrial"
+              >
+                <option value="">Selecione o setor industrial *</option>
+                <option value="metalurgia">Metalurgia</option>
+                <option value="automotivo">Automotivo</option>
+                <option value="petrochemical">Petroquímico</option>
+                <option value="alimenticio">Alimentício</option>
+                <option value="textil">Têxtil</option>
+                <option value="construcao">Construção Civil</option>
+                <option value="eletroeletronico">Eletroeletrônico</option>
+                <option value="farmaceutico">Farmacêutico</option>
+                <option value="papel">Papel e Celulose</option>
+                <option value="outros">Outros</option>
+              </select>
 
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Tipo de empresa *</p>
@@ -213,9 +172,6 @@ const AuthModal = ({
                     </div>
                   </label>
                 </div>
-                {hasError('role') && (
-                  <p className="text-red-500 text-xs mt-1">{getError('role')}</p>
-                )}
               </div>
             </>
           )}
