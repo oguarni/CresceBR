@@ -1,7 +1,7 @@
 import React from 'react';
 import AuthModal from '../auth/AuthModal';
 import QuotesSidebar from '../quotes/QuotesSidebar';
-import QuoteModal from '../quotes/QuoteModal';
+import QuoteModal from '../products/QuoteModal';
 import QuoteComparisonModal from '../quotes/QuoteComparisonModal';
 import AdminPanel from '../admin/AdminPanel';
 
@@ -20,7 +20,7 @@ const ModalsContainer = ({
         isLogin={uiState.isLogin}
         setIsLogin={(login) => updateUI({ isLogin: login })}
         authForm={auth.form.form}
-        setAuthForm={auth.form.updateField}
+        setAuthForm={auth.form.setForm}
         handleAuth={auth.handleAuth}
         loading={auth.loading}
         error={auth.error}
@@ -42,7 +42,7 @@ const ModalsContainer = ({
         product={quotes.selectedProduct}
         user={auth.user}
         quoteForm={quotes.form.form}
-        setQuoteForm={quotes.form.updateField}
+        setQuoteForm={quotes.form.setForm}
         onSubmitQuote={quotes.handleSubmitQuote}
         loading={quotes.loading}
       />
@@ -60,7 +60,7 @@ const ModalsContainer = ({
         setShowAdmin={(show) => updateUI({ showAdmin: show })}
         user={auth.user}
         productForm={products.form.form}
-        setProductForm={products.form.updateField}
+        setProductForm={products.form.setForm}
         editingProduct={products.editingProduct}
         setEditingProduct={products.setEditingProduct}
         handleProductSubmit={products.handleProductSubmit}
