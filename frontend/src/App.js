@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppProvider } from './contexts';
+import { AppProvider } from './contexts/AppProvider';
 import Header from './components/common/Header';
 import MainContent from './components/layout/MainContent';
 import ModalsContainer from './components/common/ModalsContainer';
