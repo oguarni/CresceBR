@@ -4,6 +4,7 @@ import QuotesSidebar from '../quotes/QuotesSidebar';
 import QuoteModal from '../products/QuoteModal';
 import QuoteComparisonModal from '../quotes/QuoteComparisonModal';
 import AdminPanel from '../admin/AdminPanel';
+import OrdersModal from '../orders/OrdersModal';
 
 const ModalsContainer = ({ 
   uiState, 
@@ -53,6 +54,12 @@ const ModalsContainer = ({
         quotes={quotes.getRespondedQuotes()}
         onAcceptQuote={quotes.updateQuoteStatus}
         loading={quotes.loading}
+      />
+
+      <OrdersModal 
+        show={uiState.showOrders}
+        onClose={() => updateUI({ showOrders: false })}
+        user={auth.user}
       />
 
       <AdminPanel 

@@ -18,7 +18,7 @@ function App() {
   const quotes = useQuotes();
   const products = useProducts();
 
-  // Forms - B2B Workflow
+  // Forms
   const authForm = useForm({ 
     email: '', 
     password: '', 
@@ -49,7 +49,7 @@ function App() {
     minQuantity: 1
   });
 
-  // UI States - B2B focused
+  // UI States
   const [uiState, setUiState] = useState({
     isMenuOpen: false,
     selectedCategory: 'Todas',
@@ -60,6 +60,7 @@ function App() {
     showAdmin: false,
     showQuoteSuccess: false,
     showQuoteComparison: false,
+    showOrders: false,
     isLogin: true
   });
 
@@ -83,7 +84,7 @@ function App() {
     products.loadProducts(filters);
   }, [uiState.selectedCategory, uiState.searchTerm]);
 
-  // Handlers - B2B Workflow
+  // Handlers
   const handleAuth = async () => {
     const success = uiState.isLogin 
       ? await auth.login(authForm.form.email, authForm.form.password)
@@ -96,7 +97,6 @@ function App() {
     }
   };
 
-  // Solicitar cotação
   const handleRequestQuote = (product) => {
     if (!auth.user) {
       updateUI({ showAuth: true });
@@ -119,7 +119,6 @@ function App() {
     updateUI({ showQuoteModal: true });
   };
 
-  // Submeter cotação
   const handleSubmitQuote = async () => {
     if (!selectedProduct) return;
 
@@ -185,6 +184,7 @@ function App() {
         setShowQuotes={(show) => updateUI({ showQuotes: show })}
         setShowAuth={(show) => updateUI({ showAuth: show })}
         setShowAdmin={(show) => updateUI({ showAdmin: show })}
+        setShowOrders={(show) => updateUI({ showOrders: show })}
         handleLogout={auth.logout}
         seedData={seedData}
         isMenuOpen={uiState.isMenuOpen}

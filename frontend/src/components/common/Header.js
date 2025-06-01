@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, User, Menu, X } from 'lucide-react';
+import { FileText, User, Menu, X, Package } from 'lucide-react';
 
 const Header = ({ 
   user, 
@@ -7,7 +7,8 @@ const Header = ({
   getTotalQuotes, 
   setShowQuotes, 
   setShowAuth, 
-  setShowAdmin, 
+  setShowAdmin,
+  setShowOrders, 
   handleLogout, 
   seedData, 
   isMenuOpen, 
@@ -48,6 +49,17 @@ const Header = ({
                 </span>
               )}
             </button>
+
+            {user && (
+              <button 
+                onClick={() => setShowOrders(true)}
+                className="bg-blue-700 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center space-x-2"
+              >
+                <Package size={20} />
+                <span className="hidden sm:inline">Pedidos</span>
+              </button>
+            )}
+
             {user ? (
               <div className="flex items-center space-x-2">
                 <span className="hidden sm:inline text-sm">{user.name}</span>
