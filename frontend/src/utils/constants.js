@@ -1,4 +1,4 @@
-export const categories = ['Todas', 'EPI', 'Manutenção', 'Embalagem', 'Ferramenta', 'Limpeza'];
+export const categories = ['Todas', 'Maquinário', 'Matéria-Prima', 'Componentes'];
 
 export const calculateShipping = (cep) => {
   const cepPrefix = cep.substring(0, 2);
