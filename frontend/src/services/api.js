@@ -32,6 +32,7 @@ class ApiService {
     );
   }
 
+  // Auth methods
   async login(email, password) {
     const response = await this.api.post('/auth/login', { email, password });
     return response.data;
@@ -46,23 +47,31 @@ class ApiService {
       companyName: userData.companyName,
       role: userData.role,
       address: userData.address,
-      phone: userData.phone
+      phone: userData.phone,
+      sector: userData.sector
     });
     return response.data;
   }
 
+  // Products methods
   async getProducts(filters = {}) {
     const response = await this.api.get('/products', { params: filters });
     return response.data;
   }
 
   async createProduct(productData) {
-    const response = await this.api.post('/products', productData);
+    const response = await this.api.post('/products', {
+      ...productData,
+      minQuantity: productData.minQuantity || 1
+    });
     return response.data;
   }
 
   async updateProduct(id, productData) {
-    const response = await this.api.put(`/products/${id}`, productData);
+    const response = await this.api.put(`/products/${id}`, {
+      ...productData,
+      minQuantity: productData.minQuantity || 1
+    });
     return response.data;
   }
 
@@ -71,6 +80,7 @@ class ApiService {
     return response.data;
   }
 
+  // Orders methods
   async createOrder(orderData) {
     const response = await this.api.post('/orders', orderData);
     return response.data;
@@ -91,6 +101,44 @@ class ApiService {
     return response.data;
   }
 
+  // Supplier approval methods
+  async getPendingSuppliers() {
+    const response = await this.api.get('/admin/suppliers/pending');
+    return response.data;
+  }
+
+  async approveSupplier(supplierId) {
+    const response = await this.api.put(`/admin/suppliers/${supplierId}/approve`);
+    return response.data;
+  }
+
+  async rejectSupplier(supplierId) {
+    const response = await this.api.put(`/admin/suppliers/${supplierId}/reject`);
+    return response.data;
+  }
+
+  // Quote methods
+  async createQuote(quoteData) {
+    const response = await this.api.post('/quotes', quoteData);
+    return response.data;
+  }
+
+  async getUserQuotes() {
+    const response = await this.api.get('/quotes/user');
+    return response.data;
+  }
+
+  async getSupplierQuotes() {
+    const response = await this.api.get('/quotes/supplier');
+    return response.data;
+  }
+
+  async respondQuote(quoteId, response) {
+    const res = await this.api.put(`/quotes/${quoteId}/respond`, response);
+    return res.data;
+  }
+
+  // Seed method
   async seedDatabase() {
     const response = await this.api.post('/seed');
     return response.data;
