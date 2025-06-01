@@ -5,45 +5,76 @@ import SearchAndFilters from './components/products/SearchAndFilters';
 import ProductGrid from './components/products/ProductGrid';
 import ModalsContainer from './components/common/ModalsContainer';
 import ErrorMessage from './components/common/ErrorMessage';
-import OrderSuccessMessage from './components/common/OrderSuccessMessage';
+import QuoteSuccessMessage from './components/common/QuoteSuccessMessage';
 
 import { useAuth } from './hooks/useAuth';
-import { useCart } from './hooks/useCart';
+import { useQuotes } from './hooks/useQuotes';
 import { useProducts } from './hooks/useProducts';
-import { useOrders } from './hooks/useOrders';
 import { useForm } from './hooks/useForm';
 import { apiService } from './services/api';
 
 function App() {
   const auth = useAuth();
-  const cart = useCart();
+  const quotes = useQuotes();
   const products = useProducts();
-  const orders = useOrders();
 
-  // Forms
-  const authForm = useForm({ email: '', password: '', name: '', cpf: '', address: '' });
-  const checkoutForm = useForm({ cardNumber: '', cardName: '', cvv: '', expiry: '', cep: '' });
-  const productForm = useForm({ name: '', category: 'EPI', price: '', unit: 'unidade', description: '', image: '📦' });
+  // Forms - Ajustados para workflow B2B
+  const authForm = useForm({ 
+    email: '', 
+    password: '', 
+    name: '', 
+    cnpj: '', 
+    companyName: '', 
+    role: '', 
+    address: '', 
+    phone: '',
+    sector: ''
+  });
+  
+  const quoteForm = useForm({ 
+    quantity: 1,
+    urgency: 'normal',
+    deliveryAddress: '',
+    specifications: '',
+    message: ''
+  });
+  
+  const productForm = useForm({ 
+    name: '', 
+    category: 'Maquinário', 
+    price: '', 
+    unit: 'unidade', 
+    description: '', 
+    image: '📦',
+    minQuantity: 1
+  });
 
-  // UI States
+  // UI States - Ajustados para workflow de cotações
   const [uiState, setUiState] = useState({
     isMenuOpen: false,
     selectedCategory: 'Todas',
     searchTerm: '',
-    showCart: false,
+    showQuotes: false,        // Substitui showCart
     showAuth: false,
-    showCheckout: false,
+    showQuoteModal: false,    // Substitui showCheckout
     showAdmin: false,
-    showOrderSuccess: false,
+    showQuoteSuccess: false,  // Substitui showOrderSuccess
+    showQuoteComparison: false, // Nova funcionalidade
     isLogin: true
   });
 
   const [editingProduct, setEditingProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const updateUI = (updates) => setUiState(prev => ({ ...prev, ...updates }));
 
   // Effects
-  useEffect(() => products.loadProducts(), []);
+  useEffect(() => {
+    products.loadProducts();
+    if (auth.user) {
+      quotes.loadUserQuotes();
+    }
+  }, [auth.user]);
 
   useEffect(() => {
     const filters = {};
@@ -52,7 +83,7 @@ function App() {
     products.loadProducts(filters);
   }, [uiState.selectedCategory, uiState.searchTerm]);
 
-  // Handlers
+  // Handlers - Workflow B2B
   const handleAuth = async () => {
     const success = uiState.isLogin 
       ? await auth.login(authForm.form.email, authForm.form.password)
@@ -61,23 +92,54 @@ function App() {
     if (success) {
       updateUI({ showAuth: false });
       authForm.resetForm();
+      quotes.loadUserQuotes();
     }
   };
 
-  const handleCheckout = async () => {
-    const orderData = {
-      items: cart.cart.map(item => ({ productId: item.id, quantity: item.quantity })),
-      cep: checkoutForm.form.cep,
-      paymentMethod: 'credit_card'
+  // Nova função: Solicitar cotação
+  const handleRequestQuote = (product) => {
+    if (!auth.user) {
+      updateUI({ showAuth: true });
+      return;
+    }
+
+    if (!auth.hasPermission('buy')) {
+      alert('Apenas compradores podem solicitar cotações');
+      return;
+    }
+
+    setSelectedProduct(product);
+    quoteForm.setForm({ 
+      quantity: product.minQuantity || 1,
+      urgency: 'normal',
+      deliveryAddress: auth.user.address || '',
+      specifications: '',
+      message: ''
+    });
+    updateUI({ showQuoteModal: true });
+  };
+
+  // Nova função: Submeter cotação
+  const handleSubmitQuote = async () => {
+    if (!selectedProduct) return;
+
+    const quoteData = {
+      productId: selectedProduct.id,
+      ...quoteForm.form,
+      totalEstimate: selectedProduct.price * quoteForm.form.quantity
     };
 
-    const result = await orders.createOrder(orderData);
+    const result = await quotes.createQuote(quoteData);
     if (result.success) {
-      updateUI({ showCheckout: false, showOrderSuccess: true });
+      updateUI({ 
+        showQuoteModal: false, 
+        showQuoteSuccess: true 
+      });
       setTimeout(() => {
-        updateUI({ showOrderSuccess: false });
-        cart.clearCart();
+        updateUI({ showQuoteSuccess: false });
       }, 5000);
+      setSelectedProduct(null);
+      quoteForm.resetForm();
     }
   };
 
@@ -102,7 +164,7 @@ function App() {
     try {
       await apiService.seedDatabase();
       await products.loadProducts();
-      alert('Banco populado!');
+      alert('Banco populado com dados B2B!');
     } catch (error) {
       console.error('Erro:', error);
     }
@@ -111,18 +173,19 @@ function App() {
   const clearAllErrors = () => {
     auth.clearError();
     products.clearError();
-    orders.clearError();
+    quotes.clearError();
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
         user={auth.user}
-        cart={cart.cart}
-        getTotalItems={cart.getTotalItems}
-        setShowCart={(show) => updateUI({ showCart: show })}
+        quotes={quotes.quotes}
+        getTotalQuotes={quotes.getTotalQuotes}
+        setShowQuotes={(show) => updateUI({ showQuotes: show })}
         setShowAuth={(show) => updateUI({ showAuth: show })}
         setShowAdmin={(show) => updateUI({ showAdmin: show })}
+        setShowQuoteComparison={(show) => updateUI({ showQuoteComparison: show })}
         handleLogout={auth.logout}
         seedData={seedData}
         isMenuOpen={uiState.isMenuOpen}
@@ -130,7 +193,7 @@ function App() {
       />
 
       <ErrorMessage 
-        error={auth.error || products.error || orders.error}
+        error={auth.error || products.error || quotes.error}
         onClear={clearAllErrors}
       />
 
@@ -145,7 +208,8 @@ function App() {
         <ProductGrid 
           products={products.products}
           loading={products.loading}
-          addToCart={cart.addToCart}
+          onRequestQuote={handleRequestQuote}
+          user={auth.user}
         />
       </div>
 
@@ -153,14 +217,26 @@ function App() {
         uiState={uiState}
         updateUI={updateUI}
         auth={{ ...auth, form: authForm, handleAuth }}
-        cart={{ ...cart, form: checkoutForm, handleCheckout }}
-        products={{ ...products, form: productForm, handleProductSubmit, editProduct, editingProduct, setEditingProduct }}
-        orders={orders}
+        quotes={{ 
+          ...quotes, 
+          form: quoteForm, 
+          handleSubmitQuote,
+          selectedProduct,
+          setSelectedProduct
+        }}
+        products={{ 
+          ...products, 
+          form: productForm, 
+          handleProductSubmit, 
+          editProduct, 
+          editingProduct, 
+          setEditingProduct 
+        }}
       />
 
-      <OrderSuccessMessage 
-        show={uiState.showOrderSuccess}
-        orderId={orders.lastOrderId}
+      <QuoteSuccessMessage 
+        show={uiState.showQuoteSuccess}
+        quoteId={quotes.lastQuoteId}
       />
     </div>
   );
