@@ -28,6 +28,7 @@ export const useSecureAuth = () => {
     const errors = {};
 
     if (!formData.name?.trim()) errors.name = 'Nome é obrigatório';
+    
     if (!formData.email?.trim()) {
       errors.email = 'Email é obrigatório';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -71,7 +72,6 @@ export const useSecureAuth = () => {
       
       const data = await apiService.login(email, password);
       
-      // Usar serviço seguro de auth
       const success = secureAuthService.setAuthData(data.token, data.user);
       if (!success) {
         setError('Erro ao salvar sessão');
@@ -81,7 +81,19 @@ export const useSecureAuth = () => {
       setUser(data.user);
       return true;
     } catch (error) {
-      setError(error.response?.data?.error || 'Erro na autenticação');
+      // Usar a mensagem user-friendly do error handler
+      const message = error.userMessage || error.message || 'Erro na autenticação';
+      setError(message);
+      
+      // Se houver erros de validação específicos
+      if (error.errors) {
+        const mappedErrors = {};
+        error.errors.forEach(err => {
+          mappedErrors[err.field] = err.message;
+        });
+        setValidationErrors(mappedErrors);
+      }
+      
       return false;
     } finally {
       setLoading(false);
@@ -94,6 +106,7 @@ export const useSecureAuth = () => {
       setError('');
       setValidationErrors({});
 
+      // Validação client-side
       const errors = validateRegisterForm(userData);
       if (Object.keys(errors).length > 0) {
         setValidationErrors(errors);
@@ -117,11 +130,19 @@ export const useSecureAuth = () => {
       setUser(data.user);
       return true;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Erro no cadastro';
-      setError(errorMessage);
+      // Usar a mensagem user-friendly do error handler
+      const message = error.userMessage || error.message || 'Erro no cadastro';
+      setError(message);
       
-      if (error.response?.data?.details) {
-        setValidationErrors(error.response.data.details);
+      // Mapear erros de validação do backend
+      if (error.errors) {
+        const mappedErrors = {};
+        error.errors.forEach(err => {
+          mappedErrors[err.field] = err.message;
+        });
+        setValidationErrors(mappedErrors);
+      } else if (error.details) {
+        setValidationErrors(error.details);
       }
       
       return false;

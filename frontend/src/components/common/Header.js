@@ -1,12 +1,19 @@
 import React from 'react';
 import { FileText, User, Menu, X, Package, Settings, Building } from 'lucide-react';
-import { useAuth, useUI, useQuotesContext } from '../../contexts';
+import { useAppContext } from '../../contexts';
 import { apiService } from '../../services/api';
 
 const Header = () => {
-  const { auth } = useAuth();
-  const { uiState, showModal, hideModal, toggleMenu, closeMenu, addNotification } = useUI();
-  const { getTotalQuotes } = useQuotesContext();
+  const { 
+    uiState, 
+    auth, 
+    quotes,
+    showModal, 
+    hideModal, 
+    toggleMenu, 
+    closeMenu, 
+    addNotification 
+  } = useAppContext();
 
   const seedData = async () => {
     try {
@@ -79,9 +86,9 @@ const Header = () => {
             >
               <FileText size={18} />
               <span className="hidden sm:inline text-sm">Cotações</span>
-              {getTotalQuotes() > 0 && (
+              {quotes.getTotalQuotes() > 0 && (
                 <span className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-medium">
-                  {getTotalQuotes()}
+                  {quotes.getTotalQuotes()}
                 </span>
               )}
             </button>
