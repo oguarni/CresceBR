@@ -1,11 +1,11 @@
 import React from 'react';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
+import { FileText, User, Menu, X } from 'lucide-react';
 
 const Header = ({ 
   user, 
-  cart, 
-  getTotalItems, 
-  setShowCart, 
+  quotes,
+  getTotalQuotes, 
+  setShowQuotes, 
   setShowAuth, 
   setShowAdmin, 
   handleLogout, 
@@ -37,14 +37,14 @@ const Header = ({
 
           <div className="flex items-center space-x-4">
             <button 
-              onClick={() => setShowCart(true)}
+              onClick={() => setShowQuotes(true)}
               className="relative bg-blue-700 px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors flex items-center space-x-2"
             >
-              <ShoppingCart size={20} />
-              <span className="hidden sm:inline">Carrinho</span>
-              {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center">
-                  {getTotalItems()}
+              <FileText size={20} />
+              <span className="hidden sm:inline">Cotações</span>
+              {quotes.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center">
+                  {getTotalQuotes()}
                 </span>
               )}
             </button>

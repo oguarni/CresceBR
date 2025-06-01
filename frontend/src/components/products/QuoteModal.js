@@ -1,46 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X, FileText, Package, Building } from 'lucide-react';
 
-const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
-  const [quoteData, setQuoteData] = useState({
-    quantity: product?.minQuantity || 1,
-    urgency: 'normal',
-    deliveryAddress: user?.address || '',
-    specifications: '',
-    message: ''
-  });
-
-  const [loading, setLoading] = useState(false);
-
+const QuoteModal = ({ 
+  show, 
+  onClose, 
+  product, 
+  user, 
+  quoteForm, 
+  setQuoteForm, 
+  onSubmitQuote, 
+  loading 
+}) => {
   if (!show || !product) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    
-    try {
-      await onSubmitQuote({
-        productId: product.id,
-        ...quoteData,
-        totalEstimate: product.price * quoteData.quantity
-      });
-      onClose();
-      setQuoteData({
-        quantity: 1,
-        urgency: 'normal',
-        deliveryAddress: '',
-        specifications: '',
-        message: ''
-      });
-    } catch (error) {
-      console.error('Erro ao solicitar cotação:', error);
-    } finally {
-      setLoading(false);
-    }
+    await onSubmitQuote();
   };
 
   const calculateTotal = () => {
-    return (product.price * quoteData.quantity).toFixed(2);
+    return (product.price * quoteForm.quantity).toFixed(2);
   };
 
   return (
@@ -94,8 +73,8 @@ const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
                   type="number"
                   min={product.minQuantity || 1}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  value={quoteData.quantity}
-                  onChange={(e) => setQuoteData({...quoteData, quantity: parseInt(e.target.value) || 1})}
+                  value={quoteForm.quantity || 1}
+                  onChange={(e) => setQuoteForm({...quoteForm, quantity: parseInt(e.target.value) || 1})}
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -109,8 +88,8 @@ const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
                 </label>
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  value={quoteData.urgency}
-                  onChange={(e) => setQuoteData({...quoteData, urgency: e.target.value})}
+                  value={quoteForm.urgency || 'normal'}
+                  onChange={(e) => setQuoteForm({...quoteForm, urgency: e.target.value})}
                 >
                   <option value="normal">Normal (30 dias)</option>
                   <option value="urgent">Urgente (15 dias)</option>
@@ -127,8 +106,8 @@ const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={3}
-                value={quoteData.deliveryAddress}
-                onChange={(e) => setQuoteData({...quoteData, deliveryAddress: e.target.value})}
+                value={quoteForm.deliveryAddress || ''}
+                onChange={(e) => setQuoteForm({...quoteForm, deliveryAddress: e.target.value})}
                 placeholder="Endereço completo para entrega"
               />
             </div>
@@ -141,9 +120,9 @@ const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={2}
-                value={quoteData.specifications}
-                onChange={(e) => setQuoteData({...quoteData, specifications: e.target.value})}
-                placeholder="Cor, tamanho, certificações específicas, etc."
+                value={quoteForm.specifications || ''}
+                onChange={(e) => setQuoteForm({...quoteForm, specifications: e.target.value})}
+                placeholder="Certificações, normas técnicas, especificações especiais, etc."
               />
             </div>
 
@@ -155,8 +134,8 @@ const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={3}
-                value={quoteData.message}
-                onChange={(e) => setQuoteData({...quoteData, message: e.target.value})}
+                value={quoteForm.message || ''}
+                onChange={(e) => setQuoteForm({...quoteForm, message: e.target.value})}
                 placeholder="Informações adicionais para o fornecedor"
               />
             </div>
@@ -167,18 +146,18 @@ const QuoteModal = ({ show, onClose, product, user, onSubmitQuote }) => {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span>Quantidade:</span>
-                  <span>{quoteData.quantity} {product.unit}</span>
+                  <span>{quoteForm.quantity || 1} {product.unit}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Preço unitário:</span>
+                  <span>Preço unitário base:</span>
                   <span>R$ {parseFloat(product.price).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-semibold">
-                  <span>Total estimado:</span>
+                  <span>Valor estimado:</span>
                   <span>R$ {calculateTotal()}</span>
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
-                  * Valor estimado. O fornecedor enviará cotação oficial.
+                  * Valor estimado. O fornecedor enviará cotação oficial com preços finais.
                 </p>
               </div>
             </div>
