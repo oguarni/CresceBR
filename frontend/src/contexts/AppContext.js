@@ -4,150 +4,177 @@ import { useSecureAuth } from '../hooks/useSecureAuth';
 import { useQuotes } from '../hooks/useQuotes';
 import { useProducts } from '../hooks/useProducts';
 import { useForm } from '../hooks/useForm';
-import { apiService } from '../services/api';
-import { UI_ACTIONS } from '../utils/constants';
 
-// Estado inicial da UI
-const initialUIState = {
-  isMenuOpen: false,
-  selectedCategory: 'Todas',
-  searchTerm: '',
-  showQuotes: false,
-  showAuth: false,
-  showQuoteModal: false,
-  showAdmin: false,
-  showQuoteSuccess: false,
-  showQuoteComparison: false,
-  showOrders: false,
-  isLogin: true,
-  notifications: []
+const AppContext = createContext();
+
+// Estado inicial unificado
+const initialState = {
+  ui: {
+    isMenuOpen: false,
+    selectedCategory: 'Todas',
+    searchTerm: '',
+    modals: {
+      showQuotes: false,
+      showAuth: false,
+      showQuoteModal: false,
+      showAdmin: false,
+      showQuoteSuccess: false,
+      showQuoteComparison: false,
+      showOrders: false
+    },
+    isLogin: true,
+    notifications: []
+  }
 };
 
-// Reducer para UI
-const uiReducer = (state, action) => {
+// Reducer unificado seguindo SRP
+const appReducer = (state, action) => {
   switch (action.type) {
-    case UI_ACTIONS.TOGGLE_MODAL:
-      return { ...state, [action.modal]: action.show };
-    case UI_ACTIONS.SET_SEARCH:
-      return { ...state, searchTerm: action.term };
-    case UI_ACTIONS.SET_CATEGORY:
-      return { ...state, selectedCategory: action.category };
-    case UI_ACTIONS.TOGGLE_MENU:
-      return { ...state, isMenuOpen: !state.isMenuOpen };
-    case UI_ACTIONS.ADD_NOTIFICATION:
-      return { 
-        ...state, 
-        notifications: [...state.notifications, { 
-          id: Date.now(), 
-          ...action.notification 
-        }]
+    case 'UI/TOGGLE_MODAL':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          modals: {
+            ...state.ui.modals,
+            [action.modal]: action.show
+          }
+        }
       };
-    case UI_ACTIONS.REMOVE_NOTIFICATION:
-      return { 
-        ...state, 
-        notifications: state.notifications.filter(n => n.id !== action.id)
+
+    case 'UI/SET_SEARCH':
+      return {
+        ...state,
+        ui: { ...state.ui, searchTerm: action.term }
       };
-    case UI_ACTIONS.RESET_UI:
-      return initialUIState;
+
+    case 'UI/SET_CATEGORY':
+      return {
+        ...state,
+        ui: { ...state.ui, selectedCategory: action.category }
+      };
+
+    case 'UI/TOGGLE_MENU':
+      return {
+        ...state,
+        ui: { ...state.ui, isMenuOpen: !state.ui.isMenuOpen }
+      };
+
+    case 'UI/ADD_NOTIFICATION':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          notifications: [...state.ui.notifications, { 
+            id: Date.now(), 
+            ...action.notification 
+          }]
+        }
+      };
+
+    case 'UI/REMOVE_NOTIFICATION':
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          notifications: state.ui.notifications.filter(n => n.id !== action.id)
+        }
+      };
+
     default:
       return state;
   }
 };
 
-const AppContext = createContext();
-
 export const AppProvider = ({ children }) => {
-  const [uiState, dispatch] = useReducer(uiReducer, initialUIState);
+  const [state, dispatch] = useReducer(appReducer, initialState);
   
-  // Hooks de domínio
   const auth = useSecureAuth();
   const quotes = useQuotes();
   const products = useProducts();
 
-  // Forms
+  // Forms separados por responsabilidade
   const authForm = useForm({ 
-    email: '', 
-    password: '', 
-    name: '', 
-    cnpj: '', 
-    companyName: '', 
-    role: '', 
-    address: '', 
-    phone: '',
-    sector: ''
+    email: '', password: '', name: '', cnpj: '', 
+    companyName: '', role: '', address: '', phone: '', sector: ''
   });
   
   const quoteForm = useForm({ 
-    quantity: 1,
-    urgency: 'normal',
-    deliveryAddress: '',
-    specifications: '',
-    message: ''
+    quantity: 1, urgency: 'normal', deliveryAddress: '',
+    specifications: '', message: ''
   });
   
   const productForm = useForm({ 
-    name: '', 
-    category: 'Maquinário', 
-    price: '', 
-    unit: 'unidade', 
-    description: '', 
-    image: '📦',
-    minQuantity: 1
+    name: '', category: 'Maquinário', price: '', unit: 'unidade',
+    description: '', image: '📦', minQuantity: 1
   });
 
-  // Effects
-  useEffect(() => {
-    products.loadProducts();
-    if (auth.user) {
-      quotes.loadUserQuotes();
+  // Actions seguindo Interface Segregation Principle
+  const uiActions = {
+    showModal: (modalName) => 
+      dispatch({ type: 'UI/TOGGLE_MODAL', modal: modalName, show: true }),
+    
+    hideModal: (modalName) => 
+      dispatch({ type: 'UI/TOGGLE_MODAL', modal: modalName, show: false }),
+    
+    setSearch: (term) => 
+      dispatch({ type: 'UI/SET_SEARCH', term }),
+    
+    setCategory: (category) => 
+      dispatch({ type: 'UI/SET_CATEGORY', category }),
+    
+    toggleMenu: () => 
+      dispatch({ type: 'UI/TOGGLE_MENU' }),
+    
+    addNotification: (notification) => {
+      dispatch({ type: 'UI/ADD_NOTIFICATION', notification });
+      if (notification.autoHide) {
+        setTimeout(() => {
+          dispatch({ type: 'UI/REMOVE_NOTIFICATION', id: notification.id });
+        }, 5000);
+      }
+    },
+    
+    removeNotification: (id) => 
+      dispatch({ type: 'UI/REMOVE_NOTIFICATION', id })
+  };
+
+  // Business actions
+  const handleAuth = async () => {
+    const success = state.ui.isLogin 
+      ? await auth.login(authForm.form.email, authForm.form.password)
+      : await auth.register(authForm.form);
+    
+    if (success) {
+      authForm.resetForm();
+      uiActions.hideModal('showAuth');
+      return true;
     }
-  }, [auth.user]);
+    return false;
+  };
+
+  const clearAllErrors = () => {
+    auth.clearError();
+    quotes.clearError();
+    products.clearError();
+  };
+
+  // Effects otimizados
+  useEffect(() => {
+    if (auth.user) quotes.loadUserQuotes();
+  }, [auth.user?.id]); // Dependency otimizada
 
   useEffect(() => {
     const filters = {};
-    if (uiState.selectedCategory !== 'Todas') filters.category = uiState.selectedCategory;
-    if (uiState.searchTerm) filters.search = uiState.searchTerm;
+    if (state.ui.selectedCategory !== 'Todas') filters.category = state.ui.selectedCategory;
+    if (state.ui.searchTerm) filters.search = state.ui.searchTerm;
     products.loadProducts(filters);
-  }, [uiState.selectedCategory, uiState.searchTerm]);
-
-  // Helper functions for UI
-  const showModal = (modalName) => {
-    updateUI({ [modalName]: true });
-  };
-
-  const hideModal = (modalName) => {
-    updateUI({ [modalName]: false });
-  };
-
-  const toggleMenu = () => {
-    updateUI({ isMenuOpen: !uiState.isMenuOpen });
-  };
-
-  const closeMenu = () => {
-    updateUI({ isMenuOpen: false });
-  };
-
-  // Enhanced auth object with role checking
-  const enhancedAuth = {
-    ...auth,
-    hasRole: (role) => auth.user?.role === role,
-    isAdmin: () => auth.user?.role === 'admin',
-    isSupplier: () => auth.user?.role === 'supplier',
-    isBuyer: () => auth.user?.role === 'buyer',
-    hasPermission: (permission) => {
-      const rolePermissions = {
-        admin: ['admin', 'buy', 'sell', 'manage_products', 'approve_suppliers'],
-        buyer: ['buy'],
-        supplier: ['sell', 'manage_products']
-      };
-      return rolePermissions[auth.user?.role]?.includes(permission) || false;
-    }
-  };
+  }, [state.ui.selectedCategory, state.ui.searchTerm]);
 
   const contextValue = {
     // State
-    uiState,
-    auth: enhancedAuth,
+    uiState: state.ui,
+    auth,
     quotes,
     products,
     
@@ -156,15 +183,9 @@ export const AppProvider = ({ children }) => {
     quoteForm,
     productForm,
     
-    // UI helpers
-    showModal,
-    hideModal,
-    toggleMenu,
-    closeMenu,
-    
-    // Business Actions
+    // Actions
+    ...uiActions,
     handleAuth,
-    seedData,
     clearAllErrors
   };
 
