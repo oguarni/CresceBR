@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Lock } from 'lucide-react';
+import { calculateShipping } from '../../utils/constants';
 
 const CheckoutModal = ({ 
   showCheckout, 
@@ -7,7 +8,6 @@ const CheckoutModal = ({
   checkoutForm, 
   setCheckoutForm, 
   getTotalValue, 
-  calculateShipping, 
   handleCheckout, 
   loading 
 }) => {
