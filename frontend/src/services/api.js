@@ -18,6 +18,18 @@ class ApiService {
       }
       return config;
     });
+
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/';
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   async login(email, password) {
@@ -26,7 +38,16 @@ class ApiService {
   }
 
   async register(userData) {
-    const response = await this.api.post('/auth/register', userData);
+    const response = await this.api.post('/auth/register', {
+      name: userData.name,
+      email: userData.email,
+      password: userData.password,
+      cnpj: userData.cnpj,
+      companyName: userData.companyName,
+      role: userData.role,
+      address: userData.address,
+      phone: userData.phone
+    });
     return response.data;
   }
 
@@ -52,6 +73,21 @@ class ApiService {
 
   async createOrder(orderData) {
     const response = await this.api.post('/orders', orderData);
+    return response.data;
+  }
+
+  async getUserOrders() {
+    const response = await this.api.get('/orders/user');
+    return response.data;
+  }
+
+  async getSupplierOrders() {
+    const response = await this.api.get('/orders/supplier');
+    return response.data;
+  }
+
+  async updateOrderStatus(orderId, status) {
+    const response = await this.api.put(`/orders/${orderId}/status`, { status });
     return response.data;
   }
 
