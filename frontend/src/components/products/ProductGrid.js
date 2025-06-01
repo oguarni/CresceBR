@@ -1,136 +1,119 @@
-import React, { memo, useMemo } from 'react';
-import { FileText, Building, Package } from 'lucide-react';
+import React, { memo, useMemo, useCallback, Suspense } from 'react';
+import { Package } from 'lucide-react';
+import ProductCard from './ProductCard';
+import LoadingSpinner from '../common/LoadingSpinner';
 
-const ProductCard = memo(({ product, onRequestQuote, user }) => {
-  const canRequestQuote = useMemo(() => 
-    user && (user.role === 'buyer' || user.role === 'admin'), 
-    [user]
-  );
+// Lazy loading para componentes pesados
+const ProductGridSkeleton = memo(() => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {Array.from({ length: 8 }).map((_, index) => (
+      <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse h-96">
+        <div className="p-4 h-full flex flex-col">
+          <div className="h-20 bg-gray-200 rounded-lg mb-3"></div>
+          <div className="space-y-2 flex-1">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-3 bg-gray-200 rounded w-full"></div>
+            <div className="h-6 bg-gray-200 rounded w-1/3 mt-auto"></div>
+          </div>
+          <div className="h-10 bg-gray-200 rounded mt-4"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+));
 
-  const isSupplier = useMemo(() => 
-    user && user.role === 'supplier', 
-    [user]
-  );
+ProductGridSkeleton.displayName = 'ProductGridSkeleton';
+
+// Empty state otimizado
+const EmptyState = memo(() => (
+  <div className="text-center py-16">
+    <Package className="mx-auto mb-4 text-gray-400" size={80} />
+    <h3 className="text-xl font-medium text-gray-900 mb-2">
+      Nenhum produto encontrado
+    </h3>
+    <p className="text-gray-500 max-w-md mx-auto">
+      Não há produtos que correspondem aos seus critérios de busca. 
+      Tente ajustar os filtros ou termos de pesquisa.
+    </p>
+  </div>
+));
+
+EmptyState.displayName = 'EmptyState';
+
+const ProductGrid = memo(({ products = [], loading = false, onRequestQuote, user }) => {
+  // Memoização inteligente dos produtos
+  const memoizedProducts = useMemo(() => {
+    if (!Array.isArray(products)) return [];
+    return products.filter(Boolean); // Remove produtos null/undefined
+  }, [products]);
+
+  // Callback memoizado para evitar re-renders nos cards
+  const memoizedOnRequestQuote = useCallback((product) => {
+    if (typeof onRequestQuote === 'function') {
+      onRequestQuote(product);
+    }
+  }, [onRequestQuote]);
+
+  // Renderização condicional otimizada
+  const renderContent = useCallback(() => {
+    if (loading) {
+      return <ProductGridSkeleton />;
+    }
+
+    if (memoizedProducts.length === 0) {
+      return <EmptyState />;
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {memoizedProducts.map(product => (
+          <Suspense 
+            key={product.id} 
+            fallback={<LoadingSpinner size="sm" />}
+          >
+            <ProductCard 
+              product={product} 
+              onRequestQuote={memoizedOnRequestQuote} 
+              user={user} 
+            />
+          </Suspense>
+        ))}
+      </div>
+    );
+  }, [loading, memoizedProducts, memoizedOnRequestQuote, user]);
+
+  // Header memoizado
+  const headerInfo = useMemo(() => {
+    if (loading || memoizedProducts.length === 0) return null;
+    
+    const count = memoizedProducts.length;
+    return {
+      count,
+      text: `Mostrando ${count} produto${count !== 1 ? 's' : ''}`
+    };
+  }, [loading, memoizedProducts.length]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-gray-200">
-      <div className="p-4">
-        <div className="text-4xl mb-3 text-center bg-gray-50 py-4 rounded-lg">
-          {product.image}
-        </div>
-        
-        <div className="mb-3">
-          <h3 className="font-semibold text-gray-800 mb-1">{product.name}</h3>
-          <p className="text-xs text-blue-600 mb-2">
-            <span className="inline-flex items-center">
-              <Building size={12} className="mr-1" />
-              {product.supplier || 'Fornecedor'}
-            </span>
+    <div className="w-full">
+      {/* Header with product count */}
+      {headerInfo && (
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            {headerInfo.text}
           </p>
-          <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
-        </div>
-        
-        <div className="mb-3">
-          <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-            {product.category}
-          </span>
-        </div>
-        
-        <div className="flex items-baseline justify-between mb-3">
-          <div>
-            <span className="text-xl font-bold text-blue-600">
-              R$ {parseFloat(product.price).toFixed(2)}
-            </span>
-            <span className="text-sm text-gray-500 ml-1">/{product.unit}</span>
+          <div className="flex items-center space-x-2 text-xs text-gray-500">
+            <Package size={14} />
+            <span>Produtos industriais certificados</span>
           </div>
         </div>
-        
-        <div className="mb-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <Package size={14} className="mr-1" />
-            <span>Qtd. mínima: {product.minQuantity || 1} {product.unit}</span>
-          </div>
-          {product.leadTime && (
-            <div className="flex items-center text-sm text-gray-600 mt-1">
-              <span>Prazo: {product.leadTime} dias</span>
-            </div>
-          )}
-        </div>
-        
-        {canRequestQuote ? (
-          <button
-            onClick={() => onRequestQuote(product)}
-            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-          >
-            <FileText size={18} />
-            <span>Solicitar Cotação</span>
-          </button>
-        ) : isSupplier ? (
-          <div className="w-full bg-gray-100 text-gray-500 py-2 rounded-lg text-center text-sm">
-            Produto do fornecedor
-          </div>
-        ) : (
-          <button
-            onClick={() => onRequestQuote && onRequestQuote(null)}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-          >
-            <FileText size={18} />
-            <span>Fazer Login para Cotar</span>
-          </button>
-        )}
-        
-        {product.inStock !== undefined && (
-          <div className="mt-2 text-xs text-center">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full ${
-              product.inStock 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-red-100 text-red-800'
-            }`}>
-              {product.inStock ? '✓ Disponível' : '⚠ Consultar disponibilidade'}
-            </span>
-          </div>
-        )}
-      </div>
+      )}
+      
+      {renderContent()}
     </div>
   );
 });
 
-ProductCard.displayName = 'ProductCard';
+ProductGrid.displayName = 'ProductGrid';
 
-const ProductGrid = ({ products, loading, onRequestQuote, user }) => {
-  const memoizedProducts = useMemo(() => products, [products]);
-
-  if (loading) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin inline-block w-8 h-8 border-b-2 border-blue-600"></div>
-        <p className="mt-2">Carregando produtos...</p>
-      </div>
-    );
-  }
-
-  if (memoizedProducts.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Package className="mx-auto mb-4 text-gray-400" size={64} />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
-        <p className="text-gray-500">Tente ajustar os filtros de busca</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {memoizedProducts.map(product => (
-        <ProductCard 
-          key={product.id} 
-          product={product} 
-          onRequestQuote={onRequestQuote} 
-          user={user} 
-        />
-      ))}
-    </div>
-  );
-};
-
-export default memo(ProductGrid);
+export default ProductGrid;
