@@ -34,12 +34,6 @@ const isSupplier = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, isAdmin, isSupplier };
-
-const isSupplierOrAdmin = (req, res, next) => {
-  if (req.user.role !== 'supplier' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Insufficient permissions' });
-  }
 const isSupplierOrAdmin = (req, res, next) => {
   if (req.user.role !== 'supplier' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Insufficient permissions' });

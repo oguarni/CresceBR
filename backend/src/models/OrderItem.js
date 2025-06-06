@@ -1,23 +1,23 @@
 module.exports = (sequelize, DataTypes) => {
   const OrderItem = sequelize.define('OrderItem', {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
-      autoIncrement: true,
     },
     orderId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'orders',
+        model: 'Orders',
         key: 'id',
       },
     },
     productId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'products',
+        model: 'Products',
         key: 'id',
       },
     },
@@ -29,10 +29,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+    subtotal: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    }
   }, {
     timestamps: true,
-    tableName: 'order_items',
+    tableName: 'OrderItems',
   });
+
+  OrderItem.associate = (models) => {
+    OrderItem.belongsTo(models.Order, { foreignKey: 'orderId' });
+    OrderItem.belongsTo(models.Product, { foreignKey: 'productId' });
+  };
 
   return OrderItem;
 };
