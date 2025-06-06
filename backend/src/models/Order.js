@@ -1,9 +1,9 @@
 module.exports = (sequelize, DataTypes) => {
   const Order = sequelize.define('Order', {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
-      autoIncrement: true,
     },
     orderNumber: {
       type: DataTypes.STRING,
@@ -11,41 +11,73 @@ module.exports = (sequelize, DataTypes) => {
       unique: true,
     },
     userId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'Users',
+        key: 'id',
+      },
+    },
+    supplierId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'Suppliers',
         key: 'id',
       },
     },
     status: {
-      type: DataTypes.ENUM('pending', 'paid', 'shipped', 'delivered', 'cancelled'),
+      type: DataTypes.ENUM('pending', 'quote_requested', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'),
       defaultValue: 'pending',
     },
     subtotal: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      defaultValue: 0,
     },
     shipping: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      defaultValue: 0,
     },
-    total: {
+    tax: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    discount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
+    totalAmount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
-    cep: {
-      type: DataTypes.STRING,
+    shippingAddress: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     paymentMethod: {
       type: DataTypes.STRING,
-      defaultValue: 'credit_card',
+      defaultValue: 'invoice',
     },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    }
   }, {
     timestamps: true,
-    tableName: 'orders',
+    tableName: 'Orders',
   });
+
+  Order.associate = (models) => {
+    Order.belongsTo(models.User, { foreignKey: 'userId' });
+    Order.belongsTo(models.Supplier, { foreignKey: 'supplierId' });
+    Order.hasMany(models.OrderItem, { foreignKey: 'orderId' });
+    Order.hasMany(models.Quote, { foreignKey: 'orderId' });
+    Order.hasMany(models.Review, { foreignKey: 'orderId' });
+  };
 
   return Order;
 };

@@ -34,7 +34,7 @@ const startServer = async () => {
     console.log('Database connected');
     
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
+      await sequelize.sync({ force: true });
     }
     
     app.listen(PORT, () => {
