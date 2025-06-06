@@ -1,19 +1,37 @@
 const jwt = require('jsonwebtoken');
+const { User, Supplier } = require('../models');
 
-const authMiddleware = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token de acesso requerido' });
-  }
-
+const authenticate = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key');
-    req.user = decoded;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) throw new Error();
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id, {
+      include: [{ model: Supplier, required: false }]
+    });
+
+    if (!user) throw new Error();
+    req.user = user;
+    req.token = token;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Token inválido' });
+    res.status(401).json({ error: 'Please authenticate' });
   }
 };
 
-module.exports = authMiddleware;
+const isAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+const isSupplier = (req, res, next) => {
+  if (!req.user.Supplier && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Supplier access required' });
+  }
+  next();
+};
+
+module.exports = { authenticate, isAdmin, isSupplier };
