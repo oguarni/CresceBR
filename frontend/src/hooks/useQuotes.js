@@ -3,6 +3,7 @@ import { apiService } from '../services/api';
 
 export const useQuotes = () => {
   const [quotes, setQuotes] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lastQuoteId, setLastQuoteId] = useState('');
@@ -71,6 +72,8 @@ export const useQuotes = () => {
 
   return {
     quotes,
+    selectedProduct,
+    setSelectedProduct,
     loading,
     error,
     lastQuoteId,
