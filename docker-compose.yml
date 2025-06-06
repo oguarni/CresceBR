@@ -42,12 +42,13 @@ services:
   frontend:
     build: 
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: b2b_frontend
     ports:
       - "3000:3000"
     environment:
       REACT_APP_API_URL: http://localhost:3001/api
+      SKIP_PREFLIGHT_CHECK: true
     depends_on:
       - backend
     volumes:
