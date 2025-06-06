@@ -1,11 +1,4 @@
-export { 
-  AppProvider, 
-  useAppContext,
-  useAuth,
-  useUI, 
-  useQuotesContext, 
-  useProductsContext 
-} from './AppProvider';
+export { AppProvider, useAppContext } from './AppProvider';
 
 /*
 BEFORE (múltiplos providers):
@@ -26,13 +19,7 @@ AFTER (provider único):
 
 HOOKS DISPONÍVEIS:
 - useAppContext()    // Hook principal com tudo
-- useAuth()          // Apenas autenticação
-- useUI()            // Apenas UI/modais/notificações  
-- useQuotesContext() // Apenas cotações
-- useProductsContext() // Apenas produtos
 
 EXEMPLO DE USO EM COMPONENTES:
 import { useAppContext } from '../contexts';
-// ou
-import { useAuth, useUI } from '../contexts';
 */

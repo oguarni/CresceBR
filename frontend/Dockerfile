@@ -2,12 +2,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
-RUN npm install
+RUN npm install --force
 
+# Copy source
 COPY . .
 
-ENV REACT_APP_API_URL=http://backend:3001/api
+# Override TypeScript version
+RUN npm install typescript@4.9.5 --save-dev
 
 EXPOSE 3000
 
