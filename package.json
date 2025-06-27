@@ -1,0 +1,29 @@
+{
+  "name": "b2b-marketplace",
+  "version": "1.0.0",
+  "description": "B2B Marketplace platform with complete e-commerce features",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run frontend:dev\" \"npm run backend:dev\"",
+    "frontend:dev": "cd frontend && npm run dev",
+    "backend:dev": "cd backend && npm run dev",
+    "build": "npm run frontend:build && npm run backend:build",
+    "frontend:build": "cd frontend && npm run build",
+    "backend:build": "cd backend && npm run build",
+    "setup": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "start": "npm run backend:start",
+    "backend:start": "cd backend && npm start"
+  },
+  "keywords": [
+    "b2b",
+    "marketplace",
+    "ecommerce",
+    "react",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
