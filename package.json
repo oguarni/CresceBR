@@ -1,28 +1,62 @@
 {
-  "name": "b2b-marketplace",
+  "name": "crescebr-b2b-marketplace",
   "version": "1.0.0",
-  "description": "B2B Marketplace platform with complete e-commerce features",
+  "description": "CresceBR - B2B Marketplace MVP para pequenas e médias empresas do sudoeste do Paraná",
   "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
   "scripts": {
-    "dev": "concurrently \"npm run frontend:dev\" \"npm run backend:dev\"",
+    "dev": "concurrently -n \"backend,frontend\" -c \"blue,green\" \"npm run backend:dev\" \"npm run frontend:dev\"",
     "frontend:dev": "cd frontend && npm run dev",
     "backend:dev": "cd backend && npm run dev",
-    "build": "npm run frontend:build && npm run backend:build",
+    "shared:dev": "cd shared && npm run dev",
+    "build": "npm run shared:build && npm run backend:build && npm run frontend:build",
     "frontend:build": "cd frontend && npm run build",
     "backend:build": "cd backend && npm run build",
-    "setup": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "shared:build": "cd shared && npm run build",
+    "setup": "npm install && npm run install:all",
+    "install:all": "concurrently \"cd shared && npm install\" \"cd backend && npm install\" \"cd frontend && npm install\"",
     "start": "npm run backend:start",
-    "backend:start": "cd backend && npm start"
+    "backend:start": "cd backend && npm start",
+    "frontend:start": "cd frontend && npm run preview",
+    "test": "concurrently \"npm run backend:test\" \"npm run frontend:test\"",
+    "backend:test": "cd backend && npm test",
+    "frontend:test": "cd frontend && npm test",
+    "lint": "concurrently \"npm run backend:lint\" \"npm run frontend:lint\"",
+    "backend:lint": "cd backend && npm run lint",
+    "frontend:lint": "cd frontend && npm run lint",
+    "clean": "concurrently \"npm run frontend:clean\" \"npm run backend:clean\" \"npm run shared:clean\"",
+    "frontend:clean": "cd frontend && rm -rf node_modules dist",
+    "backend:clean": "cd backend && rm -rf node_modules dist",
+    "shared:clean": "cd shared && rm -rf node_modules dist",
+    "postinstall": "echo '🚀 CresceBR B2B Marketplace setup complete! Run \"npm run dev\" to start development.'"
   },
   "keywords": [
+    "crescebr",
     "b2b",
     "marketplace",
     "ecommerce",
     "react",
-    "nodejs"
+    "nodejs",
+    "typescript",
+    "parana",
+    "sme",
+    "mvp"
   ],
-  "author": "",
+  "author": "CresceBR Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crescebr/b2b-marketplace.git"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
