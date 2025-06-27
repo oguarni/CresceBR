@@ -123,3 +123,33 @@ Thumbs.db
 
 # Uploads
 uploads/
+
+# CresceBR specific
+# Keep .env.example files but ignore actual .env files
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Backend specific
+backend/dist/
+backend/uploads/
+
+# Frontend specific  
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Shared module
+shared/dist/
+
+# Test files
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+# Dependencies
+node_modules/
+
+# Editor Config
+.vscode/
+
