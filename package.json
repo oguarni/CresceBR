@@ -33,7 +33,8 @@
     "frontend:clean": "cd frontend && rm -rf node_modules dist",
     "backend:clean": "cd backend && rm -rf node_modules dist",
     "shared:clean": "cd shared && rm -rf node_modules dist",
-    "postinstall": "echo '🚀 CresceBR B2B Marketplace setup complete! Run \"npm run dev\" to start development.'"
+    "postinstall": "echo '🚀 CresceBR B2B Marketplace setup complete! Run \"npm run dev\" to start development.'",
+    "prepare": "husky"
   },
   "keywords": [
     "crescebr",
@@ -58,6 +59,19 @@
     "npm": ">=8.0.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^9.2.0",
+    "eslint-config-prettier": "^10.1.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "**/*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

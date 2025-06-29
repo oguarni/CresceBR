@@ -3,12 +3,15 @@ import { body, validationResult } from 'express-validator';
 import User from '../models/User';
 import { generateToken } from '../utils/jwt';
 import { asyncHandler } from '../middleware/errorHandler';
+import { AuthenticatedRequest } from '../middleware/auth';
 import { RegisterRequest, LoginRequest, AuthResponse } from '../../../shared/types';
 
 export const registerValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-  body('cpf').isLength({ min: 11, max: 14 }).withMessage('CPF must be between 11 and 14 characters'),
+  body('cpf')
+    .isLength({ min: 11, max: 14 })
+    .withMessage('CPF must be between 11 and 14 characters'),
   body('address').notEmpty().withMessage('Address is required'),
 ];
 
@@ -152,5 +155,40 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: 'Login successful',
     data: response,
+  });
+});
+
+export const getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+    });
+  }
+
+  // Find user by ID from token
+  const user = await User.findByPk(req.user.id);
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      error: 'User not found',
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile retrieved successfully',
+    data: {
+      user: {
+        id: user.id,
+        email: user.email,
+        cpf: user.cpf,
+        address: user.address,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    },
   });
 });

@@ -39,6 +39,7 @@ CresceBR/
 ### Stack Tecnológica
 
 #### 🎨 Frontend
+
 - **React 18** - Framework JavaScript
 - **TypeScript** - Tipagem estática
 - **Vite** - Build tool e dev server
@@ -49,6 +50,7 @@ CresceBR/
 - **React Hot Toast** - Notificações
 
 #### ⚙️ Backend
+
 - **Node.js** - Runtime JavaScript
 - **Express.js** - Framework web
 - **TypeScript** - Tipagem estática
@@ -59,6 +61,7 @@ CresceBR/
 - **Express Validator** - Validação de dados
 
 #### 🔧 Ferramentas
+
 - **Concurrently** - Execução paralela de scripts
 - **ESLint** - Linting de código
 - **Git** - Controle de versão
@@ -98,6 +101,19 @@ CREATE USER crescebr_user WITH PASSWORD 'your_password';
 GRANT ALL PRIVILEGES ON DATABASE crescebr_b2b TO crescebr_user;
 ```
 
+#### 3.1 Executar Migrações (Novo Sistema)
+
+```bash
+# Navegar para o diretório backend
+cd backend
+
+# Executar migrações para criar as tabelas
+npm run db:migrate
+
+# Executar seeders para popular dados iniciais
+npm run db:seed
+```
+
 ### 4. Instalação das Dependências
 
 ```bash
@@ -113,6 +129,7 @@ npm run dev
 ```
 
 A aplicação estará disponível em:
+
 - **Frontend**: http://localhost:3000
 - **Backend**: http://localhost:3001
 - **API Health Check**: http://localhost:3001/api/v1/health
@@ -120,6 +137,7 @@ A aplicação estará disponível em:
 ## 📚 Scripts Disponíveis
 
 ### Monorepo
+
 ```bash
 npm run dev          # Executa frontend e backend em desenvolvimento
 npm run build        # Build completo do projeto
@@ -130,6 +148,7 @@ npm run clean        # Limpa node_modules e builds
 ```
 
 ### Frontend
+
 ```bash
 npm run frontend:dev     # Executa apenas o frontend
 npm run frontend:build   # Build do frontend
@@ -137,33 +156,59 @@ npm run frontend:preview # Preview do build do frontend
 ```
 
 ### Backend
+
 ```bash
 npm run backend:dev    # Executa apenas o backend
 npm run backend:build  # Build do backend
 npm run backend:start  # Executa backend em produção
 ```
 
+### Database (Migração Sistema)
+
+```bash
+cd backend
+
+# Gestão de Migrações
+npm run db:migrate         # Executa todas as migrações pendentes
+npm run db:migrate:undo    # Desfaz a última migração
+npm run db:create          # Cria o banco de dados
+npm run db:drop            # Remove o banco de dados
+
+# Gestão de Seeders
+npm run db:seed            # Executa todos os seeders
+npm run db:seed:undo       # Desfaz todos os seeders
+
+# Comandos úteis do Sequelize-CLI
+npx sequelize-cli migration:generate --name nome-da-migracao
+npx sequelize-cli seed:generate --name nome-do-seeder
+```
+
 ## 🔌 API Endpoints
 
 ### 🔐 Autenticação
+
 - `POST /api/v1/auth/register` - Cadastro de usuário
 - `POST /api/v1/auth/login` - Login de usuário
 
 ### 📦 Produtos
+
 - `GET /api/v1/products` - Listar produtos (com filtros)
 - `GET /api/v1/products/:id` - Buscar produto por ID
 - `GET /api/v1/products/categories` - Listar categorias
 
 #### Admin (Requer autenticação de admin)
+
 - `POST /api/v1/products` - Criar produto
 - `PUT /api/v1/products/:id` - Atualizar produto
 - `DELETE /api/v1/products/:id` - Deletar produto
 
 ### 🛒 Pedidos (Requer autenticação)
+
 - `POST /api/v1/orders` - Criar pedido
 - `GET /api/v1/orders/:id` - Buscar pedido por ID
 
 ### 🏥 Saúde
+
 - `GET /api/v1/health` - Health check da API
 
 ## 👥 Contas de Teste
@@ -171,24 +216,29 @@ npm run backend:start  # Executa backend em produção
 O sistema vem com contas pré-configuradas para teste:
 
 ### Administrador
+
 - **Email**: admin@crescebr.com
 - **Senha**: admin123
 
 ### Cliente
+
 - **Email**: cliente@teste.com
 - **Senha**: cliente123
 
 ## 🎨 Guia de Estilo Visual
 
 ### Cores Principais
+
 - **Deep Ocean Blue**: #1E3A8A
 - **Forest Green**: #059669
 
 ### Tipografia
+
 - **Headings**: Inter (Google Fonts)
 - **Body Text**: Open Sans (Google Fonts)
 
 ### Design System
+
 - Design mobile-first e responsivo
 - Componentes Material-UI customizados
 - Paleta de cores consistente
@@ -199,6 +249,7 @@ O sistema vem com contas pré-configuradas para teste:
 ### Variáveis de Ambiente
 
 #### Backend (.env)
+
 ```env
 NODE_ENV=development
 PORT=3001
@@ -213,6 +264,7 @@ FRONTEND_URL=http://localhost:3000
 ```
 
 #### Frontend (.env)
+
 ```env
 VITE_API_URL=http://localhost:3001/api/v1
 VITE_APP_NAME=CresceBR
@@ -238,6 +290,7 @@ npm run test:watch
 ## 📦 Build e Deploy
 
 ### Build de Produção
+
 ```bash
 # Build completo
 npm run build
@@ -250,6 +303,7 @@ npm run backend:build
 ```
 
 ### Deploy
+
 ```bash
 # Executar em produção
 npm start
@@ -269,18 +323,21 @@ pm2 start backend/dist/server.js --name "crescebr-api"
 ## 📝 Roadmap
 
 ### Versão 1.1
+
 - [ ] Sistema de notificações
 - [ ] Chat de suporte
 - [ ] Relatórios de vendas
 - [ ] Sistema de cupons de desconto
 
 ### Versão 1.2
+
 - [ ] API de pagamentos real (PIX/Cartão)
 - [ ] Gestão de estoque
 - [ ] Sistema de reviews e ratings
 - [ ] Integração com transportadoras
 
 ### Versão 2.0
+
 - [ ] App mobile (React Native)
 - [ ] Sistema de marketplace multi-vendor
 - [ ] IA para recomendações
@@ -291,6 +348,7 @@ pm2 start backend/dist/server.js --name "crescebr-api"
 ### Problemas Comuns
 
 **Erro de conexão com banco de dados**
+
 ```bash
 # Verifique se o PostgreSQL está rodando
 sudo service postgresql status
@@ -299,6 +357,7 @@ sudo service postgresql status
 ```
 
 **Erro de porta já em uso**
+
 ```bash
 # Verificar processos usando as portas
 lsof -i :3000
@@ -309,6 +368,7 @@ kill -9 <PID>
 ```
 
 **Problemas com dependências**
+
 ```bash
 # Limpar e reinstalar
 npm run clean
@@ -329,4 +389,4 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 
 **Desenvolvido com ❤️ pela equipe CresceBR**
 
-*Conectando empresas, impulsionando o crescimento no sudoeste do Paraná.*
+_Conectando empresas, impulsionando o crescimento no sudoeste do Paraná._
