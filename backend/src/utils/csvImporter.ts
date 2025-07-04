@@ -72,8 +72,10 @@ export class CSVImporter {
         } else {
           for (const tier of tierPricing) {
             if (
-              !tier.minQuantity ||
-              !tier.discount ||
+              tier.minQuantity === undefined ||
+              tier.minQuantity === null ||
+              tier.discount === undefined ||
+              tier.discount === null ||
               isNaN(tier.minQuantity) ||
               isNaN(tier.discount) ||
               tier.minQuantity <= 0 ||
@@ -308,9 +310,20 @@ export class CSVImporter {
       return acc;
     }, {});
 
-    // Temporarily disabled due to type issues - can be re-enabled later
-    const productsWithTierPricing = 0; // await Product.count({ where: { tierPricing: { [Op.not]: null } } });
-    const supplierStats = {}; // Placeholder for supplier statistics
+    const productsWithTierPricing = await Product.count({
+      where: sequelize.where(sequelize.col('tierPricing'), { [Op.not]: null }),
+    });
+
+    const productsBySupplier = await Product.findAll({
+      attributes: ['supplierId', [sequelize.fn('COUNT', sequelize.col('supplierId')), 'count']],
+      group: ['supplierId'],
+      raw: true,
+    });
+
+    const supplierStats = productsBySupplier.reduce((acc: any, item: any) => {
+      acc[item.supplierId] = parseInt(item.count);
+      return acc;
+    }, {});
 
     return {
       totalProducts,
