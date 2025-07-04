@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { authenticateJWT, isAdmin } from '../middleware/auth';
-import { getAllPendingCompanies, verifyCompany } from '../controllers/adminController';
+import {
+  getAllPendingCompanies,
+  verifyCompany,
+  getAllProducts,
+  moderateProduct,
+  getTransactionMonitoring,
+  getCompanyDetails,
+  updateCompanyStatus,
+} from '../controllers/adminController';
 
 const router = Router();
 
@@ -14,5 +22,12 @@ router.get('/dashboard', (req, res) => {
 
 router.get('/companies/pending', getAllPendingCompanies);
 router.put('/companies/:userId/verify', verifyCompany);
+router.get('/companies/:userId', getCompanyDetails);
+router.put('/companies/:userId/status', updateCompanyStatus);
+
+router.get('/products', getAllProducts);
+router.put('/products/:productId/moderate', moderateProduct);
+
+router.get('/transactions', getTransactionMonitoring);
 
 export default router;

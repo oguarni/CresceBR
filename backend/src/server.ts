@@ -16,10 +16,12 @@ const API_PREFIX = process.env.API_PREFIX || '/api/v1';
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  })
+);
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -37,13 +39,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-  });
-});
+// 404 handler - temporarily commented out
+// app.use('*', (req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     error: 'Route not found',
+//   });
+// });
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -52,8 +54,8 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     // Initialize database
-    await syncDatabase(process.env.NODE_ENV === 'development');
-    
+    await syncDatabase();
+
     // Start server
     app.listen(PORT, () => {
       console.log(`

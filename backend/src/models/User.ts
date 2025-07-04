@@ -12,11 +12,13 @@ interface UserAttributes {
   status: 'pending' | 'approved' | 'rejected';
   companyName: string | null;
   cnpj: string | null;
+  cnpjValidated: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'status' | 'createdAt' | 'updatedAt'> {}
+interface UserCreationAttributes
+  extends Optional<UserAttributes, 'id' | 'status' | 'cnpjValidated' | 'createdAt' | 'updatedAt'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -28,6 +30,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public status!: 'pending' | 'approved' | 'rejected';
   public companyName!: string | null;
   public cnpj!: string | null;
+  public cnpjValidated!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -93,6 +96,11 @@ User.init(
       type: DataTypes.STRING(18),
       allowNull: true,
       unique: true,
+    },
+    cnpjValidated: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
   },
   {
