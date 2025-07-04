@@ -4,10 +4,10 @@
   "description": "CresceBR B2B Marketplace Backend API",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc",
-    "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles",
+    "dev": "npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all && nodemon src/server.ts",
+    "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles --forceExit",
     "test:watch": "jest --watch",
     "lint": "eslint . --ext ts,js --report-unused-disable-directives --max-warnings 0",
     "db:migrate": "sequelize-cli db:migrate",
