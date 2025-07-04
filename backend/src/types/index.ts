@@ -1,3 +1,5 @@
+// Local types file that re-exports shared types
+
 export interface User {
   id: number;
   email: string;
@@ -41,7 +43,6 @@ export interface Quotation {
   updatedAt?: Date;
 }
 
-// Keep CartItem for backwards compatibility during migration
 export interface CartItem {
   id: number;
   productId: number;

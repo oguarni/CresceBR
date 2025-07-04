@@ -6,6 +6,7 @@ import Product from '../models/Product';
 import Quotation from '../models/Quotation';
 import QuotationItem from '../models/QuotationItem';
 import User from '../models/User';
+import { QuoteService } from '../services/quoteService';
 
 interface CreateQuotationRequest {
   items: {
@@ -95,40 +96,42 @@ export const createQuotation = asyncHandler(async (req: AuthenticatedRequest, re
   });
 });
 
-export const getCustomerQuotations = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user!.id;
-  const userRole = req.user!.role;
+export const getCustomerQuotations = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
 
-  // Only customers can access their own quotations
-  if (userRole !== 'customer') {
-    return res.status(403).json({
-      success: false,
-      error: 'Only customers can access quotations',
+    // Only customers can access their own quotations
+    if (userRole !== 'customer') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only customers can access quotations',
+      });
+    }
+
+    const quotations = await Quotation.findAll({
+      where: { userId },
+      include: [
+        {
+          model: QuotationItem,
+          as: 'items',
+          include: [
+            {
+              model: Product,
+              as: 'product',
+            },
+          ],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.status(200).json({
+      success: true,
+      data: quotations,
     });
   }
-
-  const quotations = await Quotation.findAll({
-    where: { userId },
-    include: [
-      {
-        model: QuotationItem,
-        as: 'items',
-        include: [
-          {
-            model: Product,
-            as: 'product',
-          },
-        ],
-      },
-    ],
-    order: [['createdAt', 'DESC']],
-  });
-
-  res.status(200).json({
-    success: true,
-    data: quotations,
-  });
-});
+);
 
 export const getQuotationById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
@@ -216,7 +219,9 @@ export const getAllQuotations = asyncHandler(async (req: AuthenticatedRequest, r
 });
 
 export const updateQuotationValidation = [
-  body('status').isIn(['pending', 'processed', 'completed', 'rejected']).withMessage('Invalid status'),
+  body('status')
+    .isIn(['pending', 'processed', 'completed', 'rejected'])
+    .withMessage('Invalid status'),
   body('adminNotes').optional().isString().withMessage('Admin notes must be a string'),
 ];
 
@@ -283,3 +288,142 @@ export const updateQuotation = asyncHandler(async (req: AuthenticatedRequest, re
     data: updatedQuotation,
   });
 });
+
+export const calculateQuoteValidation = [
+  body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
+  body('items.*.productId').isInt({ min: 1 }).withMessage('Valid product ID is required'),
+  body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+  body('buyerLocation').optional().isString().withMessage('Buyer location must be a string'),
+  body('supplierLocation').optional().isString().withMessage('Supplier location must be a string'),
+  body('shippingMethod')
+    .optional()
+    .isIn(['standard', 'express', 'economy'])
+    .withMessage('Invalid shipping method'),
+];
+
+export const calculateQuote = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors.array(),
+    });
+  }
+
+  const { items, buyerLocation, supplierLocation, shippingMethod } = req.body;
+
+  try {
+    const calculations = await QuoteService.calculateQuoteComparison(items, {
+      buyerLocation,
+      supplierLocation,
+      shippingMethod,
+    });
+
+    const formattedResponse = QuoteService.formatQuoteResponse(calculations);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...formattedResponse,
+        calculations: calculations,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Quote calculation failed',
+    });
+  }
+});
+
+export const getQuotationCalculations = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const userRole = req.user!.role;
+
+    try {
+      const result = await QuoteService.getQuotationWithCalculations(parseInt(id));
+
+      if (userRole === 'customer' && result.quotation.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied',
+        });
+      }
+
+      const formattedResponse = QuoteService.formatQuoteResponse(result.calculations);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          quotation: result.quotation,
+          ...formattedResponse,
+          calculations: result.calculations,
+        },
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get quotation calculations',
+      });
+    }
+  }
+);
+
+export const processQuotationWithCalculations = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const userRole = req.user!.role;
+
+    if (userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required',
+      });
+    }
+
+    try {
+      const result = await QuoteService.getQuotationWithCalculations(parseInt(id));
+
+      await QuoteService.updateQuotationWithCalculations(parseInt(id), result.calculations);
+
+      const updatedQuotation = await Quotation.findByPk(id, {
+        include: [
+          {
+            model: QuotationItem,
+            as: 'items',
+            include: [
+              {
+                model: Product,
+                as: 'product',
+              },
+            ],
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'cpf', 'address', 'role'],
+          },
+        ],
+      });
+
+      const formattedResponse = QuoteService.formatQuoteResponse(result.calculations);
+
+      res.status(200).json({
+        success: true,
+        message: 'Quotation processed with calculations',
+        data: {
+          quotation: updatedQuotation,
+          ...formattedResponse,
+        },
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to process quotation',
+      });
+    }
+  }
+);

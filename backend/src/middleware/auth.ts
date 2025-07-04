@@ -1,19 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, extractTokenFromHeader } from '../utils/jwt';
-import { AuthTokenPayload } from '../../../shared/types';
+import { AuthTokenPayload } from '../types';
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthTokenPayload;
 }
 
-export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const authenticateJWT = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
   try {
     const token = extractTokenFromHeader(req.headers.authorization);
-    
+
     if (!token) {
       res.status(401).json({
         success: false,
-        error: 'Access token is required'
+        error: 'Access token is required',
       });
       return;
     }
@@ -24,7 +28,7 @@ export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: 
   } catch (error) {
     res.status(403).json({
       success: false,
-      error: 'Invalid or expired token'
+      error: 'Invalid or expired token',
     });
   }
 };
@@ -33,7 +37,7 @@ export const isAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunc
   if (!req.user) {
     res.status(401).json({
       success: false,
-      error: 'Authentication required'
+      error: 'Authentication required',
     });
     return;
   }
@@ -41,7 +45,7 @@ export const isAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunc
   if (req.user.role !== 'admin') {
     res.status(403).json({
       success: false,
-      error: 'Admin access required'
+      error: 'Admin access required',
     });
     return;
   }
@@ -53,7 +57,7 @@ export const isSupplier = (req: AuthenticatedRequest, res: Response, next: NextF
   if (!req.user) {
     res.status(401).json({
       success: false,
-      error: 'Authentication required'
+      error: 'Authentication required',
     });
     return;
   }
@@ -61,7 +65,7 @@ export const isSupplier = (req: AuthenticatedRequest, res: Response, next: NextF
   if (req.user.role !== 'supplier') {
     res.status(403).json({
       success: false,
-      error: 'Supplier access required'
+      error: 'Supplier access required',
     });
     return;
   }

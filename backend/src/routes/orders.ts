@@ -1,13 +1,30 @@
 import { Router } from 'express';
-import { createOrderFromQuotation, getUserOrders, updateOrderStatus } from '../controllers/ordersController';
-import { authenticateJWT, isSupplier } from '../middleware/auth';
+import {
+  createOrderFromQuotation,
+  getUserOrders,
+  updateOrderStatus,
+  getOrderHistory,
+  getAllOrders,
+  getOrderStats,
+  createOrderValidation,
+  updateOrderStatusValidation,
+} from '../controllers/ordersController';
+import { authenticateJWT, isAdmin } from '../middleware/auth';
 
 const router = Router();
 
 router.use(authenticateJWT);
 
-router.post('/', createOrderFromQuotation);
+// Customer/General routes
+router.post('/', createOrderValidation, createOrderFromQuotation);
 router.get('/', getUserOrders);
-router.put('/:orderId/status', isSupplier, updateOrderStatus);
+router.get('/:orderId/history', getOrderHistory);
+
+// Admin/Supplier routes
+router.put('/:orderId/status', updateOrderStatusValidation, updateOrderStatus);
+
+// Admin only routes
+router.get('/admin/all', isAdmin, getAllOrders);
+router.get('/admin/stats', isAdmin, getOrderStats);
 
 export default router;

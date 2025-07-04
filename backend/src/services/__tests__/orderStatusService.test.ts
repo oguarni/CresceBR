@@ -1,0 +1,524 @@
+import { OrderStatusService } from '../orderStatusService';
+import Order from '../../models/Order';
+import User from '../../models/User';
+import Quotation from '../../models/Quotation';
+
+// Mock the models
+jest.mock('../../models/Order');
+jest.mock('../../models/User');
+jest.mock('../../models/Quotation');
+
+const MockOrder = Order as jest.Mocked<typeof Order>;
+const MockUser = User as jest.Mocked<typeof User>;
+const MockQuotation = Quotation as jest.Mocked<typeof Quotation>;
+
+describe('OrderStatusService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('isValidTransition', () => {
+    it('should allow valid transitions from pending', () => {
+      expect(OrderStatusService.isValidTransition('pending', 'processing')).toBe(true);
+      expect(OrderStatusService.isValidTransition('pending', 'cancelled')).toBe(true);
+    });
+
+    it('should allow valid transitions from processing', () => {
+      expect(OrderStatusService.isValidTransition('processing', 'shipped')).toBe(true);
+      expect(OrderStatusService.isValidTransition('processing', 'cancelled')).toBe(true);
+    });
+
+    it('should allow valid transitions from shipped', () => {
+      expect(OrderStatusService.isValidTransition('shipped', 'delivered')).toBe(true);
+      expect(OrderStatusService.isValidTransition('shipped', 'cancelled')).toBe(true);
+    });
+
+    it('should not allow transitions from terminal states', () => {
+      expect(OrderStatusService.isValidTransition('delivered', 'shipped')).toBe(false);
+      expect(OrderStatusService.isValidTransition('delivered', 'processing')).toBe(false);
+      expect(OrderStatusService.isValidTransition('cancelled', 'processing')).toBe(false);
+      expect(OrderStatusService.isValidTransition('cancelled', 'shipped')).toBe(false);
+    });
+
+    it('should not allow invalid transitions', () => {
+      expect(OrderStatusService.isValidTransition('pending', 'shipped')).toBe(false);
+      expect(OrderStatusService.isValidTransition('pending', 'delivered')).toBe(false);
+      expect(OrderStatusService.isValidTransition('processing', 'delivered')).toBe(false);
+    });
+
+    it('should not allow backwards transitions', () => {
+      expect(OrderStatusService.isValidTransition('shipped', 'processing')).toBe(false);
+      expect(OrderStatusService.isValidTransition('processing', 'pending')).toBe(false);
+      expect(OrderStatusService.isValidTransition('delivered', 'pending')).toBe(false);
+    });
+  });
+
+  describe('getValidNextStatuses', () => {
+    it('should return correct next statuses for pending', () => {
+      const nextStatuses = OrderStatusService.getValidNextStatuses('pending');
+      expect(nextStatuses).toEqual(['processing', 'cancelled']);
+    });
+
+    it('should return correct next statuses for processing', () => {
+      const nextStatuses = OrderStatusService.getValidNextStatuses('processing');
+      expect(nextStatuses).toEqual(['shipped', 'cancelled']);
+    });
+
+    it('should return correct next statuses for shipped', () => {
+      const nextStatuses = OrderStatusService.getValidNextStatuses('shipped');
+      expect(nextStatuses).toEqual(['delivered', 'cancelled']);
+    });
+
+    it('should return empty array for terminal statuses', () => {
+      expect(OrderStatusService.getValidNextStatuses('delivered')).toEqual([]);
+      expect(OrderStatusService.getValidNextStatuses('cancelled')).toEqual([]);
+    });
+  });
+
+  describe('getStatusDescription', () => {
+    it('should return correct descriptions for all statuses', () => {
+      expect(OrderStatusService.getStatusDescription('pending')).toBe(
+        'Order placed, awaiting processing'
+      );
+      expect(OrderStatusService.getStatusDescription('processing')).toBe('Order is being prepared');
+      expect(OrderStatusService.getStatusDescription('shipped')).toBe('Order has been shipped');
+      expect(OrderStatusService.getStatusDescription('delivered')).toBe('Order has been delivered');
+      expect(OrderStatusService.getStatusDescription('cancelled')).toBe('Order has been cancelled');
+    });
+  });
+
+  describe('calculateEstimatedDelivery', () => {
+    it('should calculate correct delivery date for standard shipping', () => {
+      const shippedDate = new Date('2023-01-01'); // Sunday
+      const estimated = OrderStatusService.calculateEstimatedDelivery('standard', shippedDate);
+
+      // Should add 5 days + 1 day because it falls on Sunday
+      const expectedDate = new Date('2023-01-07'); // Saturday + 2 days = Monday
+      expect(estimated.getDate()).toBe(9); // Should be Monday
+    });
+
+    it('should calculate correct delivery date for express shipping', () => {
+      const shippedDate = new Date('2023-01-02'); // Monday
+      const estimated = OrderStatusService.calculateEstimatedDelivery('express', shippedDate);
+
+      // Should add 2 days (Wednesday)
+      expect(estimated.getDate()).toBe(4);
+    });
+
+    it('should calculate correct delivery date for economy shipping', () => {
+      const shippedDate = new Date('2023-01-02'); // Monday
+      const estimated = OrderStatusService.calculateEstimatedDelivery('economy', shippedDate);
+
+      // Should add 10 days (Thursday)
+      expect(estimated.getDate()).toBe(12);
+    });
+
+    it('should adjust delivery date if it falls on Sunday', () => {
+      const shippedDate = new Date('2023-01-03'); // Tuesday
+      const estimated = OrderStatusService.calculateEstimatedDelivery('standard', shippedDate);
+
+      // 5 days from Tuesday = Sunday, should be adjusted to Monday
+      expect(estimated.getDay()).toBe(1); // Monday
+    });
+
+    it('should adjust delivery date if it falls on Saturday', () => {
+      const shippedDate = new Date('2023-01-01'); // Sunday
+      const estimated = OrderStatusService.calculateEstimatedDelivery('express', shippedDate);
+
+      // 2 days from Sunday = Tuesday, but Sunday +1 = Monday +2 = Wednesday
+      expect(estimated.getDay()).toBe(3); // Wednesday
+    });
+
+    it('should use current date as default', () => {
+      const beforeCall = new Date();
+      const estimated = OrderStatusService.calculateEstimatedDelivery('standard');
+      const afterCall = new Date();
+
+      // Estimated date should be after current date
+      expect(estimated.getTime()).toBeGreaterThan(beforeCall.getTime());
+      expect(estimated.getTime()).toBeLessThan(afterCall.getTime() + 10 * 24 * 60 * 60 * 1000); // Within 10 days
+    });
+  });
+
+  describe('updateOrderStatus', () => {
+    it('should update order status successfully', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'pending',
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      MockOrder.findByPk.mockResolvedValueOnce(mockOrder as any).mockResolvedValueOnce({
+        ...mockOrder,
+        status: 'processing',
+        user: { id: 1, email: 'test@example.com', role: 'buyer' },
+        quotation: { id: 1 },
+      } as any);
+
+      const result = await OrderStatusService.updateOrderStatus(
+        'order-123',
+        { status: 'processing' },
+        1
+      );
+
+      expect(result.status).toBe('processing');
+      expect(mockOrder.update).toHaveBeenCalledWith({ status: 'processing' });
+    });
+
+    it('should throw error when order not found', async () => {
+      MockOrder.findByPk.mockResolvedValue(null);
+
+      await expect(
+        OrderStatusService.updateOrderStatus('order-999', { status: 'processing' }, 1)
+      ).rejects.toThrow('Order not found');
+    });
+
+    it('should throw error for invalid status transition', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'delivered',
+        update: jest.fn(),
+      };
+
+      MockOrder.findByPk.mockResolvedValue(mockOrder as any);
+
+      await expect(
+        OrderStatusService.updateOrderStatus('order-123', { status: 'processing' }, 1)
+      ).rejects.toThrow('Invalid status transition from delivered to processing');
+    });
+
+    it('should require tracking number for shipping transition', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'processing',
+        update: jest.fn(),
+      };
+
+      MockOrder.findByPk.mockResolvedValue(mockOrder as any);
+
+      await expect(
+        OrderStatusService.updateOrderStatus('order-123', { status: 'shipped' }, 1)
+      ).rejects.toThrow('trackingNumber is required for this status transition');
+    });
+
+    it('should update with tracking number when provided', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'processing',
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      MockOrder.findByPk.mockResolvedValueOnce(mockOrder as any).mockResolvedValueOnce({
+        ...mockOrder,
+        status: 'shipped',
+        trackingNumber: 'TRACK123',
+      } as any);
+
+      await OrderStatusService.updateOrderStatus(
+        'order-123',
+        { status: 'shipped', trackingNumber: 'TRACK123' },
+        1
+      );
+
+      expect(mockOrder.update).toHaveBeenCalledWith({
+        status: 'shipped',
+        trackingNumber: 'TRACK123',
+        estimatedDeliveryDate: expect.any(Date),
+      });
+    });
+
+    it('should calculate estimated delivery date when shipping', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'processing',
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      MockOrder.findByPk
+        .mockResolvedValueOnce(mockOrder as any)
+        .mockResolvedValueOnce(mockOrder as any);
+
+      await OrderStatusService.updateOrderStatus(
+        'order-123',
+        { status: 'shipped', trackingNumber: 'TRACK123' },
+        1
+      );
+
+      const updateCall = mockOrder.update.mock.calls[0][0];
+      expect(updateCall.estimatedDeliveryDate).toBeInstanceOf(Date);
+      expect(updateCall.estimatedDeliveryDate.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('should use provided estimated delivery date', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'processing',
+        update: jest.fn().mockResolvedValue(true),
+      };
+      const customDate = new Date('2023-12-31');
+
+      MockOrder.findByPk
+        .mockResolvedValueOnce(mockOrder as any)
+        .mockResolvedValueOnce(mockOrder as any);
+
+      await OrderStatusService.updateOrderStatus(
+        'order-123',
+        {
+          status: 'shipped',
+          trackingNumber: 'TRACK123',
+          estimatedDeliveryDate: customDate,
+        },
+        1
+      );
+
+      expect(mockOrder.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimatedDeliveryDate: customDate,
+        })
+      );
+    });
+  });
+
+  describe('getOrderHistory', () => {
+    it('should return order history with timeline', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'shipped',
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-05'),
+        user: { id: 1, email: 'test@example.com', role: 'buyer' },
+        quotation: { id: 1 },
+      };
+
+      MockOrder.findByPk.mockResolvedValue(mockOrder as any);
+
+      const result = await OrderStatusService.getOrderHistory('order-123');
+
+      expect(result.order.id).toBe('order-123');
+      expect(result.timeline).toHaveLength(2);
+      expect(result.timeline[0].status).toBe('pending');
+      expect(result.timeline[1].status).toBe('shipped');
+    });
+
+    it('should return single timeline entry for pending order', async () => {
+      const mockOrder = {
+        id: 'order-123',
+        status: 'pending',
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+      };
+
+      MockOrder.findByPk.mockResolvedValue(mockOrder as any);
+
+      const result = await OrderStatusService.getOrderHistory('order-123');
+
+      expect(result.timeline).toHaveLength(1);
+      expect(result.timeline[0].status).toBe('pending');
+    });
+
+    it('should throw error when order not found', async () => {
+      MockOrder.findByPk.mockResolvedValue(null);
+
+      await expect(OrderStatusService.getOrderHistory('order-999')).rejects.toThrow(
+        'Order not found'
+      );
+    });
+  });
+
+  describe('bulkUpdateOrderStatus', () => {
+    it('should update multiple orders successfully', async () => {
+      const mockOrder1 = {
+        id: 'order-1',
+        status: 'pending',
+        update: jest.fn().mockResolvedValue(true),
+      };
+      const mockOrder2 = {
+        id: 'order-2',
+        status: 'pending',
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      MockOrder.findByPk
+        .mockResolvedValueOnce(mockOrder1 as any)
+        .mockResolvedValueOnce(mockOrder1 as any)
+        .mockResolvedValueOnce(mockOrder2 as any)
+        .mockResolvedValueOnce(mockOrder2 as any);
+
+      const result = await OrderStatusService.bulkUpdateOrderStatus(
+        ['order-1', 'order-2'],
+        { status: 'processing' },
+        1
+      );
+
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('order-1');
+      expect(result[1].id).toBe('order-2');
+    });
+
+    it('should continue processing when one order fails', async () => {
+      const mockOrder = {
+        id: 'order-2',
+        status: 'pending',
+        update: jest.fn().mockResolvedValue(true),
+      };
+
+      MockOrder.findByPk
+        .mockResolvedValueOnce(null) // First order not found
+        .mockResolvedValueOnce(mockOrder as any)
+        .mockResolvedValueOnce(mockOrder as any);
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await OrderStatusService.bulkUpdateOrderStatus(
+        ['order-1', 'order-2'],
+        { status: 'processing' },
+        1
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('order-2');
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to update order order-1:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('getOrdersByStatus', () => {
+    it('should return orders filtered by status', async () => {
+      const mockOrders = [
+        createMockOrder({ id: 'order-1', status: 'delivered' }),
+        createMockOrder({ id: 'order-2', status: 'delivered' }),
+      ];
+
+      MockOrder.findAndCountAll.mockResolvedValue({
+        count: 2,
+        rows: mockOrders,
+      } as any);
+
+      const result = await OrderStatusService.getOrdersByStatus('delivered');
+
+      expect(result.orders).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(MockOrder.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: 'delivered' },
+        })
+      );
+    });
+
+    it('should filter by user ID when provided', async () => {
+      MockOrder.findAndCountAll.mockResolvedValue({ count: 0, rows: [] } as any);
+
+      await OrderStatusService.getOrdersByStatus('pending', { userId: 1 });
+
+      expect(MockOrder.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: 'pending', userId: 1 },
+        })
+      );
+    });
+
+    it('should filter by date range when provided', async () => {
+      const startDate = new Date('2023-01-01');
+      const endDate = new Date('2023-12-31');
+
+      MockOrder.findAndCountAll.mockResolvedValue({ count: 0, rows: [] } as any);
+
+      await OrderStatusService.getOrdersByStatus('pending', { startDate, endDate });
+
+      expect(MockOrder.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'pending',
+            createdAt: expect.any(Object),
+          }),
+        })
+      );
+    });
+
+    it('should apply pagination correctly', async () => {
+      MockOrder.findAndCountAll.mockResolvedValue({ count: 0, rows: [] } as any);
+
+      await OrderStatusService.getOrdersByStatus('pending', {
+        limit: 10,
+        offset: 20,
+      });
+
+      expect(MockOrder.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 10,
+          offset: 20,
+        })
+      );
+    });
+  });
+
+  describe('getOrderStatusStats', () => {
+    it('should return order statistics', async () => {
+      const mockStatusCounts = [
+        { status: 'pending', count: '5' },
+        { status: 'processing', count: '3' },
+        { status: 'delivered', count: '10' },
+      ];
+
+      const mockCompletedOrders = [
+        {
+          createdAt: new Date('2023-01-01'),
+          updatedAt: new Date('2023-01-05'),
+        },
+        {
+          createdAt: new Date('2023-01-10'),
+          updatedAt: new Date('2023-01-15'),
+        },
+      ];
+
+      MockOrder.findAll
+        .mockResolvedValueOnce(mockStatusCounts as any)
+        .mockResolvedValueOnce(mockCompletedOrders as any);
+
+      const result = await OrderStatusService.getOrderStatusStats();
+
+      expect(result.statusCounts).toEqual({
+        pending: 5,
+        processing: 3,
+        shipped: 0,
+        delivered: 10,
+        cancelled: 0,
+      });
+      expect(result.totalOrders).toBe(18);
+      expect(result.averageProcessingTime).toBeGreaterThan(0);
+    });
+
+    it('should handle no completed orders', async () => {
+      MockOrder.findAll.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+      const result = await OrderStatusService.getOrderStatusStats();
+
+      expect(result.totalOrders).toBe(0);
+      expect(result.averageProcessingTime).toBe(0);
+    });
+
+    it('should calculate average processing time correctly', async () => {
+      const mockStatusCounts = [{ status: 'delivered', count: '2' }];
+
+      const mockCompletedOrders = [
+        {
+          createdAt: new Date('2023-01-01T00:00:00Z'),
+          updatedAt: new Date('2023-01-05T00:00:00Z'), // 4 days
+        },
+        {
+          createdAt: new Date('2023-01-10T00:00:00Z'),
+          updatedAt: new Date('2023-01-16T00:00:00Z'), // 6 days
+        },
+      ];
+
+      MockOrder.findAll
+        .mockResolvedValueOnce(mockStatusCounts as any)
+        .mockResolvedValueOnce(mockCompletedOrders as any);
+
+      const result = await OrderStatusService.getOrderStatusStats();
+
+      expect(result.averageProcessingTime).toBe(5); // (4 + 6) / 2 = 5 days
+    });
+  });
+});
