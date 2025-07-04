@@ -33,6 +33,11 @@ out/
 coverage/
 .nyc_output/
 
+# Production builds
+backend/dist/
+frontend/dist/
+shared/dist/
+
 # Arquivos de configuração de IDEs e Editores
 .idea/
 .vscode/*
@@ -53,6 +58,18 @@ ehthumbs.db
 .prettiercache
 .cache
 .parcel-cache
+
+# TypeScript cache
+*.tsbuildinfo
+.tscache/
+
+# Uploads directory
+backend/uploads/
+uploads/
+
+# Test databases
+*.test.db
+test.sqlite
 
 # Arquivos de Teste
 /coverage
