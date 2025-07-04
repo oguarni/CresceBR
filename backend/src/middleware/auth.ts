@@ -6,7 +6,7 @@ export interface AuthenticatedRequest extends Request {
   user?: AuthTokenPayload;
 }
 
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   try {
     const token = extractTokenFromHeader(req.headers.authorization);
     
@@ -29,7 +29,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   }
 };
 
-export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const isAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   if (!req.user) {
     res.status(401).json({
       success: false,
@@ -42,6 +42,26 @@ export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: Nex
     res.status(403).json({
       success: false,
       error: 'Admin access required'
+    });
+    return;
+  }
+
+  next();
+};
+
+export const isSupplier = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+    return;
+  }
+
+  if (req.user.role !== 'supplier') {
+    res.status(403).json({
+      success: false,
+      error: 'Supplier access required'
     });
     return;
   }
