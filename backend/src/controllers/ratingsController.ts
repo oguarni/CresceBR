@@ -327,7 +327,7 @@ export const getTopSuppliers = asyncHandler(async (req: AuthenticatedRequest, re
     companyName: supplier.companyName,
     email: supplier.email,
     averageRating: parseFloat(Number(supplier.averageRating).toFixed(2)),
-    totalRatings: parseInt(supplier.totalRatings as string, 10),
+    totalRatings: supplier.totalRatings ? Number(supplier.totalRatings) : 0,
   }));
 
   res.status(200).json({

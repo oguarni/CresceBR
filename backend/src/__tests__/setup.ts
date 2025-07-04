@@ -6,6 +6,9 @@ export const mockSequelize = new Sequelize('sqlite::memory:', {
   logging: false,
 });
 
+// Mock the database config to use our test database
+jest.mock('../config/database', () => mockSequelize);
+
 // Mock JWT token utilities
 jest.mock('../utils/jwt', () => ({
   verifyToken: jest.fn(),
