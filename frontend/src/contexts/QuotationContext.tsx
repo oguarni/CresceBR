@@ -220,3 +220,6 @@ export const useQuotationRequest = (): QuotationRequestContextType => {
   }
   return context;
 };
+
+// Export alias for backward compatibility
+export const QuotationProvider = QuotationRequestProvider;
