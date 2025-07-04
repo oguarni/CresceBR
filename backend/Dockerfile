@@ -1,18 +1,13 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY backend/package*.json ./
+COPY package*.json ./
 
 RUN npm install
 
-COPY backend/ .
-COPY shared/ ./shared/
-
-RUN npm run build
-
-RUN npm prune --omit=dev
+COPY . .
 
 EXPOSE 3001
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
