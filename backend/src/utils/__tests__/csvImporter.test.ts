@@ -14,8 +14,8 @@ const MockProduct = Product as jest.Mocked<typeof Product>;
 const mockSequelize = sequelize as jest.Mocked<typeof sequelize>;
 
 // Mock csv-parser
-jest.mock('csv-parser', () => {
-  return jest.fn(() => ({
+jest.mock('csv-parser', () =>
+  jest.fn(() => ({
     on: jest.fn(function (this: any, event: string, callback: Function) {
       if (event === 'data') {
         this.dataCallback = callback;
@@ -26,10 +26,37 @@ jest.mock('csv-parser', () => {
       }
       return this;
     }),
-  }));
-});
+  }))
+);
+
+const mockCsvParser = require('csv-parser');
 
 describe('CSVImporter', () => {
+  const setupFileSystemMock = (csvData: any[]) => {
+    mockFs.existsSync.mockReturnValue(true);
+
+    const mockCsvParserInstance = {
+      on: jest.fn(function (this: any, event: string, callback: Function) {
+        if (event === 'data') {
+          // Immediately call the callback for each data row
+          csvData.forEach(row => callback(row));
+        } else if (event === 'end') {
+          // Immediately call the end callback
+          callback();
+        } else if (event === 'error') {
+          this.errorCallback = callback;
+        }
+        return this;
+      }),
+    };
+
+    mockCsvParser.mockReturnValue(mockCsvParserInstance);
+
+    mockFs.createReadStream.mockReturnValue({
+      pipe: jest.fn().mockReturnValue(mockCsvParserInstance),
+    } as any);
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -301,20 +328,7 @@ describe('CSVImporter', () => {
         },
       ];
 
-      // Mock file system
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.createReadStream.mockReturnValue({
-        pipe: jest.fn().mockReturnValue({
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              csvData.forEach(row => callback(row));
-            } else if (event === 'end') {
-              callback();
-            }
-            return { on: jest.fn() };
-          }),
-        }),
-      } as any);
+      setupFileSystemMock(csvData);
 
       MockProduct.create.mockResolvedValue({ id: 1 } as any);
 
@@ -363,19 +377,7 @@ describe('CSVImporter', () => {
         },
       ];
 
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.createReadStream.mockReturnValue({
-        pipe: jest.fn().mockReturnValue({
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              csvData.forEach(row => callback(row));
-            } else if (event === 'end') {
-              callback();
-            }
-            return { on: jest.fn() };
-          }),
-        }),
-      } as any);
+      setupFileSystemMock(csvData);
 
       MockProduct.create.mockResolvedValue({ id: 1 } as any);
 
@@ -409,19 +411,7 @@ describe('CSVImporter', () => {
         },
       ];
 
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.createReadStream.mockReturnValue({
-        pipe: jest.fn().mockReturnValue({
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              csvData.forEach(row => callback(row));
-            } else if (event === 'end') {
-              callback();
-            }
-            return { on: jest.fn() };
-          }),
-        }),
-      } as any);
+      setupFileSystemMock(csvData);
 
       const result = await CSVImporter.importProductsFromCSV(testFilePath, {
         skipErrors: false,
@@ -443,19 +433,7 @@ describe('CSVImporter', () => {
         },
       ];
 
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.createReadStream.mockReturnValue({
-        pipe: jest.fn().mockReturnValue({
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              csvData.forEach(row => callback(row));
-            } else if (event === 'end') {
-              callback();
-            }
-            return { on: jest.fn() };
-          }),
-        }),
-      } as any);
+      setupFileSystemMock(csvData);
 
       MockProduct.create.mockResolvedValue({ id: 1 } as any);
 
@@ -482,19 +460,7 @@ describe('CSVImporter', () => {
         },
       ];
 
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.createReadStream.mockReturnValue({
-        pipe: jest.fn().mockReturnValue({
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              csvData.forEach(row => callback(row));
-            } else if (event === 'end') {
-              callback();
-            }
-            return { on: jest.fn() };
-          }),
-        }),
-      } as any);
+      setupFileSystemMock(csvData);
 
       MockProduct.create.mockRejectedValue(new Error('Database connection failed'));
 
@@ -517,19 +483,7 @@ describe('CSVImporter', () => {
         category: 'Category',
       }));
 
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.createReadStream.mockReturnValue({
-        pipe: jest.fn().mockReturnValue({
-          on: jest.fn((event, callback) => {
-            if (event === 'data') {
-              csvData.forEach(row => callback(row));
-            } else if (event === 'end') {
-              callback();
-            }
-            return { on: jest.fn() };
-          }),
-        }),
-      } as any);
+      setupFileSystemMock(csvData);
 
       MockProduct.create.mockResolvedValue({ id: 1 } as any);
 
@@ -569,9 +523,7 @@ describe('CSVImporter', () => {
 
       CSVImporter.generateSampleCSV(testPath);
 
-      expect(writtenContent).toContain(
-        '"[{\\"minQuantity\\":1,\\"maxQuantity\\":10,\\"discount\\":0}'
-      );
+      expect(writtenContent).toContain('"[{"minQuantity":1,"maxQuantity":10,"discount":0}');
     });
   });
 

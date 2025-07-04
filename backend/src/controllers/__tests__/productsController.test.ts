@@ -18,8 +18,15 @@ import { CSVImporter } from '../../utils/csvImporter';
 // Mock the models and utilities
 jest.mock('../../models/Product');
 jest.mock('../../utils/csvImporter');
-jest.mock('../../middleware/auth');
-jest.mock('../../middleware/errorHandler');
+jest.mock('../../middleware/auth', () => ({
+  authenticateJWT: jest.fn((req: any, res: any, next: any) => next()),
+  isSupplier: jest.fn((req: any, res: any, next: any) => next()),
+  isAdmin: jest.fn((req: any, res: any, next: any) => next()),
+}));
+jest.mock('../../middleware/errorHandler', () => ({
+  errorHandler: jest.fn(),
+  asyncHandler: jest.requireActual('../../middleware/errorHandler').asyncHandler,
+}));
 
 const MockProduct = Product as jest.Mocked<typeof Product>;
 const MockCSVImporter = CSVImporter as jest.Mocked<typeof CSVImporter>;
