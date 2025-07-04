@@ -7,11 +7,13 @@ interface QuotationRequestItem {
   productId: number;
   product: Product;
   quantity: number;
+  totalPrice: number;
 }
 
 interface QuotationRequestState {
   items: QuotationRequestItem[];
   totalItems: number;
+  totalPrice: number;
   isOpen: boolean;
 }
 
@@ -34,10 +36,14 @@ interface QuotationRequestContextType extends QuotationRequestState {
 const initialState: QuotationRequestState = {
   items: [],
   totalItems: 0,
+  totalPrice: 0,
   isOpen: false,
 };
 
-const quotationRequestReducer = (state: QuotationRequestState, action: QuotationRequestAction): QuotationRequestState => {
+const quotationRequestReducer = (
+  state: QuotationRequestState,
+  action: QuotationRequestAction
+): QuotationRequestState => {
   switch (action.type) {
     case 'ADD_ITEM': {
       const existingItem = state.items.find(item => item.productId === action.payload.id);
@@ -49,6 +55,7 @@ const quotationRequestReducer = (state: QuotationRequestState, action: Quotation
             ? {
                 ...item,
                 quantity: item.quantity + 1,
+                totalPrice: (item.quantity + 1) * action.payload.price,
               }
             : item
         );
@@ -58,27 +65,32 @@ const quotationRequestReducer = (state: QuotationRequestState, action: Quotation
           productId: action.payload.id,
           product: action.payload,
           quantity: 1,
+          totalPrice: action.payload.price,
         };
         newItems = [...state.items, newItem];
       }
 
       const totalItems = newItems.reduce((sum, item) => sum + item.quantity, 0);
+      const totalPrice = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
       return {
         ...state,
         items: newItems,
         totalItems,
+        totalPrice,
       };
     }
 
     case 'REMOVE_ITEM': {
       const newItems = state.items.filter(item => item.id !== action.payload);
       const totalItems = newItems.reduce((sum, item) => sum + item.quantity, 0);
+      const totalPrice = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
       return {
         ...state,
         items: newItems,
         totalItems,
+        totalPrice,
       };
     }
 
@@ -88,16 +100,19 @@ const quotationRequestReducer = (state: QuotationRequestState, action: Quotation
           ? {
               ...item,
               quantity: action.payload.quantity,
+              totalPrice: action.payload.quantity * item.product.price,
             }
           : item
       );
 
       const totalItems = newItems.reduce((sum, item) => sum + item.quantity, 0);
+      const totalPrice = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
       return {
         ...state,
         items: newItems,
         totalItems,
+        totalPrice,
       };
     }
 
@@ -106,6 +121,7 @@ const quotationRequestReducer = (state: QuotationRequestState, action: Quotation
         ...state,
         items: [],
         totalItems: 0,
+        totalPrice: 0,
       };
 
     case 'TOGGLE_DRAWER':
@@ -116,11 +132,13 @@ const quotationRequestReducer = (state: QuotationRequestState, action: Quotation
 
     case 'LOAD_REQUEST': {
       const totalItems = action.payload.reduce((sum, item) => sum + item.quantity, 0);
+      const totalPrice = action.payload.reduce((sum, item) => sum + item.totalPrice, 0);
 
       return {
         ...state,
         items: action.payload,
         totalItems,
+        totalPrice,
       };
     }
 
@@ -190,7 +208,9 @@ export const QuotationRequestProvider: React.FC<{ children: React.ReactNode }> =
     toggleDrawer,
   };
 
-  return <QuotationRequestContext.Provider value={value}>{children}</QuotationRequestContext.Provider>;
+  return (
+    <QuotationRequestContext.Provider value={value}>{children}</QuotationRequestContext.Provider>
+  );
 };
 
 export const useQuotationRequest = (): QuotationRequestContextType => {
