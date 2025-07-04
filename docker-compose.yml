@@ -1,49 +1,49 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:13
+  db:
+    image: postgres:15-alpine
     container_name: crescebr_db
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-crescebr_dev}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - crescebr-net
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
     container_name: crescebr_backend
-    depends_on:
-      - postgres
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - '3001:3001'
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=development
+    depends_on:
+      - db
     volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
-    env_file:
-      - ./backend/.env
+      - ./backend:/usr/src/app/backend
+      - ./shared:/usr/src/app/shared
+      - /usr/src/app/backend/node_modules
     networks:
       - crescebr-net
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
     container_name: crescebr_frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
-      - '5173:5173'
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_BASE_URL=http://localhost:3001/api
+      - '8080:80' # Access the app at http://localhost:8080
+    depends_on:
+      - backend
     networks:
       - crescebr-net
 

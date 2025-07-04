@@ -19,14 +19,16 @@ This is an MVP (Minimum Viable Product) of an e-commerce platform developed for 
 
 ---
 
-## Getting Started
+## Running with Docker
+
+This project is configured to run entirely within Docker containers. This is the recommended way to run the application for development and testing.
 
 ### Prerequisites
 
 - [Docker](https://www.docker.com/get-started)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
-### Local Development Setup
+### Setup
 
 1.  **Clone the repository:**
 
@@ -35,41 +37,51 @@ This is an MVP (Minimum Viable Product) of an e-commerce platform developed for 
     cd CresceBR-new
     ```
 
-2.  **Create Backend Environment File:**
-    Navigate to the `backend` folder, create a copy of `.env.example`, and rename it to `.env`.
-
+2.  **Create an environment file:**
+    Copy the example file to create your own local configuration.
     ```bash
-    cd backend
     cp .env.example .env
-    cd ..
     ```
+    _You can customize the values in the `.env` file if needed, but the defaults should work out of the box._
 
-    _You can customize the variables in `backend/.env` if needed, but the defaults are configured to work with Docker Compose._
+### Running the Application
 
-3.  **Build and Run with Docker Compose:**
-    From the root directory of the project, run the following command:
+1.  **Build and start the services:**
+    This command will build the Docker images for the frontend and backend, start all containers, and set up the database.
 
     ```bash
     docker-compose up --build
     ```
 
-    This command will build the images for the frontend, backend, and database services and start the containers.
-
-4.  **Access the Application:**
-    - **Frontend:** Open your browser and go to [http://localhost:5173](http://localhost:5173)
-    - **Backend API:** The API will be running at `http://localhost:3001`
+2.  **Access the application:**
+    - **Frontend:** Open your browser and go to [http://localhost:8080](http://localhost:8080)
+    - **Backend API:** The API will be available at `http://localhost:3001`
 
 ### Running Tests
 
-To run the tests for both frontend and backend, you can use the `docker-compose exec` command.
+To run the automated tests, execute the following commands in a new terminal while the application is running:
 
-1.  **Run Backend Tests:**
+- **Run Backend Tests:**
 
-    ```bash
-    docker-compose exec crescebr_backend npm test
-    ```
+  ```bash
+  docker-compose exec backend npm test
+  ```
 
-2.  **Run Frontend Tests:**
-    ```bash
-    docker-compose exec crescebr_frontend npm test
-    ```
+- **Run Frontend Tests:**
+  ```bash
+  docker-compose exec frontend npm test
+  ```
+
+### Stopping the Application
+
+To stop all running containers, press `Ctrl + C` in the terminal where `docker-compose up` is running, or run the following command from the project root:
+
+```bash
+docker-compose down
+```
+
+To remove the database volume as well, use:
+
+```bash
+docker-compose down -v
+```
