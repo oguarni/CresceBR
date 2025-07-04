@@ -4,13 +4,9 @@ import {
   Container,
   Typography,
   Box,
-  Card,
-  CardContent,
   Button,
   Chip,
-  Grid,
   Avatar,
-  Divider,
   CircularProgress,
   Alert,
   Dialog,
@@ -150,9 +146,7 @@ const AdminQuotationsPage: React.FC = () => {
       });
 
       // Update the quotation in the list
-      setQuotations(prev => 
-        prev.map(q => q.id === selectedQuotation.id ? updatedQuotation : q)
-      );
+      setQuotations(prev => prev.map(q => (q.id === selectedQuotation.id ? updatedQuotation : q)));
 
       toast.success('Cotação atualizada com sucesso!');
       setUpdateDialogOpen(false);
@@ -182,9 +176,7 @@ const AdminQuotationsPage: React.FC = () => {
         adminNotes: quotation.adminNotes || '',
       });
 
-      setQuotations(prev => 
-        prev.map(q => q.id === quotation.id ? updatedQuotation : q)
-      );
+      setQuotations(prev => prev.map(q => (q.id === quotation.id ? updatedQuotation : q)));
 
       toast.success('Cotação aceita com sucesso!');
     } catch (error) {
@@ -204,9 +196,7 @@ const AdminQuotationsPage: React.FC = () => {
         adminNotes: quotation.adminNotes || '',
       });
 
-      setQuotations(prev => 
-        prev.map(q => q.id === quotation.id ? updatedQuotation : q)
-      );
+      setQuotations(prev => prev.map(q => (q.id === quotation.id ? updatedQuotation : q)));
 
       toast.success('Cotação recusada com sucesso!');
     } catch (error) {
@@ -217,17 +207,12 @@ const AdminQuotationsPage: React.FC = () => {
 
   if (user?.role !== 'admin') {
     return (
-      <Container maxWidth="md">
+      <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Alert severity="error" sx={{ mb: 4 }}>
+          <Alert severity='error' sx={{ mb: 4 }}>
             Acesso negado. Apenas administradores podem gerenciar cotações.
           </Alert>
-          <Button
-            variant="contained"
-            component={Link}
-            to="/"
-            startIcon={<ArrowBack />}
-          >
+          <Button variant='contained' component={Link} to='/' startIcon={<ArrowBack />}>
             Voltar ao Início
           </Button>
         </Box>
@@ -237,7 +222,7 @@ const AdminQuotationsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="md">
+      <Container maxWidth='md'>
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
@@ -246,22 +231,23 @@ const AdminQuotationsPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth='xl'>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant='h4' gutterBottom>
           Gerenciar Cotações
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {quotations.length} cotação{quotations.length !== 1 ? 'ões' : ''} encontrada{quotations.length !== 1 ? 's' : ''}
+        <Typography variant='body1' color='text.secondary'>
+          {quotations.length} cotação{quotations.length !== 1 ? 'ões' : ''} encontrada
+          {quotations.length !== 1 ? 's' : ''}
         </Typography>
       </Box>
 
       {quotations.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Typography variant='h6' color='text.secondary' gutterBottom>
             Nenhuma cotação encontrada
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant='body2' color='text.secondary'>
             Aguardando solicitações de cotação dos clientes
           </Typography>
         </Box>
@@ -275,19 +261,19 @@ const AdminQuotationsPage: React.FC = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>Itens</TableCell>
                 <TableCell>Data</TableCell>
-                <TableCell align="center">Ações</TableCell>
+                <TableCell align='center'>Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {quotations.map((quotation) => (
+              {quotations.map(quotation => (
                 <TableRow key={quotation.id} hover>
                   <TableCell>#{quotation.id}</TableCell>
                   <TableCell>
                     <Box>
-                      <Typography variant="body2" fontWeight="medium">
+                      <Typography variant='body2' fontWeight='medium'>
                         {quotation.user?.email}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant='caption' color='text.secondary'>
                         CPF: {quotation.user?.cpf}
                       </Typography>
                     </Box>
@@ -297,7 +283,7 @@ const AdminQuotationsPage: React.FC = () => {
                       icon={getStatusIcon(quotation.status)}
                       label={getStatusLabel(quotation.status)}
                       color={getStatusColor(quotation.status) as any}
-                      size="small"
+                      size='small'
                     />
                   </TableCell>
                   <TableCell>
@@ -307,49 +293,49 @@ const AdminQuotationsPage: React.FC = () => {
                           key={index}
                           src={item.product.imageUrl}
                           alt={item.product.name}
-                          variant="rounded"
+                          variant='rounded'
                           sx={{ width: 30, height: 30, mr: 0.5 }}
                         />
                       ))}
                       {quotation.items.length > 2 && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant='caption' color='text.secondary'>
                           +{quotation.items.length - 2}
                         </Typography>
                       )}
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(quotation.createdAt)}
-                    </Typography>
+                    <Typography variant='body2'>{formatDate(quotation.createdAt)}</Typography>
                   </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <TableCell align='center'>
+                    <Box
+                      sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}
+                    >
                       <Button
-                        size="small"
-                        variant="outlined"
+                        size='small'
+                        variant='outlined'
                         startIcon={<Visibility />}
                         component={Link}
                         to={`/quotations/${quotation.id}`}
                       >
                         Ver
                       </Button>
-                      
+
                       {quotation.status === 'pending' && (
                         <>
                           <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
+                            size='small'
+                            variant='contained'
+                            color='success'
                             startIcon={<Check />}
                             onClick={() => handleAcceptQuotation(quotation)}
                           >
                             Aceitar
                           </Button>
                           <Button
-                            size="small"
-                            variant="contained"
-                            color="error"
+                            size='small'
+                            variant='contained'
+                            color='error'
                             startIcon={<Close />}
                             onClick={() => handleRejectQuotation(quotation)}
                           >
@@ -357,10 +343,10 @@ const AdminQuotationsPage: React.FC = () => {
                           </Button>
                         </>
                       )}
-                      
+
                       <Button
-                        size="small"
-                        variant="outlined"
+                        size='small'
+                        variant='outlined'
                         startIcon={<Edit />}
                         onClick={() => handleEditQuotation(quotation)}
                       >
@@ -376,54 +362,43 @@ const AdminQuotationsPage: React.FC = () => {
       )}
 
       <Box sx={{ mt: 4, textAlign: 'center' }}>
-        <Button
-          variant="outlined"
-          component={Link}
-          to="/"
-          startIcon={<ArrowBack />}
-        >
+        <Button variant='outlined' component={Link} to='/' startIcon={<ArrowBack />}>
           Voltar ao Dashboard
         </Button>
       </Box>
 
       {/* Update Quotation Dialog */}
-      <Dialog open={updateDialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Atualizar Cotação #{selectedQuotation?.id}
-        </DialogTitle>
+      <Dialog open={updateDialogOpen} onClose={handleCloseDialog} maxWidth='sm' fullWidth>
+        <DialogTitle>Atualizar Cotação #{selectedQuotation?.id}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <FormControl fullWidth sx={{ mb: 3 }}>
               <InputLabel>Status</InputLabel>
               <Select
                 value={updateStatus}
-                label="Status"
-                onChange={(e) => setUpdateStatus(e.target.value)}
+                label='Status'
+                onChange={e => setUpdateStatus(e.target.value)}
               >
-                <MenuItem value="pending">Pendente</MenuItem>
-                <MenuItem value="processed">Processada</MenuItem>
-                <MenuItem value="completed">Concluída</MenuItem>
-                <MenuItem value="rejected">Rejeitada</MenuItem>
+                <MenuItem value='pending'>Pendente</MenuItem>
+                <MenuItem value='processed'>Processada</MenuItem>
+                <MenuItem value='completed'>Concluída</MenuItem>
+                <MenuItem value='rejected'>Rejeitada</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label="Observações do Administrador"
+              label='Observações do Administrador'
               multiline
               rows={4}
               fullWidth
               value={updateNotes}
-              onChange={(e) => setUpdateNotes(e.target.value)}
-              placeholder="Adicione observações sobre esta cotação..."
+              onChange={e => setUpdateNotes(e.target.value)}
+              placeholder='Adicione observações sobre esta cotação...'
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleUpdateQuotation}
-            variant="contained"
-            disabled={updating}
-          >
+          <Button onClick={handleUpdateQuotation} variant='contained' disabled={updating}>
             {updating ? <CircularProgress size={20} /> : 'Atualizar'}
           </Button>
         </DialogActions>
