@@ -8,12 +8,15 @@ interface UserAttributes {
   password: string;
   cpf: string;
   address: string;
-  role: 'customer' | 'admin';
+  role: 'customer' | 'admin' | 'supplier';
+  status: 'pending' | 'approved' | 'rejected';
+  companyName: string | null;
+  cnpj: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'status' | 'createdAt' | 'updatedAt'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -21,7 +24,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public password!: string;
   public cpf!: string;
   public address!: string;
-  public role!: 'customer' | 'admin';
+  public role!: 'customer' | 'admin' | 'supplier';
+  public status!: 'pending' | 'approved' | 'rejected';
+  public companyName!: string | null;
+  public cnpj!: string | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -70,9 +76,23 @@ User.init(
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM('customer', 'admin'),
+      type: DataTypes.ENUM('customer', 'admin', 'supplier'),
       allowNull: false,
       defaultValue: 'customer',
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+      allowNull: false,
+      defaultValue: 'pending',
+    },
+    companyName: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    cnpj: {
+      type: DataTypes.STRING(18),
+      allowNull: true,
+      unique: true,
     },
   },
   {

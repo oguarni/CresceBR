@@ -8,7 +8,7 @@ import {
   getCategories,
   productValidation,
 } from '../controllers/productsController';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateJWT, isSupplier, isAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -17,9 +17,11 @@ router.get('/', getAllProducts);
 router.get('/categories', getCategories);
 router.get('/:id', getProductById);
 
+// Supplier-only routes (protected)
+router.post('/', authenticateJWT, isSupplier, productValidation, createProduct);
+router.put('/:id', authenticateJWT, isSupplier, productValidation, updateProduct);
+
 // Admin-only routes (protected)
-router.post('/', authenticateToken, requireAdmin, productValidation, createProduct);
-router.put('/:id', authenticateToken, requireAdmin, productValidation, updateProduct);
-router.delete('/:id', authenticateToken, requireAdmin, deleteProduct);
+router.delete('/:id', authenticateJWT, isAdmin, deleteProduct);
 
 export default router;
