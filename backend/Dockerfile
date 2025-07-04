@@ -13,6 +13,9 @@ COPY shared ./shared
 # Copy backend source code
 COPY backend/ ./
 
+# Use Docker-specific TypeScript configuration
+COPY backend/tsconfig.docker.json ./tsconfig.json
+
 # Set build-time argument for environment
 ARG NODE_ENV=development
 ENV NODE_ENV=${NODE_ENV}
@@ -38,6 +41,10 @@ COPY --from=build /usr/src/app/seeders ./seeders
 # Copy config and package.json
 COPY backend/config/config.json ./config/config.json
 COPY backend/package.json .
+# Copy wait-for-it and start scripts
+COPY backend/wait-for-it.sh ./wait-for-it.sh
+COPY backend/start.sh ./start.sh
+RUN chmod +x ./wait-for-it.sh ./start.sh
 
 # Install sequelize-cli globally to run migrations
 RUN npm install -g sequelize-cli
@@ -45,6 +52,5 @@ RUN npm install -g sequelize-cli
 # Expose port
 EXPOSE 3001
 
-# Command to run the application
-# It will first wait for the database to be ready, then run migrations, and finally start the server.
-CMD ["sh", "-c", "npx sequelize-cli db:migrate && node dist/server.js"]
+# Command to run the application with retry logic
+CMD ["./start.sh"]
