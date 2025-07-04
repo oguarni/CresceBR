@@ -24,8 +24,17 @@ jest.mock('../../services/quoteService');
 jest.mock('../../models/Order');
 jest.mock('../../models/Quotation');
 jest.mock('../../models/User');
-jest.mock('../../middleware/auth');
-jest.mock('../../middleware/errorHandler');
+jest.mock('../../middleware/auth', () => ({
+  authenticateJWT: jest.fn((req, res, next) => next()),
+}));
+jest.mock('../../middleware/errorHandler', () => ({
+  errorHandler: jest.fn((err, req, res, next) => {
+    res.status(500).json({ error: err.message });
+  }),
+  asyncHandler: jest.fn(
+    (fn: any) => (req: any, res: any, next: any) => Promise.resolve(fn(req, res, next)).catch(next)
+  ),
+}));
 
 const MockOrderStatusService = OrderStatusService as jest.Mocked<typeof OrderStatusService>;
 const MockQuoteService = QuoteService as jest.Mocked<typeof QuoteService>;
