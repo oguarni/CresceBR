@@ -38,7 +38,7 @@ describe('CSVImporter', () => {
       commit: jest.fn().mockResolvedValue(true),
       rollback: jest.fn().mockResolvedValue(true),
     };
-    mockSequelize.transaction.mockResolvedValue(mockTransaction as any);
+    mockSequelize.transaction = jest.fn().mockResolvedValue(mockTransaction as any);
   });
 
   describe('validateProductRow', () => {

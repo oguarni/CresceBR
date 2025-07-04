@@ -15,6 +15,9 @@ RUN npm install --prefix ./shared --legacy-peer-deps
 COPY frontend/ .
 COPY shared/ ./shared/
 
+# Use Docker-specific TypeScript configuration
+COPY frontend/tsconfig.docker.json ./tsconfig.json
+
 # Build the application
 RUN npm run build
 

@@ -23,8 +23,18 @@ jest.mock('../../models/Order');
 jest.mock('../../models/Quotation');
 
 // Mock middleware
-jest.mock('../../middleware/auth');
-jest.mock('../../middleware/errorHandler');
+jest.mock('../../middleware/auth', () => ({
+  authenticateJWT: jest.fn((req, res, next) => next()),
+  isAdmin: jest.fn((req, res, next) => next()),
+}));
+jest.mock('../../middleware/errorHandler', () => ({
+  errorHandler: jest.fn((err, req, res, next) => {
+    res.status(500).json({ error: err.message });
+  }),
+  asyncHandler: jest.fn(
+    (fn: any) => (req: any, res: any, next: any) => Promise.resolve(fn(req, res, next)).catch(next)
+  ),
+}));
 
 const MockUser = User as jest.Mocked<typeof User>;
 const MockProduct = Product as jest.Mocked<typeof Product>;

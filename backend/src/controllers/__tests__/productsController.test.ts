@@ -396,12 +396,24 @@ describe('Products Controller', () => {
         errors: [
           {
             row: 3,
-            data: { name: '', description: 'Invalid product' },
+            data: {
+              name: '',
+              description: 'Invalid product',
+              price: '100.00',
+              imageUrl: 'https://example.com/image.jpg',
+              category: 'Electronics',
+            },
             error: 'Product name is required',
           },
           {
             row: 7,
-            data: { name: 'Product', price: 'invalid' },
+            data: {
+              name: 'Product',
+              price: 'invalid',
+              description: 'Test product',
+              imageUrl: 'https://example.com/image.jpg',
+              category: 'Electronics',
+            },
             error: 'Valid price is required (must be a positive number)',
           },
         ],
