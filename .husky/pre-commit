@@ -1,3 +1,12 @@
-#!/bin/sh
-PATH=$(npm bin):$PATH
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Remove a variável PREFIX para evitar conflito com NVM no GitHub Desktop
+unset PREFIX
+
+# Carrega o NVM para encontrar o Node e o NPM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Executa o lint-staged (que por sua vez executa os linters)
 ./node_modules/.bin/lint-staged
