@@ -8,8 +8,8 @@ COPY frontend/package*.json ./
 COPY shared/package*.json ./shared/
 
 # Install dependencies for both
-RUN npm install
-RUN npm install --prefix ./shared
+RUN npm install --legacy-peer-deps
+RUN npm install --prefix ./shared --legacy-peer-deps
 
 # Copy source code
 COPY frontend/ .

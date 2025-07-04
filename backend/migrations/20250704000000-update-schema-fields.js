@@ -3,57 +3,99 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     try {
-      // Add cnpjValidated boolean to User table
-      await queryInterface.addColumn('users', 'cnpjValidated', {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      });
+      // Helper function to check if column exists
+      const columnExists = async (tableName, columnName) => {
+        const result = await queryInterface.sequelize.query(
+          `SELECT column_name FROM information_schema.columns WHERE table_name = '${tableName}' AND column_name = '${columnName}'`,
+          { type: Sequelize.QueryTypes.SELECT }
+        );
+        return result.length > 0;
+      };
 
-      // Add tierPricing JSON field to Product table
-      await queryInterface.addColumn('products', 'tierPricing', {
-        type: Sequelize.JSON,
-        allowNull: true,
-        comment: 'JSON field for quantity-based pricing tiers',
-      });
+      // Add cnpjValidated boolean to User table if it doesn't exist
+      if (!(await columnExists('users', 'cnpjValidated'))) {
+        await queryInterface.addColumn('users', 'cnpjValidated', {
+          type: Sequelize.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+        });
+      }
 
-      // Add supplierId to Product table to track which supplier created the product
-      await queryInterface.addColumn('products', 'supplierId', {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'users',
-          key: 'id',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-      });
+      // Add tierPricing JSON field to Product table if it doesn't exist
+      if (!(await columnExists('products', 'tierPricing'))) {
+        await queryInterface.addColumn('products', 'tierPricing', {
+          type: Sequelize.JSON,
+          allowNull: true,
+          comment: 'JSON field for quantity-based pricing tiers',
+        });
+      }
 
-      // Add totalAmount to Quotation table (missing from current schema)
-      await queryInterface.addColumn('quotations', 'totalAmount', {
-        type: Sequelize.DECIMAL(10, 2),
-        allowNull: true,
-        comment: 'Total calculated amount for the quotation',
-      });
+      // Add supplierId to Product table if it doesn't exist
+      if (!(await columnExists('products', 'supplierId'))) {
+        await queryInterface.addColumn('products', 'supplierId', {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          references: {
+            model: 'users',
+            key: 'id',
+          },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL',
+        });
+      }
 
-      // Update Order table to add new fields
-      await queryInterface.addColumn('orders', 'estimatedDeliveryDate', {
-        type: Sequelize.DATE,
-        allowNull: true,
-      });
+      // Add totalAmount to Quotation table if it doesn't exist
+      if (!(await columnExists('quotations', 'totalAmount'))) {
+        await queryInterface.addColumn('quotations', 'totalAmount', {
+          type: Sequelize.DECIMAL(10, 2),
+          allowNull: true,
+          comment: 'Total calculated amount for the quotation',
+        });
+      }
 
-      await queryInterface.addColumn('orders', 'trackingNumber', {
-        type: Sequelize.STRING(100),
-        allowNull: true,
-      });
+      // Add fields to Order table if they don't exist
+      if (!(await columnExists('orders', 'estimatedDeliveryDate'))) {
+        await queryInterface.addColumn('orders', 'estimatedDeliveryDate', {
+          type: Sequelize.DATE,
+          allowNull: true,
+        });
+      }
 
-      // Update Order status enum to include 'pending'
-      await queryInterface.sequelize.query(`
-        ALTER TYPE "enum_orders_status" ADD VALUE 'pending' BEFORE 'processing';
-      `);
+      if (!(await columnExists('orders', 'trackingNumber'))) {
+        await queryInterface.addColumn('orders', 'trackingNumber', {
+          type: Sequelize.STRING(100),
+          allowNull: true,
+        });
+      }
 
-      // Create Rating table for supplier reviews
-      await queryInterface.createTable('ratings', {
+      // Helper function to check if table exists
+      const tableExists = async (tableName) => {
+        const result = await queryInterface.sequelize.query(
+          `SELECT table_name FROM information_schema.tables WHERE table_name = '${tableName}'`,
+          { type: Sequelize.QueryTypes.SELECT }
+        );
+        return result.length > 0;
+      };
+
+      // Update Order status enum to include 'pending' if it doesn't already exist
+      try {
+        const result = await queryInterface.sequelize.query(
+          `SELECT unnest(enum_range(NULL::"enum_orders_status")) AS enum_value`,
+          { type: Sequelize.QueryTypes.SELECT }
+        );
+        const enumValues = result.map(row => row.enum_value);
+        if (!enumValues.includes('pending')) {
+          await queryInterface.sequelize.query(`
+            ALTER TYPE "enum_orders_status" ADD VALUE 'pending' BEFORE 'processing';
+          `);
+        }
+      } catch (error) {
+        console.log('Enum update skipped or already exists:', error.message);
+      }
+
+      // Create Rating table for supplier reviews if it doesn't exist
+      if (!(await tableExists('ratings'))) {
+        await queryInterface.createTable('ratings', {
         id: {
           type: Sequelize.INTEGER,
           autoIncrement: true,
@@ -111,10 +153,12 @@ module.exports = {
           allowNull: false,
           defaultValue: Sequelize.NOW,
         },
-      });
+        });
+      }
 
-      // Create OrderStatusHistory table for tracking status changes
-      await queryInterface.createTable('order_status_history', {
+      // Create OrderStatusHistory table for tracking status changes if it doesn't exist
+      if (!(await tableExists('order_status_history'))) {
+        await queryInterface.createTable('order_status_history', {
         id: {
           type: Sequelize.INTEGER,
           autoIncrement: true,
@@ -157,14 +201,25 @@ module.exports = {
           allowNull: false,
           defaultValue: Sequelize.NOW,
         },
-      });
+        });
+      }
 
       // Add indexes for better performance
-      await queryInterface.addIndex('ratings', ['supplierId']);
-      await queryInterface.addIndex('ratings', ['buyerId']);
-      await queryInterface.addIndex('ratings', ['orderId']);
-      await queryInterface.addIndex('order_status_history', ['orderId']);
-      await queryInterface.addIndex('products', ['supplierId']);
+      try {
+        if (await tableExists('ratings')) {
+          await queryInterface.addIndex('ratings', ['supplierId']);
+          await queryInterface.addIndex('ratings', ['buyerId']);
+          await queryInterface.addIndex('ratings', ['orderId']);
+        }
+        if (await tableExists('order_status_history')) {
+          await queryInterface.addIndex('order_status_history', ['orderId']);
+        }
+        if (await columnExists('products', 'supplierId')) {
+          await queryInterface.addIndex('products', ['supplierId']);
+        }
+      } catch (error) {
+        console.log('Index creation skipped (might already exist):', error.message);
+      }
 
       console.log('Database schema update completed successfully');
     } catch (error) {

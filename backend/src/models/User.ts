@@ -13,6 +13,8 @@ interface UserAttributes {
   companyName: string | null;
   cnpj: string | null;
   cnpjValidated: boolean;
+  averageRating?: number;
+  totalRatings?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -31,6 +33,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public companyName!: string | null;
   public cnpj!: string | null;
   public cnpjValidated!: boolean;
+  public averageRating?: number;
+  public totalRatings?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 

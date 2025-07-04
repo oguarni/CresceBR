@@ -29,8 +29,8 @@ const config = {
     dialect: 'postgres' as const,
     logging: false,
   },
-};
+} as const;
 
-const sequelize = new Sequelize(config[env]);
+const sequelize = new Sequelize(config[env as keyof typeof config]);
 
 export default sequelize;
