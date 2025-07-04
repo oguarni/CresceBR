@@ -56,6 +56,14 @@ export class QuoteService {
 
   private static readonly TAX_RATE = 0.18;
 
+  /**
+   * Determines the appropriate pricing tier based on the quantity of items being purchased.
+   * Applies volume discounts for bulk purchases according to predefined or custom tiers.
+   *
+   * @param quantity - The number of items being purchased
+   * @param customTiers - Optional custom pricing tiers to use instead of defaults
+   * @returns The matching pricing tier object or null if no tier matches
+   */
   static getPricingTier(quantity: number, customTiers?: PricingTier[]): PricingTier | null {
     const tiers = customTiers || this.DEFAULT_PRICING_TIERS;
 
@@ -71,6 +79,15 @@ export class QuoteService {
     return null;
   }
 
+  /**
+   * Calculates the shipping cost for an order based on quantity, shipping method, and distance.
+   * Uses predefined shipping rates and applies distance-based multipliers for accurate pricing.
+   *
+   * @param quantity - The number of items to be shipped
+   * @param shippingMethod - The shipping method ('standard', 'express', or 'economy')
+   * @param distance - The distance in kilometers between origin and destination
+   * @returns The calculated shipping cost in the local currency
+   */
   static calculateShippingCost(
     quantity: number,
     shippingMethod: 'standard' | 'express' | 'economy' = 'standard',
@@ -83,6 +100,14 @@ export class QuoteService {
     return (rates.baseRate + estimatedWeight * rates.perKgRate) * distanceMultiplier;
   }
 
+  /**
+   * Calculates the distance between two cities using a predefined distance matrix.
+   * Used for determining shipping costs and delivery logistics in the B2B marketplace.
+   *
+   * @param city1 - The origin city name
+   * @param city2 - The destination city name
+   * @returns The distance in kilometers, or 100 as default if cities are not found
+   */
   static calculateDistanceBetweenCities(city1?: string, city2?: string): number {
     if (!city1 || !city2) return 100;
 
@@ -97,6 +122,14 @@ export class QuoteService {
     return distances[city1]?.[city2] || 100;
   }
 
+  /**
+   * Calculates a comprehensive quote for a single product item including pricing tiers,
+   * shipping costs, taxes, and total savings. This is the core pricing calculation method.
+   *
+   * @param input - The quote calculation input containing product details and preferences
+   * @returns A complete quote calculation result with all cost breakdowns
+   * @throws Error if the product is not found in the database
+   */
   static async calculateQuoteForItem(
     input: QuoteCalculationInput
   ): Promise<QuoteCalculationResult> {
@@ -136,6 +169,14 @@ export class QuoteService {
     };
   }
 
+  /**
+   * Calculates quotes for multiple items and provides a comprehensive comparison
+   * with aggregated totals, shipping costs, taxes, and savings across all items.
+   *
+   * @param items - Array of quote calculation inputs for multiple products
+   * @param options - Optional configuration for buyer/supplier locations and shipping method
+   * @returns A comprehensive quote comparison with individual item calculations and totals
+   */
   static async calculateQuoteComparison(
     items: QuoteCalculationInput[],
     options: {
@@ -171,6 +212,15 @@ export class QuoteService {
     };
   }
 
+  /**
+   * Updates an existing quotation record with the calculated quote results.
+   * Marks the quotation as processed and adds summary information to admin notes.
+   *
+   * @param quotationId - The unique identifier of the quotation to update
+   * @param calculations - The calculated quote comparison results to store
+   * @returns Promise that resolves when the update is complete
+   * @throws Error if the quotation is not found in the database
+   */
   static async updateQuotationWithCalculations(
     quotationId: number,
     calculations: QuoteComparisonResult
@@ -186,6 +236,14 @@ export class QuoteService {
     });
   }
 
+  /**
+   * Retrieves a quotation from the database and calculates fresh quote results
+   * for all items in the quotation. Includes all related product information.
+   *
+   * @param quotationId - The unique identifier of the quotation to retrieve
+   * @returns Object containing the quotation record and calculated quote results
+   * @throws Error if the quotation is not found in the database
+   */
   static async getQuotationWithCalculations(quotationId: number): Promise<{
     quotation: Quotation;
     calculations: QuoteComparisonResult;
@@ -223,6 +281,13 @@ export class QuoteService {
     };
   }
 
+  /**
+   * Formats the quote calculation results into a user-friendly response format
+   * with properly formatted currency values and readable tier information.
+   *
+   * @param calculations - The quote comparison results to format
+   * @returns Formatted quote response with summary totals and itemized details
+   */
   static formatQuoteResponse(calculations: QuoteComparisonResult): {
     summary: {
       totalItems: number;
