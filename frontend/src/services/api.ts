@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: '/api', // Use relative path for proxy
 });
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Bearer ${JSON.parse(token)}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
