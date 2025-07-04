@@ -19,8 +19,15 @@ import User from '../../models/User';
 jest.mock('../../models/Rating');
 jest.mock('../../models/Order');
 jest.mock('../../models/User');
-jest.mock('../../middleware/auth');
-jest.mock('../../middleware/errorHandler');
+jest.mock('../../middleware/auth', () => ({
+  authenticateJWT: jest.fn((req: any, res: any, next: any) => next()),
+  isSupplier: jest.fn((req: any, res: any, next: any) => next()),
+  isAdmin: jest.fn((req: any, res: any, next: any) => next()),
+}));
+jest.mock('../../middleware/errorHandler', () => ({
+  errorHandler: jest.fn(),
+  asyncHandler: jest.requireActual('../../middleware/errorHandler').asyncHandler,
+}));
 
 const MockRating = Rating as jest.Mocked<typeof Rating>;
 const MockOrder = Order as jest.Mocked<typeof Order>;

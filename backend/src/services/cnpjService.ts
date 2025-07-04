@@ -26,6 +26,15 @@ export class CNPJService {
   private static readonly CACHE_EXPIRATION_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
   private static cnpjCache = new Map<string, CNPJCacheEntry>();
 
+  // Method to clear cache for testing purposes
+  static clearCache(): void {
+    // Clear all timeout handles to prevent memory leaks
+    for (const entry of this.cnpjCache.values()) {
+      clearTimeout(entry.timeoutId);
+    }
+    this.cnpjCache.clear();
+  }
+
   static validateCNPJFormat(cnpj: string): boolean {
     const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
 

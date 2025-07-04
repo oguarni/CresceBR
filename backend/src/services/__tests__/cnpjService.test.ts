@@ -13,6 +13,7 @@ const MockUser = User as jest.Mocked<typeof User>;
 describe('CNPJService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    CNPJService.clearCache(); // Clear cache to prevent test interference
   });
 
   describe('validateCNPJFormat', () => {

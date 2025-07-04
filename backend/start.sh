@@ -5,7 +5,11 @@ echo "🚀 Starting CresceBR Backend..."
 
 # Wait for database to be ready
 echo "⏳ Waiting for database to be ready..."
-./wait-for-it.sh db:5432 --timeout=60 --strict
+until nc -z db 5432; do
+  echo "Database is not ready yet, waiting..."
+  sleep 2
+done
+echo "✅ Database is ready!"
 
 # Function to run migrations with retry
 run_migrations() {
