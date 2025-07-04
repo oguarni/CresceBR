@@ -1,56 +1,48 @@
+version: '3.8'
+
 services:
-  database:
-    image: postgres:15-alpine
-    container_name: b2b_database
+  db:
+    image: postgres:13
+    container_name: crescebr_db
     environment:
-      POSTGRES_DB: b2b_marketplace
-      POSTGRES_USER: b2b_user
-      POSTGRES_PASSWORD: b2b_password
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: testdb
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U b2b_user -d b2b_marketplace"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   backend:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
-    container_name: b2b_backend
-    environment:
-      NODE_ENV: production
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_NAME: b2b_marketplace
-      DB_USER: b2b_user
-      DB_PASSWORD: b2b_password
-      JWT_SECRET: your-jwt-secret-key
-      PORT: 3001
+      context: ./backend
+    container_name: crescebr_backend
+    command: npm run dev
     ports:
-      - "3001:3001"
+      - '3001:3001'
     depends_on:
-      database:
-        condition: service_healthy
+      - db
+    environment:
+      DATABASE_URL: postgres://testuser:testpass@db:5432/testdb
+      TEST_DATABASE_URL: postgres://testuser:testpass@db:5432/testdb
+      JWT_SECRET: your_jwt_secret
+      PORT: 3001
     volumes:
-      - ./backend/src:/app/src
-    restart: unless-stopped
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
 
   frontend:
     build:
-      context: .
-      dockerfile: ./frontend/Dockerfile
-    container_name: b2b_frontend
-    environment:
-      VITE_API_URL: http://localhost:3001
+      context: ./frontend
+    container_name: crescebr_frontend
+    command: npm run dev
     ports:
-      - "80:80"
+      - '5173:5173' # Changed port for clarity
     depends_on:
       - backend
-    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   postgres_data:
