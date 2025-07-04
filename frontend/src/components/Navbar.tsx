@@ -29,7 +29,7 @@ const Navbar: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems, toggleCart } = useCart();
-  const { totalItems: quotationItems, toggleDrawer } = useQuotationRequest();
+  const { totalItems: quotationItems } = useQuotationRequest();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -54,11 +54,6 @@ const Navbar: React.FC = () => {
     handleClose();
   };
 
-  const handleQuotationRequest = () => {
-    navigate('/quotation-request');
-    handleClose();
-  };
-
   const handleMyQuotations = () => {
     navigate('/my-quotations');
     handleClose();
@@ -68,12 +63,12 @@ const Navbar: React.FC = () => {
   const isAdmin = isAuthenticated && user?.role === 'admin';
 
   return (
-    <AppBar position="sticky" elevation={1}>
+    <AppBar position='sticky' elevation={1}>
       <Toolbar>
         <Typography
-          variant="h6"
+          variant='h6'
           component={Link}
-          to="/"
+          to='/'
           sx={{
             flexGrow: 1,
             textDecoration: 'none',
@@ -88,21 +83,17 @@ const Navbar: React.FC = () => {
           {/* Cart or Quotation Request Button */}
           {isCustomer || !isAuthenticated ? (
             <IconButton
-              color="inherit"
+              color='inherit'
               onClick={() => navigate('/quotation-request')}
-              aria-label="quotation request"
+              aria-label='quotation request'
             >
-              <Badge badgeContent={quotationItems} color="secondary">
+              <Badge badgeContent={quotationItems} color='secondary'>
                 <RequestQuote />
               </Badge>
             </IconButton>
           ) : (
-            <IconButton
-              color="inherit"
-              onClick={toggleCart}
-              aria-label="shopping cart"
-            >
-              <Badge badgeContent={totalItems} color="secondary">
+            <IconButton color='inherit' onClick={toggleCart} aria-label='shopping cart'>
+              <Badge badgeContent={totalItems} color='secondary'>
                 <ShoppingCart />
               </Badge>
             </IconButton>
@@ -112,17 +103,17 @@ const Navbar: React.FC = () => {
           {isAuthenticated ? (
             <>
               <IconButton
-                size="large"
-                aria-label="account of current user"
-                aria-controls="menu-appbar"
-                aria-haspopup="true"
+                size='large'
+                aria-label='account of current user'
+                aria-controls='menu-appbar'
+                aria-haspopup='true'
                 onClick={handleMenu}
-                color="inherit"
+                color='inherit'
               >
                 <AccountCircle />
               </IconButton>
               <Menu
-                id="menu-appbar"
+                id='menu-appbar'
                 anchorEl={anchorEl}
                 anchorOrigin={{
                   vertical: 'bottom',
@@ -137,7 +128,7 @@ const Navbar: React.FC = () => {
                 onClose={handleClose}
               >
                 <MenuItem disabled>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant='body2' color='text.secondary'>
                     {user?.email}
                   </Typography>
                 </MenuItem>
@@ -159,15 +150,15 @@ const Navbar: React.FC = () => {
           ) : (
             <Box sx={{ display: 'flex', gap: 1 }}>
               {!isMobile && (
-                <Button color="inherit" component={Link} to="/login">
+                <Button color='inherit' component={Link} to='/login'>
                   Entrar
                 </Button>
               )}
               <Button
-                variant="outlined"
-                color="inherit"
+                variant='outlined'
+                color='inherit'
                 component={Link}
-                to="/register"
+                to='/register'
                 sx={{
                   borderColor: 'currentColor',
                   '&:hover': {

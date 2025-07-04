@@ -102,10 +102,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Set token in axios headers
       apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      const response = await apiService.get('/auth/me');
+      const response = await apiService.get<{
+        success: boolean;
+        data: { user: User };
+        error?: string;
+      }>('/auth/me');
 
-      if (response.data.success) {
-        dispatch({ type: 'USER_LOADED', payload: response.data.data.user });
+      if (response.success) {
+        dispatch({ type: 'USER_LOADED', payload: response.data.user });
       } else {
         // Invalid token, clear it
         localStorage.removeItem('crescebr_token');

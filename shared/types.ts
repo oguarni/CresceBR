@@ -73,6 +73,33 @@ export interface AuthResponse {
   user: Omit<User, 'password'>;
 }
 
+export interface Order {
+  id: number;
+  userId: number;
+  user?: Omit<User, 'password'>;
+  quotationId?: number;
+  quotation?: Quotation;
+  items: OrderItem[];
+  totalAmount: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  shippingAddress: string;
+  notes: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface OrderItem {
+  id: number;
+  orderId: number;
+  productId: number;
+  product?: Product;
+  quantity: number;
+  price: number;
+  totalPrice: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
