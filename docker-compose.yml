@@ -1,53 +1,55 @@
 version: '3.8'
 
 services:
-  db:
+  postgres:
     image: postgres:13
     container_name: crescebr_db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: crescebr_dev
-    ports:
-      - '5432:5432'
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-crescebr_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U user -d crescebr_dev']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    ports:
+      - '5432:5432'
+    networks:
+      - crescebr-net
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
     container_name: crescebr_backend
-    command: npm run dev
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    depends_on:
+      - postgres
     ports:
       - '3001:3001'
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      - DATABASE_URL=postgres://user:password@db:5432/crescebr_dev
-      - NODE_ENV=development
-      - JWT_SECRET=seu-segredo-jwt-aqui
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - ./backend/.env
+    networks:
+      - crescebr-net
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     container_name: crescebr_frontend
-    command: npm run dev
+    ports:
+      - '5173:5173'
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    ports:
-      - '5173:5173'
-    depends_on:
-      - backend
     environment:
-      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_BASE_URL=http://localhost:3001/api
+    networks:
+      - crescebr-net
+
+networks:
+  crescebr-net:
+    driver: bridge
 
 volumes:
   postgres_data:

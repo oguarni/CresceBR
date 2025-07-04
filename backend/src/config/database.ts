@@ -1,37 +1,36 @@
 import { Sequelize } from 'sequelize';
-import * as dotenv from 'dotenv';
-import path from 'path';
+import dotenv from 'dotenv';
 
-// Load environment variables for test environment
-if (process.env.NODE_ENV === 'test') {
-  dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
-} else {
-  dotenv.config(); // Load .env for development
-}
+dotenv.config();
 
-import config from '../../config/config.json';
+const env = process.env.NODE_ENV || 'development';
 
-const env = (process.env.NODE_ENV as 'development' | 'test' | 'production') || 'development';
-const dbConfig = config[env];
+const config = {
+  development: {
+    username: process.env.DB_USER!,
+    password: process.env.DB_PASSWORD!,
+    database: process.env.DB_NAME!,
+    host: process.env.DB_HOST!,
+    dialect: 'postgres' as const,
+  },
+  test: {
+    username: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    database: 'crescebr_test',
+    host: process.env.DB_HOST || 'postgres',
+    dialect: 'postgres' as const,
+    logging: false,
+  },
+  production: {
+    username: process.env.DB_USER!,
+    password: process.env.DB_PASSWORD!,
+    database: process.env.DB_NAME!,
+    host: process.env.DB_HOST!,
+    dialect: 'postgres' as const,
+    logging: false,
+  },
+};
 
-let sequelize: Sequelize;
-
-if (dbConfig.use_env_variable) {
-  const dbUrl = process.env[dbConfig.use_env_variable];
-  if (!dbUrl) {
-    throw new Error(`Environment variable ${dbConfig.use_env_variable} is not set.`);
-  }
-  sequelize = new Sequelize(dbUrl, {
-    dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  });
-} else {
-  sequelize = new Sequelize({
-    ...dbConfig,
-    dialect: 'postgres',
-    port: parseInt(dbConfig.port, 10),
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  });
-}
+const sequelize = new Sequelize(config[env]);
 
 export default sequelize;
