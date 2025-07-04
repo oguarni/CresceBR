@@ -1,18 +1,18 @@
 import { Router } from 'express';
 import authRoutes from './auth';
-// import productsRoutes from './products';
-// import quotationsRoutes from './quotations';
-// import adminRoutes from './admin';
-// import orderRoutes from './orders';
+import productsRoutes from './products';
+import quotationsRoutes from './quotations';
+import adminRoutes from './admin';
+import orderRoutes from './orders';
 
 const router = Router();
 
-// API routes (temporarily commented to isolate issue)
-// router.use('/auth', authRoutes);
-// router.use('/products', productsRoutes);
-// router.use('/quotations', quotationsRoutes);
-// router.use('/admin', adminRoutes);
-// router.use('/orders', orderRoutes);
+// API routes
+router.use('/auth', authRoutes);
+router.use('/products', productsRoutes);
+router.use('/quotations', quotationsRoutes);
+router.use('/admin', adminRoutes);
+router.use('/orders', orderRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

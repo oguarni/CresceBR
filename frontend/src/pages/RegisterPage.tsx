@@ -59,7 +59,7 @@ const RegisterPage: React.FC = () => {
   const handleCepChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const cep = e.target.value.replace(/\D/g, '');
     const formattedCep = viaCepService.formatCep(cep);
-    
+
     setFormData(prev => ({ ...prev, cep: formattedCep }));
 
     if (viaCepService.isValidCep(cep)) {
@@ -118,7 +118,6 @@ const RegisterPage: React.FC = () => {
       navigate('/');
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Erro ao fazer cadastro';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -126,7 +125,7 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <Container component="main" maxWidth="md">
+    <Container component='main' maxWidth='md'>
       <Box
         sx={{
           marginTop: 4,
@@ -145,64 +144,61 @@ const RegisterPage: React.FC = () => {
             width: '100%',
           }}
         >
-          <Typography component="h1" variant="h4" gutterBottom>
+          <Typography component='h1' variant='h4' gutterBottom>
             CresceBR
           </Typography>
-          <Typography component="h2" variant="h6" color="text.secondary" gutterBottom>
+          <Typography component='h2' variant='h6' color='text.secondary' gutterBottom>
             Crie sua conta
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            <Alert severity='error' sx={{ width: '100%', mb: 2 }}>
               {error}
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+          <Box component='form' onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
                   required
                   fullWidth
-                  id="email"
-                  label="Email"
-                  name="email"
-                  autoComplete="email"
+                  id='email'
+                  label='Email'
+                  name='email'
+                  autoComplete='email'
                   value={formData.email}
                   onChange={handleChange('email')}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Email />
                       </InputAdornment>
                     ),
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   required
                   fullWidth
-                  name="password"
-                  label="Senha"
+                  name='password'
+                  label='Senha'
                   type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  autoComplete="new-password"
+                  id='password'
+                  autoComplete='new-password'
                   value={formData.password}
                   onChange={handleChange('password')}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Lock />
                       </InputAdornment>
                     ),
                     endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
+                      <InputAdornment position='end'>
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge='end'>
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
@@ -210,28 +206,28 @@ const RegisterPage: React.FC = () => {
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   required
                   fullWidth
-                  name="confirmPassword"
-                  label="Confirmar Senha"
+                  name='confirmPassword'
+                  label='Confirmar Senha'
                   type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
+                  id='confirmPassword'
                   value={formData.confirmPassword}
                   onChange={handleChange('confirmPassword')}
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Lock />
                       </InputAdornment>
                     ),
                     endAdornment: (
-                      <InputAdornment position="end">
+                      <InputAdornment position='end'>
                         <IconButton
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge="end"
+                          edge='end'
                         >
                           {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -240,67 +236,67 @@ const RegisterPage: React.FC = () => {
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   required
                   fullWidth
-                  id="cpf"
-                  label="CPF"
-                  name="cpf"
+                  id='cpf'
+                  label='CPF'
+                  name='cpf'
                   value={formData.cpf}
                   onChange={handleCpfChange}
-                  placeholder="000.000.000-00"
+                  placeholder='000.000.000-00'
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Person />
                       </InputAdornment>
                     ),
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   required
                   fullWidth
-                  id="cep"
-                  label="CEP"
-                  name="cep"
+                  id='cep'
+                  label='CEP'
+                  name='cep'
                   value={formData.cep}
                   onChange={handleCepChange}
-                  placeholder="00000-000"
+                  placeholder='00000-000'
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Home />
                       </InputAdornment>
                     ),
                     endAdornment: isLoadingCep && (
-                      <InputAdornment position="end">
+                      <InputAdornment position='end'>
                         <CircularProgress size={20} />
                       </InputAdornment>
                     ),
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   required
                   fullWidth
-                  id="address"
-                  label="Endereço Completo"
-                  name="address"
+                  id='address'
+                  label='Endereço Completo'
+                  name='address'
                   multiline
                   rows={2}
                   value={formData.address}
                   onChange={handleChange('address')}
-                  placeholder="Rua, número, bairro, cidade - UF"
+                  placeholder='Rua, número, bairro, cidade - UF'
                   InputProps={{
                     startAdornment: (
-                      <InputAdornment position="start">
+                      <InputAdornment position='start'>
                         <Home />
                       </InputAdornment>
                     ),
@@ -308,21 +304,21 @@ const RegisterPage: React.FC = () => {
                 />
               </Grid>
             </Grid>
-            
+
             <Button
-              type="submit"
+              type='submit'
               fullWidth
-              variant="contained"
+              variant='contained'
               sx={{ mt: 3, mb: 2 }}
               disabled={isLoading}
             >
               {isLoading ? <CircularProgress size={24} /> : 'Cadastrar'}
             </Button>
-            
-            <Box textAlign="center">
-              <Typography variant="body2">
+
+            <Box textAlign='center'>
+              <Typography variant='body2'>
                 Já tem uma conta?{' '}
-                <Link to="/login" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                <Link to='/login' style={{ color: 'inherit', textDecoration: 'underline' }}>
                   Faça login
                 </Link>
               </Typography>

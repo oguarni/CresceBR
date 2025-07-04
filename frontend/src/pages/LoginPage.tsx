@@ -7,7 +7,6 @@ import {
   Button,
   Typography,
   Box,
-  Alert,
   InputAdornment,
   IconButton,
   CircularProgress,
@@ -20,7 +19,6 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
@@ -31,7 +29,6 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
@@ -40,7 +37,6 @@ const LoginPage: React.FC = () => {
       navigate(from, { replace: true });
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Erro ao fazer login';
-      setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -52,7 +48,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
+    <Container component='main' maxWidth='sm'>
       <Box
         sx={{
           marginTop: 8,
@@ -71,62 +67,56 @@ const LoginPage: React.FC = () => {
             width: '100%',
           }}
         >
-          <Typography component="h1" variant="h4" gutterBottom>
+          <Typography component='h1' variant='h4' gutterBottom>
             CresceBR
           </Typography>
-          <Typography component="h2" variant="h6" color="text.secondary" gutterBottom>
+          <Typography component='h2' variant='h6' color='text.secondary' gutterBottom>
             Faça login em sua conta
           </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+          <Box component='form' onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <TextField
-              margin="normal"
+              margin='normal'
               required
               fullWidth
-              id="email"
-              label="Email"
-              name="email"
-              autoComplete="email"
+              id='email'
+              label='Email'
+              name='email'
+              autoComplete='email'
               autoFocus
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">
+                  <InputAdornment position='start'>
                     <Email />
                   </InputAdornment>
                 ),
               }}
             />
             <TextField
-              margin="normal"
+              margin='normal'
               required
               fullWidth
-              name="password"
-              label="Senha"
+              name='password'
+              label='Senha'
               type={showPassword ? 'text' : 'password'}
-              id="password"
-              autoComplete="current-password"
+              id='password'
+              autoComplete='current-password'
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">
+                  <InputAdornment position='start'>
                     <Lock />
                   </InputAdornment>
                 ),
                 endAdornment: (
-                  <InputAdornment position="end">
+                  <InputAdornment position='end'>
                     <IconButton
-                      aria-label="toggle password visibility"
+                      aria-label='toggle password visibility'
                       onClick={handleTogglePasswordVisibility}
-                      edge="end"
+                      edge='end'
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -135,18 +125,18 @@ const LoginPage: React.FC = () => {
               }}
             />
             <Button
-              type="submit"
+              type='submit'
               fullWidth
-              variant="contained"
+              variant='contained'
               sx={{ mt: 3, mb: 2 }}
               disabled={isLoading}
             >
               {isLoading ? <CircularProgress size={24} /> : 'Entrar'}
             </Button>
-            <Box textAlign="center">
-              <Typography variant="body2">
+            <Box textAlign='center'>
+              <Typography variant='body2'>
                 Não tem uma conta?{' '}
-                <Link to="/register" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                <Link to='/register' style={{ color: 'inherit', textDecoration: 'underline' }}>
                   Cadastre-se
                 </Link>
               </Typography>
@@ -154,13 +144,13 @@ const LoginPage: React.FC = () => {
           </Box>
 
           <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.50', borderRadius: 1, width: '100%' }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Typography variant='body2' color='text.secondary' gutterBottom>
               <strong>Contas de teste:</strong>
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant='body2' color='text.secondary'>
               Admin: admin@crescebr.com / admin123
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant='body2' color='text.secondary'>
               Cliente: cliente@teste.com / cliente123
             </Typography>
           </Box>

@@ -15,8 +15,16 @@ interface CNPJValidationResult {
   error?: string;
 }
 
+interface CNPJCacheEntry {
+  data: CNPJValidationResult;
+  timestamp: number;
+  timeoutId: NodeJS.Timeout;
+}
+
 export class CNPJService {
   private static readonly CNPJ_API_URL = 'https://publica.cnpj.ws/cnpj/';
+  private static readonly CACHE_EXPIRATION_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
+  private static cnpjCache = new Map<string, CNPJCacheEntry>();
 
   static validateCNPJFormat(cnpj: string): boolean {
     const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
@@ -48,10 +56,54 @@ export class CNPJService {
     return cleanCNPJ.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
   }
 
+  private static getCachedResult(cnpj: string): CNPJValidationResult | null {
+    const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
+    const cacheEntry = this.cnpjCache.get(cleanCNPJ);
+
+    if (cacheEntry && Date.now() - cacheEntry.timestamp < this.CACHE_EXPIRATION_TIME) {
+      return cacheEntry.data;
+    }
+
+    // Remove expired entry
+    if (cacheEntry) {
+      clearTimeout(cacheEntry.timeoutId);
+      this.cnpjCache.delete(cleanCNPJ);
+    }
+
+    return null;
+  }
+
+  private static setCachedResult(cnpj: string, result: CNPJValidationResult): void {
+    const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
+
+    // Clear existing timeout if any
+    const existingEntry = this.cnpjCache.get(cleanCNPJ);
+    if (existingEntry) {
+      clearTimeout(existingEntry.timeoutId);
+    }
+
+    // Set timeout to automatically remove expired cache entry
+    const timeoutId = setTimeout(() => {
+      this.cnpjCache.delete(cleanCNPJ);
+    }, this.CACHE_EXPIRATION_TIME);
+
+    this.cnpjCache.set(cleanCNPJ, {
+      data: result,
+      timestamp: Date.now(),
+      timeoutId,
+    });
+  }
+
   static async validateCNPJWithAPI(cnpj: string): Promise<CNPJValidationResult> {
     try {
       if (!this.validateCNPJFormat(cnpj)) {
         return { valid: false, error: 'Invalid CNPJ format' };
+      }
+
+      // Check cache first
+      const cachedResult = this.getCachedResult(cnpj);
+      if (cachedResult) {
+        return cachedResult;
       }
 
       const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
@@ -66,7 +118,7 @@ export class CNPJService {
 
       if (data.status === 200 && data.estabelecimento) {
         const establishment = data.estabelecimento;
-        return {
+        const result = {
           valid: true,
           companyName: data.razao_social,
           fantasyName: establishment.nome_fantasia || data.razao_social,
@@ -79,8 +131,15 @@ export class CNPJService {
           mainActivity: data.natureza_juridica?.descricao,
           situacao: establishment.situacao_cadastral,
         };
+
+        // Cache the successful result
+        this.setCachedResult(cnpj, result);
+        return result;
       } else {
-        return { valid: false, error: 'CNPJ not found or inactive' };
+        const result = { valid: false, error: 'CNPJ not found or inactive' };
+        // Cache the failed result to avoid repeated API calls
+        this.setCachedResult(cnpj, result);
+        return result;
       }
     } catch (error) {
       console.error('CNPJ validation error:', error);
@@ -93,7 +152,10 @@ export class CNPJService {
           return { valid: false, error: 'Rate limit exceeded, try again later' };
         }
         if (error.response?.status === 404) {
-          return { valid: false, error: 'CNPJ not found' };
+          const result = { valid: false, error: 'CNPJ not found' };
+          // Cache 404 results to avoid repeated API calls
+          this.setCachedResult(cnpj, result);
+          return result;
         }
       }
 

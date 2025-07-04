@@ -5,7 +5,7 @@ import Rating from '../models/Rating';
 import Order from '../models/Order';
 import User from '../models/User';
 import { asyncHandler } from '../middleware/errorHandler';
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 
 export const createRatingValidation = [
   body('supplierId').isInt({ min: 1 }).withMessage('Valid supplier ID is required'),
@@ -300,7 +300,8 @@ export const getTopSuppliers = asyncHandler(async (req: AuthenticatedRequest, re
       'id',
       'companyName',
       'email',
-      // Calculate average rating and total ratings using subqueries
+      [Sequelize.fn('AVG', Sequelize.col('supplierRatings.score')), 'averageRating'],
+      [Sequelize.fn('COUNT', Sequelize.col('supplierRatings.id')), 'totalRatings'],
     ],
     include: [
       {
@@ -310,54 +311,24 @@ export const getTopSuppliers = asyncHandler(async (req: AuthenticatedRequest, re
       },
     ],
     group: ['User.id'],
-    having: {
-      [Op.and]: [
-        // Only include suppliers with at least 3 ratings
-        { '$supplierRatings.id$': { [Op.not]: null } },
-      ],
-    },
+    having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('supplierRatings.id')), Op.gte, 3),
     order: [
-      // Order by average rating DESC, then by number of ratings DESC
-      ['averageRating', 'DESC'],
-      ['totalRatings', 'DESC'],
+      [Sequelize.fn('AVG', Sequelize.col('supplierRatings.score')), 'DESC'],
+      [Sequelize.fn('COUNT', Sequelize.col('supplierRatings.id')), 'DESC'],
     ],
     limit: Number(limit),
     subQuery: false,
+    raw: true,
   });
 
-  // Calculate ratings for each supplier manually since Sequelize aggregation is complex
-  const suppliersWithRatings = await Promise.all(
-    topSuppliers.map(async supplier => {
-      const ratings = await Rating.findAll({
-        where: { supplierId: supplier.id },
-        attributes: ['score'],
-      });
-
-      const averageRating =
-        ratings.length > 0
-          ? ratings.reduce((sum, rating) => sum + rating.score, 0) / ratings.length
-          : 0;
-
-      return {
-        id: supplier.id,
-        companyName: supplier.companyName,
-        email: supplier.email,
-        averageRating: parseFloat(averageRating.toFixed(2)),
-        totalRatings: ratings.length,
-      };
-    })
-  );
-
-  // Filter suppliers with at least 3 ratings and sort by average rating
-  const qualifiedSuppliers = suppliersWithRatings
-    .filter(supplier => supplier.totalRatings >= 3)
-    .sort((a, b) => {
-      if (b.averageRating !== a.averageRating) {
-        return b.averageRating - a.averageRating;
-      }
-      return b.totalRatings - a.totalRatings;
-    })
-    .slice(0, Number(limit));
+  // Transform the results to match the expected format
+  const qualifiedSuppliers = topSuppliers.map(supplier => ({
+    id: supplier.id,
+    companyName: supplier.companyName,
+    email: supplier.email,
+    averageRating: parseFloat(Number(supplier.averageRating).toFixed(2)),
+    totalRatings: parseInt(supplier.totalRatings as string, 10),
+  }));
 
   res.status(200).json({
     success: true,
