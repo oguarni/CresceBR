@@ -5,44 +5,49 @@ services:
     image: postgres:13
     container_name: crescebr_db
     environment:
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpass
-      POSTGRES_DB: testdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: crescebr_dev
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U user -d crescebr_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    build:
-      context: ./backend
+    build: ./backend
     container_name: crescebr_backend
     command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     ports:
       - '3001:3001'
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgres://testuser:testpass@db:5432/testdb
-      TEST_DATABASE_URL: postgres://testuser:testpass@db:5432/testdb
-      JWT_SECRET: your_jwt_secret
-      PORT: 3001
-    volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
+      - DATABASE_URL=postgres://user:password@db:5432/crescebr_dev
+      - NODE_ENV=development
+      - JWT_SECRET=seu-segredo-jwt-aqui
 
   frontend:
-    build:
-      context: ./frontend
+    build: ./frontend
     container_name: crescebr_frontend
     command: npm run dev
-    ports:
-      - '5173:5173' # Changed port for clarity
-    depends_on:
-      - backend
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
 
 volumes:
   postgres_data:
