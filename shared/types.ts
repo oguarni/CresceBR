@@ -1,3 +1,9 @@
+export interface PricingTier {
+  minQuantity: number;
+  maxQuantity: number | null;
+  discount: number;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -5,6 +11,14 @@ export interface User {
   cpf: string;
   address: string;
   role: 'customer' | 'admin' | 'supplier';
+  status: 'pending' | 'approved' | 'rejected';
+  companyName?: string;
+  corporateName?: string;
+  cnpj?: string;
+  cnpjValidated?: boolean;
+  industrySector?: string;
+  averageRating?: number;
+  totalRatings?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -16,6 +30,11 @@ export interface Product {
   price: number;
   imageUrl: string;
   category: string;
+  supplierId?: number;
+  tierPricing?: PricingTier[];
+  specifications?: Record<string, any>;
+  unitPrice?: number;
+  minimumOrderQuantity?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -66,6 +85,11 @@ export interface RegisterRequest {
   password: string;
   cpf: string;
   address: string;
+  role?: 'customer' | 'supplier';
+  companyName?: string;
+  corporateName?: string;
+  cnpj?: string;
+  industrySector?: string;
 }
 
 export interface AuthResponse {
@@ -74,7 +98,7 @@ export interface AuthResponse {
 }
 
 export interface Order {
-  id: number;
+  id: string;
   userId: number;
   user?: Omit<User, 'password'>;
   quotationId?: number;
@@ -82,6 +106,8 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  estimatedDeliveryDate?: Date;
+  trackingNumber?: string;
   shippingAddress: string;
   notes: string | null;
   createdAt?: Date;
@@ -98,6 +124,27 @@ export interface OrderItem {
   totalPrice: number;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface Rating {
+  id: number;
+  supplierId: number;
+  buyerId: number;
+  orderId?: string;
+  score: number;
+  comment?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface OrderStatusHistory {
+  id: number;
+  orderId: string;
+  fromStatus?: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  toStatus: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  changedBy: number;
+  notes?: string;
+  createdAt?: Date;
 }
 
 export interface ApiResponse<T = any> {

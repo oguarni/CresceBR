@@ -16,6 +16,9 @@ interface ProductAttributes {
   category: string;
   supplierId?: number;
   tierPricing?: PricingTier[];
+  specifications?: Record<string, any>;
+  unitPrice?: number;
+  minimumOrderQuantity?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -23,7 +26,14 @@ interface ProductAttributes {
 interface ProductCreationAttributes
   extends Optional<
     ProductAttributes,
-    'id' | 'supplierId' | 'tierPricing' | 'createdAt' | 'updatedAt'
+    | 'id'
+    | 'supplierId'
+    | 'tierPricing'
+    | 'specifications'
+    | 'unitPrice'
+    | 'minimumOrderQuantity'
+    | 'createdAt'
+    | 'updatedAt'
   > {}
 
 class Product
@@ -38,6 +48,9 @@ class Product
   public category!: string;
   public supplierId?: number;
   public tierPricing?: PricingTier[];
+  public specifications?: Record<string, any>;
+  public unitPrice?: number;
+  public minimumOrderQuantity?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -99,6 +112,21 @@ Product.init(
       type: DataTypes.JSON,
       allowNull: true,
       comment: 'JSON field for quantity-based pricing tiers',
+    },
+    specifications: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'JSON field for technical specifications and product details',
+    },
+    unitPrice: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: 'Price per unit for bulk ordering',
+    },
+    minimumOrderQuantity: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Minimum quantity required for orders',
     },
   },
   {
