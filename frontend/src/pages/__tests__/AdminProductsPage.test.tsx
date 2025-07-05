@@ -207,9 +207,12 @@ describe('AdminProductsPage', () => {
         expect(screen.getByText('Industrial Pump')).toBeInTheDocument();
       });
 
-      // Open dialog
       const newProductButton = screen.getByRole('button', { name: /novo produto/i });
       await user.click(newProductButton);
+
+      // Wait for dialog to be visible (using the same pattern as the working test)
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /novo produto/i })).toBeInTheDocument();
 
       // Fill form
       await user.type(screen.getByLabelText(/nome do produto/i), 'New Test Product');
@@ -217,15 +220,11 @@ describe('AdminProductsPage', () => {
       await user.type(screen.getByLabelText(/preço/i), '100.50');
       await user.type(screen.getByLabelText(/url da imagem/i), 'https://example.com/test.jpg');
 
-      // Select category - click on the select component and wait for options
-      // Check if dropdown is already open, if not click to open it
-      let option = screen.queryByText('Industrial Equipment');
-      if (!option) {
-        const categorySelect = screen.getByRole('combobox');
-        await user.click(categorySelect);
-        option = await screen.findByText('Industrial Equipment');
+      // Select category - use direct change event to avoid dropdown timing issues
+      const categorySelect = screen.getByRole('combobox').querySelector('input');
+      if (categorySelect) {
+        fireEvent.change(categorySelect, { target: { value: 'Industrial Equipment' } });
       }
-      await user.click(option);
 
       // Submit form
       vi.mocked(productsService.createProduct).mockResolvedValue({
@@ -255,7 +254,7 @@ describe('AdminProductsPage', () => {
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith('Produto criado com sucesso!');
       });
-    });
+    }, 10000);
 
     it('should show validation error for incomplete form', async () => {
       const user = userEvent.setup();

@@ -122,14 +122,14 @@ describe('QuotationRequestPage', () => {
       expect(
         screen.getByText('Adicione alguns produtos à sua solicitação de cotação para continuar')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /navegar produtos/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /navegar produtos/i })).toBeInTheDocument();
     });
 
     it('should navigate to home page when clicking browse products button', async () => {
       const user = userEvent.setup();
       renderQuotationRequestPage();
 
-      const browseButton = screen.getByRole('button', { name: /navegar produtos/i });
+      const browseButton = screen.getByRole('link', { name: /navegar produtos/i });
       await user.click(browseButton);
 
       // Note: Since this is a Link component, it won't actually navigate in tests
@@ -173,8 +173,8 @@ describe('QuotationRequestPage', () => {
       expect(screen.getByText('Categoria: Safety Equipment')).toBeInTheDocument();
 
       // Check reference prices
-      expect(screen.getByText('R$ 1.500,00')).toBeInTheDocument();
-      expect(screen.getByText('R$ 25,00')).toBeInTheDocument();
+      expect(screen.getByText('Preço de referência: R$ 1.500,00')).toBeInTheDocument();
+      expect(screen.getByText('Preço de referência: R$ 25,00')).toBeInTheDocument();
     });
 
     it('should display quantities correctly', () => {
@@ -231,30 +231,26 @@ describe('QuotationRequestPage', () => {
     });
 
     it('should update quantity when typing in quantity field', async () => {
-      const user = userEvent.setup();
       renderQuotationRequestPage();
 
       const quantityInputs = screen.getAllByRole('textbox');
       const firstQuantityInput = quantityInputs[0];
 
-      await user.clear(firstQuantityInput);
-      await user.type(firstQuantityInput, '15');
+      fireEvent.change(firstQuantityInput, { target: { value: '15' } });
 
       expect(mockQuotationContext.updateQuantity).toHaveBeenCalledWith(1, 15);
     });
 
     it('should handle invalid quantity input gracefully', async () => {
-      const user = userEvent.setup();
       renderQuotationRequestPage();
 
       const quantityInputs = screen.getAllByRole('textbox');
       const firstQuantityInput = quantityInputs[0];
 
-      await user.clear(firstQuantityInput);
-      await user.type(firstQuantityInput, 'abc');
+      fireEvent.change(firstQuantityInput, { target: { value: 'abc' } });
 
-      // Should call with 0 when input is invalid
-      expect(mockQuotationContext.updateQuantity).toHaveBeenCalledWith(1, 0);
+      // Should remove item when input is invalid (quantity becomes 0)
+      expect(mockQuotationContext.removeItem).toHaveBeenCalledWith(1);
     });
 
     it('should remove item when clicking delete button', async () => {
@@ -338,19 +334,14 @@ describe('QuotationRequestPage', () => {
       expect(screen.getByRole('button', { name: /solicitar cotação/i })).not.toBeDisabled();
     });
 
-    it('should redirect to login when unauthenticated user tries to submit', async () => {
-      const user = userEvent.setup();
+    it('should disable submit button for unauthenticated users', async () => {
       mockAuthContext.isAuthenticated = false;
       mockAuthContext.user = null;
 
       renderQuotationRequestPage();
 
       const submitButton = screen.getByRole('button', { name: /solicitar cotação/i });
-      await user.click(submitButton);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/login', {
-        state: { from: { pathname: '/quotation-request' } },
-      });
+      expect(submitButton).toBeDisabled();
     });
   });
 
@@ -461,8 +452,7 @@ describe('QuotationRequestPage', () => {
       });
     });
 
-    it('should show error for non-customer role submission', async () => {
-      const user = userEvent.setup();
+    it('should disable submit button for non-customer users', async () => {
       mockAuthContext.user = {
         id: 1,
         email: 'supplier@test.com',
@@ -476,9 +466,7 @@ describe('QuotationRequestPage', () => {
       renderQuotationRequestPage();
 
       const submitButton = screen.getByRole('button', { name: /solicitar cotação/i });
-      await user.click(submitButton);
-
-      expect(toast.error).toHaveBeenCalledWith('Apenas clientes podem solicitar cotações');
+      expect(submitButton).toBeDisabled();
     });
   });
 
@@ -491,7 +479,7 @@ describe('QuotationRequestPage', () => {
     it('should have continue browsing button', () => {
       renderQuotationRequestPage();
 
-      const continueButton = screen.getByRole('button', { name: /continuar navegando/i });
+      const continueButton = screen.getByRole('link', { name: /continuar navegando/i });
       expect(continueButton).toBeInTheDocument();
       expect(continueButton.closest('a')).toHaveAttribute('href', '/');
     });

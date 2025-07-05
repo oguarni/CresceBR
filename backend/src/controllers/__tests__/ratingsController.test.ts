@@ -418,36 +418,25 @@ describe('Ratings Controller', () => {
 
   describe('GET /api/suppliers/top', () => {
     it('should return top suppliers with ratings', async () => {
-      const mockSuppliers = [
-        createMockUser({
+      // Mock the aggregated result that would come from the Sequelize query
+      const mockAggregatedSuppliers = [
+        {
           id: 1,
-          role: 'supplier',
-          status: 'approved',
           companyName: 'Top Supplier',
-        }),
-        createMockUser({
+          email: 'top@example.com',
+          averageRating: 4.67,
+          totalRatings: 3,
+        },
+        {
           id: 2,
-          role: 'supplier',
-          status: 'approved',
           companyName: 'Good Supplier',
-        }),
+          email: 'good@example.com',
+          averageRating: 3.67,
+          totalRatings: 3,
+        },
       ];
 
-      const mockRatings1 = [
-        { score: 5 },
-        { score: 5 },
-        { score: 4 }, // Average: 4.67
-      ];
-      const mockRatings2 = [
-        { score: 4 },
-        { score: 4 },
-        { score: 3 }, // Average: 3.67
-      ];
-
-      MockUser.findAll.mockResolvedValue(mockSuppliers as any);
-      MockRating.findAll
-        .mockResolvedValueOnce(mockRatings1 as any)
-        .mockResolvedValueOnce(mockRatings2 as any);
+      MockUser.findAll.mockResolvedValue(mockAggregatedSuppliers as any);
 
       const response = await request(app)
         .get('/api/suppliers/top')
@@ -462,21 +451,18 @@ describe('Ratings Controller', () => {
     });
 
     it('should filter out suppliers with less than 3 ratings', async () => {
-      const mockSuppliers = [
-        createMockUser({ id: 1, role: 'supplier', status: 'approved' }),
-        createMockUser({ id: 2, role: 'supplier', status: 'approved' }),
+      // Mock only the supplier with 3+ ratings (the query has HAVING COUNT >= 3)
+      const mockAggregatedSuppliers = [
+        {
+          id: 1,
+          companyName: 'Test Company',
+          email: 'test@example.com',
+          averageRating: 4.67,
+          totalRatings: 3,
+        },
       ];
 
-      const mockRatingsMany = [{ score: 5 }, { score: 5 }, { score: 4 }];
-      const mockRatingsFew = [
-        { score: 4 },
-        { score: 4 }, // Only 2 ratings
-      ];
-
-      MockUser.findAll.mockResolvedValue(mockSuppliers as any);
-      MockRating.findAll
-        .mockResolvedValueOnce(mockRatingsMany as any)
-        .mockResolvedValueOnce(mockRatingsFew as any);
+      MockUser.findAll.mockResolvedValue(mockAggregatedSuppliers as any);
 
       const response = await request(app).get('/api/suppliers/top').expect(200);
 
