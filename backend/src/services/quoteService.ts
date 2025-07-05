@@ -138,8 +138,19 @@ export class QuoteService {
       throw new Error('Product not found');
     }
 
-    const basePrice = parseFloat(product.price.toString());
-    const appliedTier = this.getPricingTier(input.quantity);
+    // Check minimum order quantity if specified
+    if (product.minimumOrderQuantity && input.quantity < product.minimumOrderQuantity) {
+      throw new Error(`Minimum order quantity is ${product.minimumOrderQuantity} units`);
+    }
+
+    // Use unitPrice if available, otherwise fall back to regular price
+    const basePrice = product.unitPrice
+      ? parseFloat(product.unitPrice.toString())
+      : parseFloat(product.price.toString());
+
+    // Use product's custom tier pricing if available, otherwise use defaults
+    const customTiers = product.tierPricing ? (product.tierPricing as PricingTier[]) : undefined;
+    const appliedTier = this.getPricingTier(input.quantity, customTiers);
     const tierDiscount = appliedTier ? appliedTier.discount : 0;
     const unitPriceAfterDiscount = basePrice * (1 - tierDiscount);
     const subtotal = unitPriceAfterDiscount * input.quantity;
@@ -325,6 +336,148 @@ export class QuoteService {
           ? `${item.appliedTier.minQuantity}${item.appliedTier.maxQuantity ? `-${item.appliedTier.maxQuantity}` : '+'} units`
           : 'No tier applied',
       })),
+    };
+  }
+
+  /**
+   * Gets quotes from multiple suppliers for the same product request.
+   * Allows buyers to compare offers from different suppliers.
+   *
+   * @param productId - The product to get quotes for
+   * @param quantity - The quantity requested
+   * @param buyerLocation - Buyer's location for shipping calculations
+   * @param supplierIds - Array of supplier IDs to get quotes from
+   * @param shippingMethod - The preferred shipping method
+   * @returns Array of quotes from different suppliers with supplier information
+   */
+  static async getMultipleSupplierQuotes(
+    productId: number,
+    quantity: number,
+    buyerLocation?: string,
+    supplierIds?: number[],
+    shippingMethod?: 'standard' | 'express' | 'economy'
+  ): Promise<
+    Array<{
+      supplier: any;
+      quote: QuoteCalculationResult | null;
+      error?: string;
+    }>
+  > {
+    const User = (await import('../models/User')).default;
+
+    // If no specific suppliers provided, find all suppliers who have this product
+    let suppliers;
+    if (supplierIds && supplierIds.length > 0) {
+      suppliers = await User.findAll({
+        where: {
+          id: supplierIds,
+          role: 'supplier',
+          status: 'approved',
+        },
+      });
+    } else {
+      // Find suppliers who have this product
+      const product = await Product.findByPk(productId);
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      if (product.supplierId) {
+        suppliers = await User.findAll({
+          where: {
+            id: product.supplierId,
+            role: 'supplier',
+            status: 'approved',
+          },
+        });
+      } else {
+        // If no specific supplier, get all approved suppliers
+        suppliers = await User.findAll({
+          where: {
+            role: 'supplier',
+            status: 'approved',
+          },
+          limit: 5, // Limit to prevent too many quotes
+        });
+      }
+    }
+
+    const quotes = await Promise.all(
+      suppliers.map(async supplier => {
+        try {
+          const quote = await this.calculateQuoteForItem({
+            productId,
+            quantity,
+            buyerLocation,
+            supplierLocation: supplier.address,
+            shippingMethod,
+          });
+
+          return {
+            supplier: {
+              id: supplier.id,
+              companyName: supplier.companyName,
+              corporateName: supplier.corporateName,
+              averageRating: supplier.averageRating,
+              totalRatings: supplier.totalRatings,
+              industrySector: supplier.industrySector,
+            },
+            quote,
+          };
+        } catch (error) {
+          return {
+            supplier: {
+              id: supplier.id,
+              companyName: supplier.companyName,
+              corporateName: supplier.corporateName,
+            },
+            quote: null,
+            error: error instanceof Error ? error.message : 'Failed to calculate quote',
+          };
+        }
+      })
+    );
+
+    // Sort by total price (best deals first)
+    return quotes.sort((a, b) => {
+      if (!a.quote && !b.quote) return 0;
+      if (!a.quote) return 1;
+      if (!b.quote) return -1;
+      return a.quote.total - b.quote.total;
+    });
+  }
+
+  /**
+   * Validates if a product meets minimum order requirements
+   *
+   * @param productId - The product to validate
+   * @param quantity - The requested quantity
+   * @returns Object with validation result and minimum quantity if applicable
+   */
+  static async validateMinimumOrderQuantity(
+    productId: number,
+    quantity: number
+  ): Promise<{
+    valid: boolean;
+    minimumRequired?: number;
+    message?: string;
+  }> {
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    if (product.minimumOrderQuantity && quantity < product.minimumOrderQuantity) {
+      return {
+        valid: false,
+        minimumRequired: product.minimumOrderQuantity,
+        message: `Minimum order quantity is ${product.minimumOrderQuantity} units. Requested: ${quantity} units.`,
+      };
+    }
+
+    return {
+      valid: true,
+      message: 'Order quantity meets requirements',
     };
   }
 }

@@ -11,8 +11,10 @@ interface UserAttributes {
   role: 'customer' | 'admin' | 'supplier';
   status: 'pending' | 'approved' | 'rejected';
   companyName: string | null;
+  corporateName: string | null;
   cnpj: string | null;
   cnpjValidated: boolean;
+  industrySector: string | null;
   averageRating?: number;
   totalRatings?: number;
   createdAt?: Date;
@@ -20,7 +22,16 @@ interface UserAttributes {
 }
 
 interface UserCreationAttributes
-  extends Optional<UserAttributes, 'id' | 'status' | 'cnpjValidated' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<
+    UserAttributes,
+    | 'id'
+    | 'status'
+    | 'cnpjValidated'
+    | 'corporateName'
+    | 'industrySector'
+    | 'createdAt'
+    | 'updatedAt'
+  > {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -31,8 +42,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public role!: 'customer' | 'admin' | 'supplier';
   public status!: 'pending' | 'approved' | 'rejected';
   public companyName!: string | null;
+  public corporateName!: string | null;
   public cnpj!: string | null;
   public cnpjValidated!: boolean;
+  public industrySector!: string | null;
   public averageRating?: number;
   public totalRatings?: number;
   public readonly createdAt!: Date;
@@ -96,6 +109,11 @@ User.init(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
+    corporateName: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'Legal corporate name for business registration',
+    },
     cnpj: {
       type: DataTypes.STRING(18),
       allowNull: true,
@@ -105,6 +123,11 @@ User.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    industrySector: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Industry sector (machinery, raw_materials, components, etc.)',
     },
   },
   {
