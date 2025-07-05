@@ -15,13 +15,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import {
-  Remove,
-  Add,
-  Delete,
-  Send,
-  ArrowBack,
-} from '@mui/icons-material';
+import { Remove, Add, Delete, Send, ArrowBack } from '@mui/icons-material';
 import { useQuotationRequest } from '../contexts/QuotationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { quotationsService } from '../services/quotationsService';
@@ -71,7 +65,8 @@ const QuotationRequestPage: React.FC = () => {
       clearRequest();
       navigate('/my-quotations');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao enviar solicitação de cotação';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Erro ao enviar solicitação de cotação';
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -80,20 +75,15 @@ const QuotationRequestPage: React.FC = () => {
 
   if (items.length === 0) {
     return (
-      <Container maxWidth="md">
+      <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant='h4' gutterBottom>
             Sua solicitação de cotação está vazia
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
             Adicione alguns produtos à sua solicitação de cotação para continuar
           </Typography>
-          <Button
-            variant="contained"
-            component={Link}
-            to="/"
-            startIcon={<ArrowBack />}
-          >
+          <Button variant='contained' component={Link} to='/' startIcon={<ArrowBack />}>
             Navegar Produtos
           </Button>
         </Box>
@@ -102,12 +92,12 @@ const QuotationRequestPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth='lg'>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant='h4' gutterBottom>
           Solicitação de Cotação
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant='body1' color='text.secondary'>
           {totalItems} {totalItems === 1 ? 'item' : 'itens'} na sua solicitação
         </Typography>
       </Box>
@@ -123,47 +113,56 @@ const QuotationRequestPage: React.FC = () => {
                     <Avatar
                       src={item.product.imageUrl}
                       alt={item.product.name}
-                      variant="rounded"
+                      variant='rounded'
                       sx={{ width: 80, height: 80, mr: 2 }}
                       imgProps={{
-                        onError: (e) => {
-                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik00MCAyNEw1NiA0MEg0OFY1NkgzMlY0MEgyNEw0MCAyNFoiIGZpbGw9IiM5MDkwOTAiLz4KPHN2Zz4K';
-                        }
+                        onError: e => {
+                          e.currentTarget.src =
+                            'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik00MCAyNEw1NiA0MEg0OFY1NkgzMlY0MEgyNEw0MCAyNFoiIGZpbGw9IiM5MDkwOTAiLz4KPHN2Zz4K';
+                        },
                       }}
                     />
-                    
+
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" gutterBottom>
+                      <Typography variant='h6' gutterBottom>
                         {item.product.name}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <Typography variant='body2' color='text.secondary' gutterBottom>
                         {item.product.description.length > 100
                           ? `${item.product.description.substring(0, 100)}...`
                           : item.product.description}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant='body2' color='text.secondary'>
                         Categoria: {item.product.category}
                       </Typography>
-                      <Typography variant="body2" color="primary" sx={{ mt: 1, fontWeight: 'medium' }}>
-                        Preço de referência: {new Intl.NumberFormat('pt-BR', {
+                      <Typography
+                        variant='body2'
+                        color='primary'
+                        sx={{ mt: 1, fontWeight: 'medium' }}
+                      >
+                        Preço de referência:{' '}
+                        {new Intl.NumberFormat('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
                         }).format(item.product.price)}
                       </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', ml: 2 }}>
+                    <Box
+                      sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', ml: 2 }}
+                    >
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <IconButton
-                          size="small"
+                          size='small'
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          aria-label='remove'
                         >
                           <Remove />
                         </IconButton>
                         <TextField
-                          size="small"
+                          size='small'
                           value={item.quantity}
-                          onChange={(e) => {
+                          onChange={e => {
                             const qty = parseInt(e.target.value) || 0;
                             handleQuantityChange(item.id, qty);
                           }}
@@ -171,20 +170,22 @@ const QuotationRequestPage: React.FC = () => {
                           inputProps={{ min: 0, style: { textAlign: 'center' } }}
                         />
                         <IconButton
-                          size="small"
+                          size='small'
                           onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          aria-label='add'
                         >
                           <Add />
                         </IconButton>
                       </Box>
-                      
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+
+                      <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                         {item.quantity} unidade{item.quantity !== 1 ? 's' : ''}
                       </Typography>
-                      
+
                       <IconButton
-                        color="error"
+                        color='error'
                         onClick={() => removeItem(item.id)}
+                        aria-label='delete'
                       >
                         <Delete />
                       </IconButton>
@@ -197,20 +198,10 @@ const QuotationRequestPage: React.FC = () => {
           </Card>
 
           <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              component={Link}
-              to="/"
-              startIcon={<ArrowBack />}
-            >
+            <Button variant='outlined' component={Link} to='/' startIcon={<ArrowBack />}>
               Continuar Navegando
             </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={clearRequest}
-              startIcon={<Delete />}
-            >
+            <Button variant='outlined' color='error' onClick={clearRequest} startIcon={<Delete />}>
               Limpar Solicitação
             </Button>
           </Box>
@@ -220,39 +211,40 @@ const QuotationRequestPage: React.FC = () => {
         <Grid item xs={12} lg={4}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant='h6' gutterBottom>
                 Resumo da Solicitação
               </Typography>
-              
+
               <Box sx={{ py: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography>Total de itens:</Typography>
-                  <Typography fontWeight="medium">{totalItems}</Typography>
+                  <Typography fontWeight='medium'>{totalItems}</Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  * Os preços mostrados são apenas de referência. O preço final será definido após a análise da sua solicitação de cotação.
+                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                  * Os preços mostrados são apenas de referência. O preço final será definido após a
+                  análise da sua solicitação de cotação.
                 </Typography>
               </Box>
-              
+
               <Divider sx={{ my: 2 }} />
 
               {!isAuthenticated && (
-                <Alert severity="info" sx={{ mb: 2 }}>
+                <Alert severity='info' sx={{ mb: 2 }}>
                   Faça login para enviar a solicitação de cotação
                 </Alert>
               )}
 
               {isAuthenticated && user?.role !== 'customer' && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
+                <Alert severity='warning' sx={{ mb: 2 }}>
                   Apenas clientes podem solicitar cotações
                 </Alert>
               )}
 
               <Button
-                variant="contained"
+                variant='contained'
                 fullWidth
-                size="large"
-                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
+                size='large'
+                startIcon={isSubmitting ? <CircularProgress size={20} color='inherit' /> : <Send />}
                 onClick={handleSubmitQuotationRequest}
                 disabled={isSubmitting || !isAuthenticated || user?.role !== 'customer'}
               >
