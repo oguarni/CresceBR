@@ -188,8 +188,11 @@ export class CNPJService {
 
         if (user) {
           await user.update({
-            companyName: validationResult.companyName || user.companyName,
+            companyName:
+              validationResult.fantasyName || validationResult.companyName || user.companyName,
+            corporateName: validationResult.companyName || user.corporateName,
             cnpj: this.formatCNPJ(cnpj),
+            cnpjValidated: true,
           });
         }
       } catch (error) {

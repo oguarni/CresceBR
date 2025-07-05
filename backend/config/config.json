@@ -1,12 +1,8 @@
 {
   "development": {
-    "username": "DB_USER",
-    "password": "DB_PASSWORD",
-    "database": "DB_NAME",
-    "host": "DB_HOST",
-    "port": "DB_PORT",
-    "dialect": "postgres",
-    "use_env_variable": "DATABASE_URL"
+    "storage": "crescebr_b2b.db",
+    "dialect": "sqlite",
+    "logging": false
   },
   "test": {
     "username": "TEST_DB_USER",

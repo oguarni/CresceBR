@@ -3,13 +3,13 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     try {
-      // Helper function to check if column exists
+      // Helper function to check if column exists (SQLite compatible)
       const columnExists = async (tableName, columnName) => {
-        const result = await queryInterface.sequelize.query(
-          `SELECT column_name FROM information_schema.columns WHERE table_name = '${tableName}' AND column_name = '${columnName}'`,
+        const tableInfo = await queryInterface.sequelize.query(
+          `PRAGMA table_info(${tableName})`,
           { type: Sequelize.QueryTypes.SELECT }
         );
-        return result.length > 0;
+        return tableInfo.some(column => column.name === columnName);
       };
 
       // Add cnpjValidated boolean to User table if it doesn't exist
@@ -68,30 +68,17 @@ module.exports = {
         });
       }
 
-      // Helper function to check if table exists
+      // Helper function to check if table exists (SQLite compatible)
       const tableExists = async (tableName) => {
         const result = await queryInterface.sequelize.query(
-          `SELECT table_name FROM information_schema.tables WHERE table_name = '${tableName}'`,
+          `SELECT name FROM sqlite_master WHERE type='table' AND name='${tableName}'`,
           { type: Sequelize.QueryTypes.SELECT }
         );
         return result.length > 0;
       };
 
-      // Update Order status enum to include 'pending' if it doesn't already exist
-      try {
-        const result = await queryInterface.sequelize.query(
-          `SELECT unnest(enum_range(NULL::"enum_orders_status")) AS enum_value`,
-          { type: Sequelize.QueryTypes.SELECT }
-        );
-        const enumValues = result.map(row => row.enum_value);
-        if (!enumValues.includes('pending')) {
-          await queryInterface.sequelize.query(`
-            ALTER TYPE "enum_orders_status" ADD VALUE 'pending' BEFORE 'processing';
-          `);
-        }
-      } catch (error) {
-        console.log('Enum update skipped or already exists:', error.message);
-      }
+      // SQLite doesn't support enum updates like PostgreSQL
+      console.log('Enum update skipped (SQLite uses TEXT for enums)');
 
       // Create Rating table for supplier reviews if it doesn't exist
       if (!(await tableExists('ratings'))) {

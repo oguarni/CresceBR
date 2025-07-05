@@ -5,6 +5,7 @@ import Product from '../models/Product';
 import Order from '../models/Order';
 import Quotation from '../models/Quotation';
 import { asyncHandler } from '../middleware/errorHandler';
+import { CNPJService } from '../services/cnpjService';
 
 export const getAllPendingCompanies = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
@@ -20,7 +21,7 @@ export const getAllPendingCompanies = asyncHandler(
 
 export const verifyCompany = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { userId } = req.params;
-  const { status } = req.body;
+  const { status, reason, validateCNPJ = true } = req.body;
 
   if (!status || !['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status provided' });
@@ -32,10 +33,39 @@ export const verifyCompany = asyncHandler(async (req: AuthenticatedRequest, res:
     return res.status(404).json({ success: false, error: 'Supplier not found' });
   }
 
+  // If approving and CNPJ validation is requested
+  if (status === 'approved' && validateCNPJ && user.cnpj) {
+    try {
+      const cnpjValidation = await CNPJService.validateAndUpdateCompany(user.cnpj, user.id);
+
+      if (!cnpjValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'CNPJ validation failed',
+          details: cnpjValidation.error,
+        });
+      }
+
+      // Refresh user data after CNPJ update
+      await user.reload();
+    } catch (error) {
+      console.error('CNPJ validation error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to validate CNPJ',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
   user.status = status;
   await user.save();
 
-  res.status(200).json({ success: true, data: user });
+  res.status(200).json({
+    success: true,
+    data: user,
+    message: `Company ${status} successfully${reason ? ` - ${reason}` : ''}`,
+  });
 });
 
 export const getAllProducts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -157,6 +187,172 @@ export const updateCompanyStatus = asyncHandler(
       success: true,
       data: company,
       message: `Company status updated to ${status}${reason ? ` - ${reason}` : ''}`,
+    });
+  }
+);
+
+export const validateSupplierCNPJ = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.params;
+
+    const user = await User.findOne({ where: { id: userId, role: 'supplier' } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Supplier not found' });
+    }
+
+    if (!user.cnpj) {
+      return res.status(400).json({ success: false, error: 'Supplier has no CNPJ to validate' });
+    }
+
+    try {
+      const cnpjValidation = await CNPJService.validateAndUpdateCompany(user.cnpj, user.id);
+
+      await user.reload();
+
+      res.status(200).json({
+        success: true,
+        data: {
+          user,
+          cnpjValidation,
+        },
+      });
+    } catch (error) {
+      console.error('CNPJ validation error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to validate CNPJ',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+);
+
+export const getSupplierMetrics = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { userId } = req.params;
+
+  const user = await User.findOne({
+    where: { id: userId, role: 'supplier' },
+    attributes: { exclude: ['password'] },
+  });
+
+  if (!user) {
+    return res.status(404).json({ success: false, error: 'Supplier not found' });
+  }
+
+  // Get supplier's products
+  const products = await Product.findAll({
+    where: { supplierId: userId },
+    attributes: ['id', 'name', 'price', 'category', 'createdAt'],
+  });
+
+  // Get orders related to this supplier's products
+  const { Op } = require('sequelize');
+  const orders = await Order.findAll({
+    include: [
+      {
+        model: Quotation,
+        as: 'quotation',
+        include: [
+          {
+            model: require('../models/QuotationItem').default,
+            as: 'items',
+            include: [
+              {
+                model: Product,
+                as: 'product',
+                where: { supplierId: userId },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  // Get ratings for this supplier
+  const Rating = (await import('../models/Rating')).default;
+  const ratings = await Rating.findAll({
+    where: { supplierId: userId },
+    attributes: ['score', 'comment', 'createdAt'],
+    include: [
+      {
+        model: User,
+        as: 'buyer',
+        attributes: ['companyName', 'email'],
+      },
+    ],
+  });
+
+  // Calculate metrics
+  const totalRevenue = orders.reduce(
+    (sum, order) => sum + parseFloat(order.totalAmount.toString()),
+    0
+  );
+
+  const averageRating =
+    ratings.length > 0
+      ? ratings.reduce((sum, rating) => sum + rating.score, 0) / ratings.length
+      : 0;
+
+  const ordersByStatus = orders.reduce((acc: any, order) => {
+    acc[order.status] = (acc[order.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const recentRatings = ratings
+    .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+    .slice(0, 5);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      supplier: user,
+      metrics: {
+        totalProducts: products.length,
+        totalOrders: orders.length,
+        totalRevenue,
+        averageRating: parseFloat(averageRating.toFixed(1)),
+        totalRatings: ratings.length,
+        ordersByStatus,
+        cnpjValidated: user.cnpjValidated,
+        industrySector: user.industrySector,
+      },
+      products: products.slice(0, 10), // Limit to first 10 products
+      recentRatings,
+    },
+  });
+});
+
+export const getVerificationQueue = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { page = 1, limit = 10, filter = 'all' } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const whereClause: any = { role: 'supplier' };
+
+    if (filter === 'pending') {
+      whereClause.status = 'pending';
+    } else if (filter === 'unvalidated_cnpj') {
+      whereClause.cnpjValidated = false;
+      whereClause.cnpj = { [require('sequelize').Op.ne]: null };
+    }
+
+    const companies = await User.findAndCountAll({
+      where: whereClause,
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']],
+      limit: Number(limit),
+      offset,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        companies: companies.rows,
+        totalCount: companies.count,
+        currentPage: Number(page),
+        totalPages: Math.ceil(companies.count / Number(limit)),
+      },
     });
   }
 );
