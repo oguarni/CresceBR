@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -14,18 +14,77 @@ import {
   Avatar,
   Alert,
   CircularProgress,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Tooltip,
 } from '@mui/material';
-import { Remove, Add, Delete, Send, ArrowBack } from '@mui/icons-material';
+import { Remove, Add, Delete, Send, ArrowBack, Info, TrendingDown } from '@mui/icons-material';
 import { useQuotationRequest } from '../contexts/QuotationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { quotationsService } from '../services/quotationsService';
 import toast from 'react-hot-toast';
+
+interface QuoteCalculation {
+  productId: number;
+  basePrice: number;
+  quantity: number;
+  tierDiscount: number;
+  unitPriceAfterDiscount: number;
+  subtotal: number;
+  savings: number;
+  appliedTier: {
+    minQuantity: number;
+    maxQuantity: number | null;
+    discount: number;
+  } | null;
+}
+
+interface QuoteComparisonResult {
+  items: QuoteCalculation[];
+  totalSubtotal: number;
+  totalSavings: number;
+  grandTotal: number;
+}
 
 const QuotationRequestPage: React.FC = () => {
   const { items, totalItems, updateQuantity, removeItem, clearRequest } = useQuotationRequest();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [priceCalculations, setPriceCalculations] = useState<QuoteComparisonResult | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  const calculateRealTimePricing = async () => {
+    if (items.length === 0) {
+      setPriceCalculations(null);
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      const calculationItems = items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      }));
+
+      const response = await quotationsService.calculateQuote(calculationItems);
+      setPriceCalculations(response.calculations);
+    } catch (error) {
+      console.error('Failed to calculate pricing:', error);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  useEffect(() => {
+    calculateRealTimePricing();
+  }, [items]);
 
   const handleQuantityChange = (itemId: number, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -33,6 +92,10 @@ const QuotationRequestPage: React.FC = () => {
     } else {
       updateQuantity(itemId, newQuantity);
     }
+  };
+
+  const getItemCalculation = (productId: number): QuoteCalculation | null => {
+    return priceCalculations?.items.find(calc => calc.productId === productId) || null;
   };
 
   const handleSubmitQuotationRequest = async () => {
@@ -107,6 +170,29 @@ const QuotationRequestPage: React.FC = () => {
         <Grid item xs={12} lg={8}>
           <Card>
             <CardContent>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
+                <Typography variant='h6'>Itens da Cotação</Typography>
+                {priceCalculations && priceCalculations.totalSavings > 0 && (
+                  <Tooltip title='Economia total com descontos por volume'>
+                    <Chip
+                      icon={<TrendingDown />}
+                      label={`Economia: ${new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(priceCalculations.totalSavings)}`}
+                      color='success'
+                      variant='outlined'
+                    />
+                  </Tooltip>
+                )}
+              </Box>
               {items.map((item, index) => (
                 <React.Fragment key={item.id}>
                   <Box sx={{ display: 'flex', py: 2, alignItems: 'center' }}>
@@ -135,17 +221,76 @@ const QuotationRequestPage: React.FC = () => {
                       <Typography variant='body2' color='text.secondary'>
                         Categoria: {item.product.category}
                       </Typography>
-                      <Typography
-                        variant='body2'
-                        color='primary'
-                        sx={{ mt: 1, fontWeight: 'medium' }}
-                      >
-                        Preço de referência:{' '}
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }).format(item.product.price)}
-                      </Typography>
+                      {(() => {
+                        const calculation = getItemCalculation(item.productId);
+                        return (
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant='body2' color='text.secondary'>
+                              Preço base:{' '}
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(item.product.price)}
+                            </Typography>
+                            {calculation && (
+                              <>
+                                {calculation.tierDiscount > 0 && (
+                                  <Box
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}
+                                  >
+                                    <Chip
+                                      icon={<TrendingDown />}
+                                      label={`${(calculation.tierDiscount * 100).toFixed(1)}% OFF`}
+                                      color='success'
+                                      size='small'
+                                    />
+                                    <Typography variant='caption' color='text.secondary'>
+                                      Desconto por volume
+                                    </Typography>
+                                  </Box>
+                                )}
+                                <Typography
+                                  variant='body2'
+                                  color='primary'
+                                  sx={{ fontWeight: 'bold', mt: 0.5 }}
+                                >
+                                  Preço unitário:{' '}
+                                  {new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                  }).format(calculation.unitPriceAfterDiscount)}
+                                </Typography>
+                                <Typography
+                                  variant='body2'
+                                  color='success.main'
+                                  sx={{ fontWeight: 'medium' }}
+                                >
+                                  Subtotal:{' '}
+                                  {new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                  }).format(calculation.subtotal)}
+                                </Typography>
+                                {calculation.savings > 0 && (
+                                  <Typography variant='caption' color='success.main'>
+                                    Economia:{' '}
+                                    {new Intl.NumberFormat('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL',
+                                    }).format(calculation.savings)}
+                                  </Typography>
+                                )}
+                              </>
+                            )}
+                            {isCalculating && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                <CircularProgress size={16} />
+                                <Typography variant='caption'>Calculando preços...</Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      })()}
                     </Box>
 
                     <Box
@@ -215,16 +360,92 @@ const QuotationRequestPage: React.FC = () => {
                 Resumo da Solicitação
               </Typography>
 
-              <Box sx={{ py: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography>Total de itens:</Typography>
-                  <Typography fontWeight='medium'>{totalItems}</Typography>
+              {priceCalculations && (
+                <Box sx={{ py: 2 }}>
+                  <TableContainer component={Paper} variant='outlined' sx={{ mb: 2 }}>
+                    <Table size='small'>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>
+                            <Typography variant='caption'>Métricas</Typography>
+                          </TableCell>
+                          <TableCell align='right'>
+                            <Typography variant='caption'>Valores</Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Total de itens</TableCell>
+                          <TableCell align='right'>
+                            <strong>{totalItems}</strong>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Subtotal</TableCell>
+                          <TableCell align='right'>
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            }).format(priceCalculations.totalSubtotal)}
+                          </TableCell>
+                        </TableRow>
+                        {priceCalculations.totalSavings > 0 && (
+                          <TableRow>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <TrendingDown color='success' fontSize='small' />
+                                Economia Total
+                              </Box>
+                            </TableCell>
+                            <TableCell align='right'>
+                              <Typography color='success.main' fontWeight='bold'>
+                                {new Intl.NumberFormat('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL',
+                                }).format(priceCalculations.totalSavings)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        <TableRow>
+                          <TableCell>
+                            <strong>Total Estimado</strong>
+                          </TableCell>
+                          <TableCell align='right'>
+                            <Typography variant='h6' color='primary.main'>
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              }).format(priceCalculations.grandTotal)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+
+                  <Alert severity='info' icon={<Info />} sx={{ mb: 2 }}>
+                    <Typography variant='body2'>
+                      <strong>Preços com desconto por volume aplicado!</strong>
+                      <br />
+                      Os valores incluem descontos automáticos baseados na quantidade solicitada.
+                    </Typography>
+                  </Alert>
                 </Box>
-                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                  * Os preços mostrados são apenas de referência. O preço final será definido após a
-                  análise da sua solicitação de cotação.
-                </Typography>
-              </Box>
+              )}
+
+              {!priceCalculations && items.length > 0 && (
+                <Box sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography>Total de itens:</Typography>
+                    <Typography fontWeight='medium'>{totalItems}</Typography>
+                  </Box>
+                  <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                    * Calculando preços com descontos por volume...
+                  </Typography>
+                </Box>
+              )}
 
               <Divider sx={{ my: 2 }} />
 

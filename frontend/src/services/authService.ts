@@ -33,28 +33,7 @@ class AuthService {
     return response.data;
   }
 
-  async register(
-    email: string,
-    password: string,
-    cpf: string,
-    address: string,
-    companyName: string,
-    corporateName: string,
-    cnpj: string,
-    industrySector: string,
-    companyType: 'buyer' | 'supplier' | 'both'
-  ): Promise<AuthResponse> {
-    const registerData: RegisterRequest = {
-      email,
-      password,
-      cpf,
-      address,
-      companyName,
-      corporateName,
-      cnpj,
-      industrySector,
-      companyType,
-    };
+  async register(registerData: RegisterRequest): Promise<AuthResponse> {
     const response = await apiService.post<ApiResponse<AuthResponse>>(
       '/auth/register',
       registerData

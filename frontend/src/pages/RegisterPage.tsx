@@ -40,6 +40,26 @@ const RegisterPage: React.FC = () => {
     cpf: '',
     cep: '',
     address: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    phone: '',
+    contactPerson: '',
+    contactTitle: '',
+    companySize: '' as 'micro' | 'small' | 'medium' | 'large' | 'enterprise' | '',
+    annualRevenue: '' as
+      | 'under_500k'
+      | '500k_2m'
+      | '2m_10m'
+      | '10m_50m'
+      | '50m_200m'
+      | 'over_200m'
+      | '',
+    website: '',
     companyName: '',
     corporateName: '',
     cnpj: '',
@@ -99,7 +119,15 @@ const RegisterPage: React.FC = () => {
       try {
         const addressData = await viaCepService.getAddressByCep(cep);
         const fullAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
-        setFormData(prev => ({ ...prev, address: fullAddress }));
+        setFormData(prev => ({
+          ...prev,
+          address: fullAddress,
+          street: addressData.logradouro || '',
+          neighborhood: addressData.bairro || '',
+          city: addressData.localidade || '',
+          state: addressData.uf || '',
+          zipCode: viaCepService.formatCep(cep),
+        }));
         toast.success('Endereço preenchido automaticamente!');
       } catch (error: any) {
         toast.error(error.message);
@@ -166,17 +194,30 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await register(
-        formData.email,
-        formData.password,
-        formData.cpf,
-        formData.address,
-        formData.companyName,
-        formData.corporateName,
-        formData.cnpj,
-        formData.industrySector,
-        formData.companyType
-      );
+      await register({
+        email: formData.email,
+        password: formData.password,
+        cpf: formData.cpf,
+        address: formData.address,
+        street: formData.street,
+        number: formData.number,
+        complement: formData.complement,
+        neighborhood: formData.neighborhood,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        phone: formData.phone,
+        contactPerson: formData.contactPerson,
+        contactTitle: formData.contactTitle,
+        companySize: formData.companySize || undefined,
+        annualRevenue: formData.annualRevenue || undefined,
+        website: formData.website,
+        companyName: formData.companyName,
+        corporateName: formData.corporateName,
+        cnpj: formData.cnpj,
+        industrySector: formData.industrySector,
+        companyType: formData.companyType,
+      });
       toast.success('Empresa cadastrada com sucesso!');
       navigate('/');
     } catch (err: any) {
@@ -367,6 +408,102 @@ const RegisterPage: React.FC = () => {
                 />
               </Grid>
 
+              <Grid item xs={12} sm={8}>
+                <TextField
+                  fullWidth
+                  id='street'
+                  label='Logradouro'
+                  name='street'
+                  value={formData.street}
+                  onChange={handleChange('street')}
+                  placeholder='Nome da rua'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  id='number'
+                  label='Número'
+                  name='number'
+                  value={formData.number}
+                  onChange={handleChange('number')}
+                  placeholder='123'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='complement'
+                  label='Complemento'
+                  name='complement'
+                  value={formData.complement}
+                  onChange={handleChange('complement')}
+                  placeholder='Apto, sala, etc.'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='neighborhood'
+                  label='Bairro'
+                  name='neighborhood'
+                  value={formData.neighborhood}
+                  onChange={handleChange('neighborhood')}
+                  placeholder='Bairro'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='city'
+                  label='Cidade'
+                  name='city'
+                  value={formData.city}
+                  onChange={handleChange('city')}
+                  placeholder='Cidade'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='state'
+                  label='Estado'
+                  name='state'
+                  value={formData.state}
+                  onChange={handleChange('state')}
+                  placeholder='PR'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='phone'
+                  label='Telefone'
+                  name='phone'
+                  value={formData.phone}
+                  onChange={handleChange('phone')}
+                  placeholder='(11) 9999-9999'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='website'
+                  label='Website'
+                  name='website'
+                  value={formData.website}
+                  onChange={handleChange('website')}
+                  placeholder='https://www.empresa.com.br'
+                />
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   required
@@ -423,6 +560,73 @@ const RegisterPage: React.FC = () => {
                     ),
                   }}
                 />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='contactPerson'
+                  label='Pessoa de Contato'
+                  name='contactPerson'
+                  value={formData.contactPerson}
+                  onChange={handleChange('contactPerson')}
+                  placeholder='Nome do responsável'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  id='contactTitle'
+                  label='Cargo do Contato'
+                  name='contactTitle'
+                  value={formData.contactTitle}
+                  onChange={handleChange('contactTitle')}
+                  placeholder='Gerente, Diretor, etc.'
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel id='companySize-label'>Porte da Empresa</InputLabel>
+                  <Select
+                    labelId='companySize-label'
+                    id='companySize'
+                    value={formData.companySize}
+                    label='Porte da Empresa'
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, companySize: e.target.value as any }))
+                    }
+                  >
+                    <MenuItem value='micro'>Microempresa</MenuItem>
+                    <MenuItem value='small'>Pequena</MenuItem>
+                    <MenuItem value='medium'>Média</MenuItem>
+                    <MenuItem value='large'>Grande</MenuItem>
+                    <MenuItem value='enterprise'>Corporação</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel id='annualRevenue-label'>Faturamento Anual</InputLabel>
+                  <Select
+                    labelId='annualRevenue-label'
+                    id='annualRevenue'
+                    value={formData.annualRevenue}
+                    label='Faturamento Anual'
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, annualRevenue: e.target.value as any }))
+                    }
+                  >
+                    <MenuItem value='under_500k'>Até R$ 500.000</MenuItem>
+                    <MenuItem value='500k_2m'>R$ 500.000 - R$ 2 milhões</MenuItem>
+                    <MenuItem value='2m_10m'>R$ 2 milhões - R$ 10 milhões</MenuItem>
+                    <MenuItem value='10m_50m'>R$ 10 milhões - R$ 50 milhões</MenuItem>
+                    <MenuItem value='50m_200m'>R$ 50 milhões - R$ 200 milhões</MenuItem>
+                    <MenuItem value='over_200m'>Acima de R$ 200 milhões</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
 
               <Grid item xs={12} sm={6}>
