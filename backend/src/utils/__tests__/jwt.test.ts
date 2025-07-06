@@ -27,7 +27,9 @@ describe('JWT Utilities', () => {
       const payload: AuthTokenPayload = {
         id: 1,
         email: 'test@example.com',
+        cnpj: '12.345.678/0001-90',
         role: 'customer',
+        companyType: 'buyer',
       };
       const expectedToken = 'mock-jwt-token';
 
@@ -49,7 +51,9 @@ describe('JWT Utilities', () => {
       const payload: AuthTokenPayload = {
         id: 2,
         email: 'user@example.com',
+        cnpj: '98.765.432/0001-10',
         role: 'supplier',
+        companyType: 'supplier',
       };
       const expectedToken = 'fallback-jwt-token';
 
@@ -74,7 +78,9 @@ describe('JWT Utilities', () => {
       const adminPayload: AuthTokenPayload = {
         id: 3,
         email: 'admin@example.com',
+        cnpj: '11.222.333/0001-44',
         role: 'admin',
+        companyType: 'both',
       };
       const expectedToken = 'admin-jwt-token';
 
@@ -94,7 +100,9 @@ describe('JWT Utilities', () => {
       const payload: AuthTokenPayload = {
         id: 4,
         email: 'shortlived@example.com',
+        cnpj: '55.666.777/0001-88',
         role: 'customer',
+        companyType: 'buyer',
       };
       const expectedToken = 'short-lived-token';
 
@@ -116,7 +124,9 @@ describe('JWT Utilities', () => {
       const extendedPayload = {
         id: 5,
         email: 'extended@example.com',
+        cnpj: '99.888.777/0001-66',
         role: 'supplier' as const,
+        companyType: 'supplier' as const,
         companyName: 'Test Company',
         status: 'approved',
       };
@@ -143,7 +153,9 @@ describe('JWT Utilities', () => {
       const expectedPayload: AuthTokenPayload = {
         id: 1,
         email: 'test@example.com',
+        cnpj: '12.345.678/0001-90',
         role: 'customer',
+        companyType: 'buyer',
       };
 
       process.env.JWT_SECRET = 'test-secret';
@@ -163,7 +175,9 @@ describe('JWT Utilities', () => {
       const expectedPayload: AuthTokenPayload = {
         id: 2,
         email: 'fallback@example.com',
+        cnpj: '88.777.666/0001-55',
         role: 'admin',
+        companyType: 'both',
       };
 
       delete process.env.JWT_SECRET;
