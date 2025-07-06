@@ -8,7 +8,7 @@ This MVP implements a complete B2B marketplace following SOLID principles and mo
 
 **Course:** E-commerce  
 **Institution:** UTFPR (Federal University of Technology - Paraná)  
-**Semester:** 6th  
+**Semester:** 7th  
 **Professor:** Maria Adelina Silva Brito
 
 ## ✨ Key Features
