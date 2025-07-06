@@ -1,5 +1,5 @@
 // Re-export shared types and add backend-specific types (Docker version)
-export * from '../../../shared';
+export * from '../../../shared/types';
 
 // Backend-specific types that are not shared with frontend
 

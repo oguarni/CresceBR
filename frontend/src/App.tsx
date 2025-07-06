@@ -19,6 +19,10 @@ import AdminTransactionMonitoringPage from './pages/AdminTransactionMonitoringPa
 import QuotationDetailPage from './pages/QuotationDetailPage';
 import QuoteComparisonPage from './pages/QuoteComparisonPage';
 import MyOrdersPage from './pages/MyOrdersPage';
+import SupplierDashboardPage from './pages/SupplierDashboardPage';
+import SupplierProductsPage from './pages/SupplierProductsPage';
+import SupplierOrdersPage from './pages/SupplierOrdersPage';
+import SupplierQuotationsPage from './pages/SupplierQuotationsPage';
 
 const App: React.FC = () => {
   return (
@@ -126,8 +130,7 @@ const App: React.FC = () => {
                 path='supplier/dashboard'
                 element={
                   <ProtectedRoute allowedRoles={['supplier']}>
-                    {/* Supplier dashboard would go here */}
-                    <div>Supplier Dashboard (To be implemented)</div>
+                    <SupplierDashboardPage />
                   </ProtectedRoute>
                 }
               />
@@ -135,8 +138,7 @@ const App: React.FC = () => {
                 path='supplier/products'
                 element={
                   <ProtectedRoute allowedRoles={['supplier']} requireApproved>
-                    {/* Supplier products page would go here */}
-                    <div>Supplier Products Management (To be implemented)</div>
+                    <SupplierProductsPage />
                   </ProtectedRoute>
                 }
               />
@@ -144,8 +146,15 @@ const App: React.FC = () => {
                 path='supplier/orders'
                 element={
                   <ProtectedRoute allowedRoles={['supplier']} requireApproved>
-                    {/* Supplier orders page would go here */}
-                    <div>Supplier Orders Management (To be implemented)</div>
+                    <SupplierOrdersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='supplier/quotations'
+                element={
+                  <ProtectedRoute allowedRoles={['supplier']} requireApproved>
+                    <SupplierQuotationsPage />
                   </ProtectedRoute>
                 }
               />
