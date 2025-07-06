@@ -230,7 +230,7 @@ describe('Quotations Controller', () => {
       const mockQuotations = [
         {
           id: 1,
-          userId: 1,
+          companyId: 1,
           status: 'pending',
           createdAt: new Date(),
           items: [
@@ -244,7 +244,7 @@ describe('Quotations Controller', () => {
         },
         {
           id: 2,
-          userId: 1,
+          companyId: 1,
           status: 'processed',
           createdAt: new Date(),
           items: [
@@ -398,14 +398,14 @@ describe('Quotations Controller', () => {
       const mockQuotations = [
         {
           id: 1,
-          userId: 1,
+          companyId: 1,
           status: 'pending',
           items: [],
           user: { id: 1, email: 'customer1@example.com', role: 'customer' },
         },
         {
           id: 2,
-          userId: 2,
+          companyId: 2,
           status: 'processed',
           items: [],
           user: { id: 2, email: 'customer2@example.com', role: 'customer' },
@@ -456,14 +456,14 @@ describe('Quotations Controller', () => {
       // Arrange
       const mockQuotation = {
         id: 1,
-        userId: 1,
+        companyId: 1,
         status: 'pending',
         adminNotes: null,
         update: jest.fn().mockResolvedValue(true),
       };
       const mockUpdatedQuotation = {
         id: 1,
-        userId: 1,
+        companyId: 1,
         status: 'processed',
         adminNotes: 'Updated by admin',
         items: [],
@@ -746,7 +746,7 @@ describe('Quotations Controller', () => {
       const mockResult = {
         quotation: {
           id: 1,
-          userId: 1,
+          companyId: 1,
           status: 'pending',
           adminNotes: null,
           createdAt: new Date(),
@@ -795,7 +795,7 @@ describe('Quotations Controller', () => {
       const mockResult = {
         quotation: {
           id: 1,
-          userId: 2, // Different user
+          companyId: 2, // Different user
           status: 'pending',
           adminNotes: null,
           createdAt: new Date(),
@@ -851,7 +851,7 @@ describe('Quotations Controller', () => {
       const mockResult = {
         quotation: {
           id: 1,
-          userId: 1,
+          companyId: 1,
           status: 'pending',
           adminNotes: null,
           createdAt: new Date(),
@@ -969,7 +969,7 @@ describe('Quotations Controller', () => {
         next();
       });
       MockProduct.findByPk.mockResolvedValue({ id: 1, name: 'Product' } as any);
-      MockQuotation.create.mockResolvedValue({ id: 1, userId: 1 } as any);
+      MockQuotation.create.mockResolvedValue({ id: 1, companyId: 1 } as any);
       MockQuotationItem.create.mockResolvedValue({ id: 1 } as any);
       MockQuotation.findByPk.mockResolvedValue({
         id: 1,
@@ -997,7 +997,7 @@ describe('Quotations Controller', () => {
         next();
       });
       MockProduct.findByPk.mockResolvedValue({ id: 1 } as any);
-      MockQuotation.create.mockResolvedValue({ id: 1, userId: 1 } as any);
+      MockQuotation.create.mockResolvedValue({ id: 1, companyId: 1 } as any);
       MockQuotationItem.create.mockResolvedValue({ id: 1 } as any);
       MockQuotation.findByPk.mockResolvedValue({ id: 1, items: [] } as any);
 

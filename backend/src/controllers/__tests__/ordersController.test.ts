@@ -74,7 +74,7 @@ describe('Orders Controller', () => {
 
   describe('POST /api/orders', () => {
     it('should create order from quotation successfully', async () => {
-      const mockQuotation = createMockQuotation({ id: 1, userId: 1, status: 'processed' });
+      const mockQuotation = createMockQuotation({ id: 1, companyId: 1, status: 'processed' });
       const mockCalculations = {
         items: [],
         totalSubtotal: 1000,
@@ -85,7 +85,7 @@ describe('Orders Controller', () => {
       };
       const mockOrder = createMockOrder({
         id: 'order-123',
-        userId: 1,
+        companyId: 1,
         quotationId: 1,
         totalAmount: 1280,
       });
@@ -108,7 +108,7 @@ describe('Orders Controller', () => {
       expect(response.body.message).toBe('Order created successfully');
       expect(response.body.data.id).toBe('order-123');
       expect(MockOrder.create).toHaveBeenCalledWith({
-        userId: 1,
+        companyId: 1,
         quotationId: 1,
         totalAmount: 1280,
         status: 'pending',
@@ -138,7 +138,7 @@ describe('Orders Controller', () => {
     });
 
     it('should return 400 when quotation is not processed', async () => {
-      const mockQuotation = createMockQuotation({ id: 1, userId: 1, status: 'pending' });
+      const mockQuotation = createMockQuotation({ id: 1, companyId: 1, status: 'pending' });
       MockQuotation.findOne.mockResolvedValue(mockQuotation as any);
 
       const response = await request(app).post('/api/orders').send({ quotationId: 1 }).expect(400);
@@ -148,7 +148,7 @@ describe('Orders Controller', () => {
     });
 
     it('should return 400 when order creation fails', async () => {
-      const mockQuotation = createMockQuotation({ id: 1, userId: 1, status: 'processed' });
+      const mockQuotation = createMockQuotation({ id: 1, companyId: 1, status: 'processed' });
       MockQuotation.findOne.mockResolvedValue(mockQuotation as any);
       MockQuoteService.getQuotationWithCalculations.mockRejectedValue(
         new Error('Calculation failed')
@@ -263,8 +263,8 @@ describe('Orders Controller', () => {
     it('should get user orders successfully', async () => {
       const mockResult = {
         orders: [
-          createMockOrder({ id: 'order-1', userId: 1 }),
-          createMockOrder({ id: 'order-2', userId: 1 }),
+          createMockOrder({ id: 'order-1', companyId: 1 }),
+          createMockOrder({ id: 'order-2', companyId: 1 }),
         ],
         total: 2,
       };
@@ -286,7 +286,7 @@ describe('Orders Controller', () => {
       });
 
       expect(MockOrderStatusService.getOrdersByStatus).toHaveBeenCalledWith(undefined, {
-        userId: 1,
+        companyId: 1,
         limit: 20,
         offset: 0,
       });
@@ -305,7 +305,7 @@ describe('Orders Controller', () => {
       expect(MockOrderStatusService.getOrdersByStatus).toHaveBeenCalledWith(
         'delivered',
         expect.objectContaining({
-          userId: 1,
+          companyId: 1,
         })
       );
     });
@@ -332,7 +332,7 @@ describe('Orders Controller', () => {
   describe('GET /api/orders/:orderId/history', () => {
     it('should get order history successfully for order owner', async () => {
       const mockResult = {
-        order: createMockOrder({ id: 'order-123', userId: 1 }),
+        order: createMockOrder({ id: 'order-123', companyId: 1 }),
         timeline: [
           {
             status: 'pending',
@@ -354,7 +354,7 @@ describe('Orders Controller', () => {
 
     it('should return 403 for non-owner customer', async () => {
       const mockResult = {
-        order: createMockOrder({ id: 'order-123', userId: 2 }), // Different user
+        order: createMockOrder({ id: 'order-123', companyId: 2 }), // Different user
         timeline: [],
       };
 
@@ -373,7 +373,7 @@ describe('Orders Controller', () => {
 
     it('should allow access for non-customer roles', async () => {
       const mockResult = {
-        order: createMockOrder({ id: 'order-123', userId: 2 }),
+        order: createMockOrder({ id: 'order-123', companyId: 2 }),
         timeline: [],
       };
 
