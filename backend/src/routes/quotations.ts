@@ -11,6 +11,8 @@ import {
   calculateQuoteValidation,
   getQuotationCalculations,
   processQuotationWithCalculations,
+  getMultipleSupplierQuotes,
+  getMultipleSupplierQuotesValidation,
 } from '../controllers/quotationsController';
 import { authenticateJWT, isSupplier, isAdmin } from '../middleware/auth';
 
@@ -27,6 +29,7 @@ router.get('/:id/calculations', getQuotationCalculations);
 
 // Quote calculation routes
 router.post('/calculate', calculateQuoteValidation, calculateQuote);
+router.post('/compare-suppliers', getMultipleSupplierQuotesValidation, getMultipleSupplierQuotes);
 
 // Supplier routes
 router.put('/supplier/:id', updateQuotationValidation, isSupplier, updateQuotation);
