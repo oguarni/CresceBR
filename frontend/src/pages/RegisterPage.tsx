@@ -12,8 +12,22 @@ import {
   IconButton,
   CircularProgress,
   Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from '@mui/material';
-import { Visibility, VisibilityOff, Email, Lock, Person, Home } from '@mui/icons-material';
+import {
+  Visibility,
+  VisibilityOff,
+  Email,
+  Lock,
+  Person,
+  Home,
+  Business,
+  Category,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { viaCepService } from '../services/viaCepService';
 import toast from 'react-hot-toast';
@@ -26,6 +40,11 @@ const RegisterPage: React.FC = () => {
     cpf: '',
     cep: '',
     address: '',
+    companyName: '',
+    corporateName: '',
+    cnpj: '',
+    industrySector: '',
+    companyType: 'buyer' as 'buyer' | 'supplier' | 'both',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -51,9 +70,22 @@ const RegisterPage: React.FC = () => {
     return value;
   };
 
+  const formatCnpj = (value: string): string => {
+    const cleanValue = value.replace(/\D/g, '');
+    if (cleanValue.length <= 14) {
+      return cleanValue.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    return value;
+  };
+
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCpf(e.target.value);
     setFormData(prev => ({ ...prev, cpf: formatted }));
+  };
+
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCnpj(e.target.value);
+    setFormData(prev => ({ ...prev, cnpj: formatted }));
   };
 
   const handleCepChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,8 +126,29 @@ const RegisterPage: React.FC = () => {
       return false;
     }
 
+    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) {
+      setError('CNPJ deve conter 14 dígitos');
+      return false;
+    }
+
     if (!formData.address.trim()) {
       setError('Endereço é obrigatório');
+      return false;
+    }
+
+    if (!formData.companyName.trim()) {
+      setError('Nome da empresa é obrigatório');
+      return false;
+    }
+
+    if (!formData.corporateName.trim()) {
+      setError('Razão social é obrigatória');
+      return false;
+    }
+
+    if (!formData.industrySector.trim()) {
+      setError('Setor da indústria é obrigatório');
       return false;
     }
 
@@ -113,8 +166,18 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await register(formData.email, formData.password, formData.cpf, formData.address);
-      toast.success('Cadastro realizado com sucesso!');
+      await register(
+        formData.email,
+        formData.password,
+        formData.cpf,
+        formData.address,
+        formData.companyName,
+        formData.corporateName,
+        formData.cnpj,
+        formData.industrySector,
+        formData.companyType
+      );
+      toast.success('Empresa cadastrada com sucesso!');
       navigate('/');
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Erro ao fazer cadastro';
@@ -148,7 +211,7 @@ const RegisterPage: React.FC = () => {
             CresceBR
           </Typography>
           <Typography component='h2' variant='h6' color='text.secondary' gutterBottom>
-            Crie sua conta
+            Cadastro Empresarial - B2B
           </Typography>
 
           {error && (
@@ -302,6 +365,126 @@ const RegisterPage: React.FC = () => {
                     ),
                   }}
                 />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  id='companyName'
+                  label='Nome da Empresa'
+                  name='companyName'
+                  value={formData.companyName}
+                  onChange={handleChange('companyName')}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position='start'>
+                        <Business />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  id='corporateName'
+                  label='Razão Social'
+                  name='corporateName'
+                  value={formData.corporateName}
+                  onChange={handleChange('corporateName')}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position='start'>
+                        <Business />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  id='cnpj'
+                  label='CNPJ'
+                  name='cnpj'
+                  value={formData.cnpj}
+                  onChange={handleCnpjChange}
+                  placeholder='00.000.000/0000-00'
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position='start'>
+                        <Business />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel id='industrySector-label'>Setor da Indústria</InputLabel>
+                  <Select
+                    labelId='industrySector-label'
+                    id='industrySector'
+                    value={formData.industrySector}
+                    label='Setor da Indústria'
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, industrySector: e.target.value }))
+                    }
+                    startAdornment={
+                      <InputAdornment position='start'>
+                        <Category />
+                      </InputAdornment>
+                    }
+                  >
+                    <MenuItem value='machinery'>Máquinas</MenuItem>
+                    <MenuItem value='raw_materials'>Matérias-primas</MenuItem>
+                    <MenuItem value='components'>Componentes</MenuItem>
+                    <MenuItem value='electronics'>Eletrônicos</MenuItem>
+                    <MenuItem value='textiles'>Têxteis</MenuItem>
+                    <MenuItem value='chemicals'>Químicos</MenuItem>
+                    <MenuItem value='automotive'>Automotivo</MenuItem>
+                    <MenuItem value='food_beverage'>Alimentos e Bebidas</MenuItem>
+                    <MenuItem value='construction'>Construção</MenuItem>
+                    <MenuItem value='pharmaceutical'>Farmacêutico</MenuItem>
+                    <MenuItem value='other'>Outros</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12}>
+                <FormControl fullWidth required>
+                  <InputLabel id='companyType-label'>Tipo de Empresa</InputLabel>
+                  <Select
+                    labelId='companyType-label'
+                    id='companyType'
+                    value={formData.companyType}
+                    label='Tipo de Empresa'
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        companyType: e.target.value as 'buyer' | 'supplier' | 'both',
+                      }))
+                    }
+                    startAdornment={
+                      <InputAdornment position='start'>
+                        <Business />
+                      </InputAdornment>
+                    }
+                  >
+                    <MenuItem value='buyer'>Comprador</MenuItem>
+                    <MenuItem value='supplier'>Fornecedor</MenuItem>
+                    <MenuItem value='both'>Ambos</MenuItem>
+                  </Select>
+                  <FormHelperText>
+                    Compradores podem solicitar cotações. Fornecedores podem vender produtos.
+                  </FormHelperText>
+                </FormControl>
               </Grid>
             </Grid>
 

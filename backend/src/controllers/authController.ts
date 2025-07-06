@@ -14,9 +14,23 @@ export const registerValidation = [
     .isLength({ min: 11, max: 14 })
     .withMessage('CPF must be between 11 and 14 characters'),
   body('address').notEmpty().withMessage('Address is required'),
+  body('companyName').notEmpty().withMessage('Company name is required'),
+  body('corporateName').notEmpty().withMessage('Corporate name is required'),
+  body('cnpj')
+    .isLength({ min: 14, max: 18 })
+    .withMessage('CNPJ must be between 14 and 18 characters'),
+  body('industrySector').notEmpty().withMessage('Industry sector is required'),
+  body('companyType')
+    .isIn(['buyer', 'supplier', 'both'])
+    .withMessage('Company type must be buyer, supplier, or both'),
 ];
 
 export const loginValidation = [
+  body('cnpj').isLength({ min: 14, max: 18 }).withMessage('Please provide a valid CNPJ'),
+  body('password').notEmpty().withMessage('Password is required'),
+];
+
+export const loginEmailValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').notEmpty().withMessage('Password is required'),
 ];
@@ -44,7 +58,17 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const { email, password, cpf, address }: RegisterRequest = req.body;
+  const {
+    email,
+    password,
+    cpf,
+    address,
+    companyName,
+    corporateName,
+    cnpj,
+    industrySector,
+    companyType,
+  }: RegisterRequest = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({
@@ -74,20 +98,51 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  // Check if CNPJ already exists
+  const existingCnpj = await User.findOne({
+    where: {
+      cnpj,
+    },
+  });
+
+  if (existingCnpj) {
+    return res.status(400).json({
+      success: false,
+      error: 'Company with this CNPJ already exists',
+    });
+  }
+
+  // Validate CNPJ
+  const cnpjValidation = await CNPJService.validateCNPJWithAPI(cnpj);
+  if (!cnpjValidation.valid) {
+    return res.status(400).json({
+      success: false,
+      error: cnpjValidation.error || 'Invalid CNPJ provided',
+    });
+  }
+
   // Create new user
   const user = await User.create({
     email,
     password,
     cpf,
-    address,
-    role: 'customer',
+    address: cnpjValidation.address || address,
+    companyName: cnpjValidation.companyName || companyName,
+    corporateName: cnpjValidation.companyName || corporateName,
+    cnpj: CNPJService.formatCNPJ(cnpj),
+    industrySector,
+    companyType,
+    role: companyType === 'supplier' ? 'supplier' : 'customer',
+    status: companyType === 'supplier' ? 'pending' : 'approved',
   });
 
   // Generate token
   const token = generateToken({
     id: user.id,
     email: user.email,
+    cnpj: user.cnpj,
     role: user.role,
+    companyType: user.companyType,
   });
 
   const response: AuthResponse = {
@@ -98,6 +153,13 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       cpf: user.cpf,
       address: user.address,
       role: user.role,
+      status: user.status,
+      companyName: user.companyName,
+      corporateName: user.corporateName,
+      cnpj: user.cnpj,
+      cnpjValidated: user.cnpjValidated,
+      industrySector: user.industrySector,
+      companyType: user.companyType,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },
@@ -105,7 +167,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(201).json({
     success: true,
-    message: 'User registered successfully',
+    message: 'Company registered successfully',
     data: response,
   });
 });
@@ -120,7 +182,78 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const { email, password }: LoginRequest = req.body;
+  const { cnpj, password }: LoginRequest = req.body;
+
+  // Find user by CNPJ
+  const user = await User.findOne({
+    where: {
+      cnpj,
+    },
+  });
+
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid CNPJ or password',
+    });
+  }
+
+  // Check password
+  const isPasswordValid = await user.comparePassword(password);
+  if (!isPasswordValid) {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid CNPJ or password',
+    });
+  }
+
+  // Generate token
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    cnpj: user.cnpj,
+    role: user.role,
+    companyType: user.companyType,
+  });
+
+  const response: AuthResponse = {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      cpf: user.cpf,
+      address: user.address,
+      role: user.role,
+      status: user.status,
+      companyName: user.companyName,
+      corporateName: user.corporateName,
+      cnpj: user.cnpj,
+      cnpjValidated: user.cnpjValidated,
+      industrySector: user.industrySector,
+      companyType: user.companyType,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
+  };
+
+  res.status(200).json({
+    success: true,
+    message: 'Login successful',
+    data: response,
+  });
+});
+
+export const loginWithEmail = asyncHandler(async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors.array(),
+    });
+  }
+
+  const { email, password } = req.body;
 
   // Find user by email
   const user = await User.findOne({
@@ -149,7 +282,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const token = generateToken({
     id: user.id,
     email: user.email,
+    cnpj: user.cnpj,
     role: user.role,
+    companyType: user.companyType,
   });
 
   const response: AuthResponse = {
@@ -160,6 +295,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       cpf: user.cpf,
       address: user.address,
       role: user.role,
+      status: user.status,
+      companyName: user.companyName,
+      corporateName: user.corporateName,
+      cnpj: user.cnpj,
+      cnpjValidated: user.cnpjValidated,
+      industrySector: user.industrySector,
+      companyType: user.companyType,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },
@@ -167,7 +309,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({
     success: true,
-    message: 'Login successful',
+    message: 'Email login successful',
     data: response,
   });
 });
@@ -200,6 +342,13 @@ export const getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Re
         cpf: user.cpf,
         address: user.address,
         role: user.role,
+        status: user.status,
+        companyName: user.companyName,
+        corporateName: user.corporateName,
+        cnpj: user.cnpj,
+        cnpjValidated: user.cnpjValidated,
+        industrySector: user.industrySector,
+        companyType: user.companyType,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -217,7 +366,8 @@ export const registerSupplier = asyncHandler(async (req: Request, res: Response)
     });
   }
 
-  const { email, password, cpf, address, companyName, cnpj } = req.body;
+  const { email, password, cpf, address, companyName, corporateName, cnpj, industrySector } =
+    req.body;
 
   const existingUser = await User.findOne({
     where: {
@@ -272,7 +422,10 @@ export const registerSupplier = asyncHandler(async (req: Request, res: Response)
     cpf,
     address: cnpjValidation.address || address,
     companyName: cnpjValidation.companyName || companyName,
+    corporateName: cnpjValidation.companyName || corporateName,
     cnpj: CNPJService.formatCNPJ(cnpj),
+    industrySector: industrySector || 'other',
+    companyType: 'supplier',
     role: 'supplier',
     status: 'pending',
   });
@@ -280,7 +433,9 @@ export const registerSupplier = asyncHandler(async (req: Request, res: Response)
   const token = generateToken({
     id: user.id,
     email: user.email,
+    cnpj: user.cnpj,
     role: user.role,
+    companyType: user.companyType,
   });
 
   const response: AuthResponse = {
@@ -291,6 +446,13 @@ export const registerSupplier = asyncHandler(async (req: Request, res: Response)
       cpf: user.cpf,
       address: user.address,
       role: user.role,
+      status: user.status,
+      companyName: user.companyName,
+      corporateName: user.corporateName,
+      cnpj: user.cnpj,
+      cnpjValidated: user.cnpjValidated,
+      industrySector: user.industrySector,
+      companyType: user.companyType,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },

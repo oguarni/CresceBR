@@ -19,8 +19,19 @@ type AuthAction =
   | { type: 'SET_LOADING'; payload: boolean };
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, cpf: string, address: string) => Promise<void>;
+  login: (cnpj: string, password: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    cpf: string,
+    address: string,
+    companyName: string,
+    corporateName: string,
+    cnpj: string,
+    industrySector: string,
+    companyType: 'buyer' | 'supplier' | 'both'
+  ) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
 }
@@ -134,10 +145,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [state.token, state.isAuthenticated, state.isLoading]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (cnpj: string, password: string): Promise<void> => {
     dispatch({ type: 'AUTH_START' });
     try {
-      const response = await authService.login(email, password);
+      const response = await authService.login(cnpj, password);
+      localStorage.setItem('crescebr_token', response.token);
+
+      // Set token in axios headers
+      apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+
+      dispatch({ type: 'AUTH_SUCCESS', payload: response });
+    } catch (error) {
+      dispatch({ type: 'AUTH_FAILURE' });
+      throw error;
+    }
+  };
+
+  const loginWithEmail = async (email: string, password: string): Promise<void> => {
+    dispatch({ type: 'AUTH_START' });
+    try {
+      const response = await authService.loginWithEmail(email, password);
       localStorage.setItem('crescebr_token', response.token);
 
       // Set token in axios headers
@@ -154,11 +181,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     cpf: string,
-    address: string
+    address: string,
+    companyName: string,
+    corporateName: string,
+    cnpj: string,
+    industrySector: string,
+    companyType: 'buyer' | 'supplier' | 'both'
   ): Promise<void> => {
     dispatch({ type: 'AUTH_START' });
     try {
-      const response = await authService.register(email, password, cpf, address);
+      const response = await authService.register(
+        email,
+        password,
+        cpf,
+        address,
+        companyName,
+        corporateName,
+        cnpj,
+        industrySector,
+        companyType
+      );
       localStorage.setItem('crescebr_token', response.token);
 
       // Set token in axios headers
@@ -180,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: AuthContextType = {
     ...state,
     login,
+    loginWithEmail,
     register,
     logout,
     fetchUser,
