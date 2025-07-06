@@ -427,3 +427,55 @@ export const processQuotationWithCalculations = asyncHandler(
     }
   }
 );
+
+export const getMultipleSupplierQuotesValidation = [
+  body('productId').isInt({ min: 1 }).withMessage('Valid product ID is required'),
+  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+  body('buyerLocation').optional().isString().withMessage('Buyer location must be a string'),
+  body('supplierIds').optional().isArray().withMessage('Supplier IDs must be an array'),
+  body('shippingMethod')
+    .optional()
+    .isIn(['standard', 'express', 'economy'])
+    .withMessage('Invalid shipping method'),
+];
+
+export const getMultipleSupplierQuotes = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: errors.array(),
+      });
+    }
+
+    const { productId, quantity, buyerLocation, supplierIds, shippingMethod } = req.body;
+
+    try {
+      const quotes = await QuoteService.getMultipleSupplierQuotes(
+        productId,
+        quantity,
+        buyerLocation,
+        supplierIds,
+        shippingMethod
+      );
+
+      res.status(200).json({
+        success: true,
+        data: {
+          quotes,
+          productId,
+          quantity,
+          buyerLocation,
+          shippingMethod: shippingMethod || 'standard',
+        },
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get supplier quotes',
+      });
+    }
+  }
+);

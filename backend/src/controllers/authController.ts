@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User';
-import { generateToken } from '../utils/jwt';
+import {
+  generateToken,
+  generateTokenPair,
+  refreshAccessToken,
+  revokeRefreshToken,
+  revokeAllUserTokens,
+} from '../utils/jwt';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { RegisterRequest, LoginRequest, AuthResponse } from '../types';
@@ -136,17 +142,24 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     status: companyType === 'supplier' ? 'pending' : 'approved',
   });
 
-  // Generate token
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    cnpj: user.cnpj,
-    role: user.role,
-    companyType: user.companyType,
-  });
+  // Generate token pair
+  const deviceInfo = req.headers['user-agent'] || 'Unknown Device';
+  const tokens = generateTokenPair(
+    {
+      id: user.id,
+      email: user.email,
+      cnpj: user.cnpj,
+      role: user.role,
+      companyType: user.companyType,
+    },
+    deviceInfo
+  );
 
-  const response: AuthResponse = {
-    token,
+  const response = {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresIn: tokens.expiresIn,
+    tokenType: 'Bearer',
     user: {
       id: user.id,
       email: user.email,
@@ -207,17 +220,24 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Generate token
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    cnpj: user.cnpj,
-    role: user.role,
-    companyType: user.companyType,
-  });
+  // Generate token pair
+  const deviceInfo = req.headers['user-agent'] || 'Unknown Device';
+  const tokens = generateTokenPair(
+    {
+      id: user.id,
+      email: user.email,
+      cnpj: user.cnpj,
+      role: user.role,
+      companyType: user.companyType,
+    },
+    deviceInfo
+  );
 
-  const response: AuthResponse = {
-    token,
+  const response = {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresIn: tokens.expiresIn,
+    tokenType: 'Bearer',
     user: {
       id: user.id,
       email: user.email,
@@ -278,17 +298,24 @@ export const loginWithEmail = asyncHandler(async (req: Request, res: Response) =
     });
   }
 
-  // Generate token
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    cnpj: user.cnpj,
-    role: user.role,
-    companyType: user.companyType,
-  });
+  // Generate token pair
+  const deviceInfo = req.headers['user-agent'] || 'Unknown Device';
+  const tokens = generateTokenPair(
+    {
+      id: user.id,
+      email: user.email,
+      cnpj: user.cnpj,
+      role: user.role,
+      companyType: user.companyType,
+    },
+    deviceInfo
+  );
 
-  const response: AuthResponse = {
-    token,
+  const response = {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresIn: tokens.expiresIn,
+    tokenType: 'Bearer',
     user: {
       id: user.id,
       email: user.email,
@@ -438,8 +465,11 @@ export const registerSupplier = asyncHandler(async (req: Request, res: Response)
     companyType: user.companyType,
   });
 
-  const response: AuthResponse = {
-    token,
+  const response = {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    expiresIn: tokens.expiresIn,
+    tokenType: 'Bearer',
     user: {
       id: user.id,
       email: user.email,
@@ -469,4 +499,166 @@ export const registerSupplier = asyncHandler(async (req: Request, res: Response)
       state: cnpjValidation.state,
     },
   });
+});
+
+// Refresh token validation
+export const refreshTokenValidation = [
+  body('refreshToken').notEmpty().withMessage('Refresh token is required'),
+];
+
+// Refresh access token
+export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors.array(),
+    });
+  }
+
+  const { refreshToken: token } = req.body;
+  const deviceInfo = req.headers['user-agent'] || 'Unknown Device';
+
+  try {
+    // Find user associated with this refresh token
+    const { verifyRefreshToken } = await import('../utils/jwt');
+    const verification = verifyRefreshToken(token);
+
+    if (!verification.valid) {
+      return res.status(401).json({
+        success: false,
+        error: verification.error || 'Invalid refresh token',
+      });
+    }
+
+    // Get updated user data
+    const user = await User.findByPk(verification.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    // Generate new token pair
+    const newTokens = refreshAccessToken(
+      token,
+      {
+        id: user.id,
+        email: user.email,
+        cnpj: user.cnpj,
+        role: user.role,
+        companyType: user.companyType,
+      },
+      deviceInfo
+    );
+
+    if (!newTokens) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unable to refresh token',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        accessToken: newTokens.accessToken,
+        refreshToken: newTokens.refreshToken,
+        expiresIn: newTokens.expiresIn,
+        tokenType: 'Bearer',
+      },
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      error: 'Invalid refresh token',
+    });
+  }
+});
+
+// Logout (revoke refresh token)
+export const logout = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { refreshToken: token } = req.body;
+
+  try {
+    if (token) {
+      revokeRefreshToken(token);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error during logout',
+    });
+  }
+});
+
+// Logout from all devices (revoke all user tokens)
+export const logoutAllDevices = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+    });
+  }
+
+  try {
+    const revokedCount = revokeAllUserTokens(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out from all devices successfully',
+      data: {
+        revokedTokens: revokedCount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error during logout',
+    });
+  }
+});
+
+// Get active sessions (for security management)
+export const getActiveSessions = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+    });
+  }
+
+  try {
+    const { getUserActiveTokens } = await import('../utils/jwt');
+    const activeSessions = getUserActiveTokens(req.user.id);
+
+    // Remove sensitive token data for security
+    const safeSessions = activeSessions.map(session => ({
+      deviceInfo: session.deviceInfo,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+      isCurrent: false, // Could implement logic to detect current session
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        sessions: safeSessions,
+        totalSessions: safeSessions.length,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error retrieving active sessions',
+    });
+  }
 });
