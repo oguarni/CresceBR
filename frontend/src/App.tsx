@@ -14,6 +14,8 @@ import QuotationRequestPage from './pages/QuotationRequestPage';
 import MyQuotationsPage from './pages/MyQuotationsPage';
 import AdminProductsPage from './pages/AdminProductsPage';
 import AdminQuotationsPage from './pages/AdminQuotationsPage';
+import AdminCompanyVerificationPage from './pages/AdminCompanyVerificationPage';
+import AdminTransactionMonitoringPage from './pages/AdminTransactionMonitoringPage';
 import QuotationDetailPage from './pages/QuotationDetailPage';
 import QuoteComparisonPage from './pages/QuoteComparisonPage';
 import MyOrdersPage from './pages/MyOrdersPage';
@@ -97,8 +99,7 @@ const App: React.FC = () => {
                 path='admin/analytics'
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
-                    {/* Analytics page component would go here */}
-                    <div>Analytics Dashboard (To be implemented)</div>
+                    <AdminTransactionMonitoringPage />
                   </ProtectedRoute>
                 }
               />
@@ -106,8 +107,7 @@ const App: React.FC = () => {
                 path='admin/company-verification'
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
-                    {/* Company verification page would go here */}
-                    <div>Company Verification (To be implemented)</div>
+                    <AdminCompanyVerificationPage />
                   </ProtectedRoute>
                 }
               />
