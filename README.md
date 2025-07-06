@@ -1,6 +1,6 @@
 # CresceBR B2B Marketplace
 
-**CresceBR** is a comprehensive B2B (Business-to-Business) marketplace platform developed for UTFPR's E-commerce course (6th semester). This platform connects buyers and suppliers in an industrial marketplace environment with advanced features for quotations, order management, and company verification.
+**CresceBR** is a comprehensive B2B (Business-to-Business) marketplace platform developed for UTFPR's E-commerce course (7th semester). This platform connects buyers and suppliers in an industrial marketplace environment with advanced features for quotations, order management, and company verification.
 
 ## 🎯 Project Overview
 
