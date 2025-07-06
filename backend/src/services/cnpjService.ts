@@ -22,7 +22,7 @@ interface CNPJCacheEntry {
 }
 
 export class CNPJService {
-  private static readonly CNPJ_API_URL = 'https://publica.cnpj.ws/cnpj/';
+  private static readonly CNPJ_API_URL = 'https://brasilapi.com.br/api/cnpj/v1/';
   private static readonly CACHE_EXPIRATION_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
   private static cnpjCache = new Map<string, CNPJCacheEntry>();
 
@@ -125,20 +125,19 @@ export class CNPJService {
 
       const data = response.data;
 
-      if (data.status === 200 && data.estabelecimento) {
-        const establishment = data.estabelecimento;
+      if (data && data.razao_social) {
         const result = {
           valid: true,
           companyName: data.razao_social,
-          fantasyName: establishment.nome_fantasia || data.razao_social,
-          address: `${establishment.logradouro}, ${establishment.numero} - ${establishment.bairro}`,
-          city: establishment.cidade?.nome,
-          state: establishment.estado?.nome,
-          zipCode: establishment.cep,
-          phone: establishment.telefone1,
-          email: establishment.email,
-          mainActivity: data.natureza_juridica?.descricao,
-          situacao: establishment.situacao_cadastral,
+          fantasyName: data.nome_fantasia || data.razao_social,
+          address: `${data.logradouro}, ${data.numero} - ${data.bairro}`,
+          city: data.municipio,
+          state: data.uf,
+          zipCode: data.cep,
+          phone: data.ddd_telefone_1,
+          email: data.email,
+          mainActivity: data.descricao_natureza_juridica,
+          situacao: data.descricao_situacao_cadastral,
         };
 
         // Cache the successful result

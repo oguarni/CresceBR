@@ -39,6 +39,8 @@ describe('Auth Middleware', () => {
         id: 1,
         email: 'test@example.com',
         role: 'customer',
+        cnpj: '12345678000191',
+        companyType: 'buyer',
       };
 
       mockRequest.headers = {
@@ -179,6 +181,8 @@ describe('Auth Middleware', () => {
         id: 2,
         email: 'admin@example.com',
         role: 'admin',
+        cnpj: '12345678000192',
+        companyType: 'both',
       };
 
       mockRequest.headers = {
@@ -204,6 +208,8 @@ describe('Auth Middleware', () => {
         id: 3,
         email: 'supplier@example.com',
         role: 'supplier',
+        cnpj: '12345678000193',
+        companyType: 'supplier',
       };
 
       mockRequest.headers = {
@@ -455,6 +461,8 @@ describe('Auth Middleware', () => {
         id: 1,
         email: 'admin@example.com',
         role: 'admin',
+        cnpj: '12345678000195',
+        companyType: 'both',
       };
 
       mockRequest.headers = {
@@ -487,6 +495,8 @@ describe('Auth Middleware', () => {
         id: 2,
         email: 'supplier@example.com',
         role: 'supplier',
+        cnpj: '12345678000194',
+        companyType: 'supplier',
       };
 
       mockRequest.headers = {
@@ -519,6 +529,8 @@ describe('Auth Middleware', () => {
         id: 3,
         email: 'customer@example.com',
         role: 'customer',
+        cnpj: '12345678000199',
+        companyType: 'buyer',
       };
 
       mockRequest.headers = {
@@ -571,6 +583,8 @@ describe('Auth Middleware', () => {
         id: 1,
         email: 'test@example.com',
         role: 'customer',
+        cnpj: '12345678000191',
+        companyType: 'buyer',
       };
 
       mockRequest.headers = {
