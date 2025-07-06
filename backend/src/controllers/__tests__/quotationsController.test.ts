@@ -76,7 +76,7 @@ describe('Quotations Controller', () => {
       ];
       const mockQuotation = {
         id: 1,
-        userId: 1,
+        companyId: 1,
         status: 'pending',
         adminNotes: null,
         createdAt: new Date(),
@@ -115,11 +115,11 @@ describe('Quotations Controller', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Quotation created successfully');
       expect(response.body.data.id).toBe(1);
-      expect(response.body.data.userId).toBe(1);
+      expect(response.body.data.companyId).toBe(1);
       expect(response.body.data.status).toBe('pending');
       expect(MockProduct.findByPk).toHaveBeenCalledTimes(2);
       expect(MockQuotation.create).toHaveBeenCalledWith({
-        userId: 1,
+        companyId: 1,
         status: 'pending',
         adminNotes: null,
       });
@@ -273,7 +273,7 @@ describe('Quotations Controller', () => {
       expect(response.body.data[0].id).toBe(1);
       expect(response.body.data[1].id).toBe(2);
       expect(MockQuotation.findAll).toHaveBeenCalledWith({
-        where: { userId: 1 },
+        where: { companyId: 1 },
         include: expect.any(Array),
         order: [['createdAt', 'DESC']],
       });
@@ -313,7 +313,7 @@ describe('Quotations Controller', () => {
   describe('GET /api/quotations/:id', () => {
     const mockQuotation = {
       id: 1,
-      userId: 1,
+      companyId: 1,
       status: 'pending',
       items: [
         {
@@ -340,7 +340,7 @@ describe('Quotations Controller', () => {
       // Assert
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBe(1);
-      expect(response.body.data.userId).toBe(1);
+      expect(response.body.data.companyId).toBe(1);
     });
 
     it('should get quotation by ID for admin', async () => {
