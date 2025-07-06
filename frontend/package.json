@@ -9,14 +9,15 @@
     "@fontsource/inter": "^4.5.15",
     "@fontsource/open-sans": "^4.5.14",
     "@mui/icons-material": "^7.1.2",
-    "@mui/lab": "^5.0.0-alpha.120",
+    "@mui/lab": "^7.0.0-beta.14",
     "@mui/material": "^7.1.2",
     "@testing-library/user-event": "^14.6.1",
     "axios": "^1.10.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.4.0",
-    "react-router-dom": "^6.8.0"
+    "react-router-dom": "^6.8.0",
+    "recharts": "^3.0.2"
   },
   "scripts": {
     "dev": "vite",
