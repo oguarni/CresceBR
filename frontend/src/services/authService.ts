@@ -59,6 +59,29 @@ class AuthService {
   getToken(): string | null {
     return localStorage.getItem('crescebr_token');
   }
+
+  async adminRequest(
+    endpoint: string,
+    options: {
+      method?: string;
+      params?: Record<string, any>;
+      data?: any;
+    } = {}
+  ): Promise<any> {
+    const { method = 'GET', params, data } = options;
+
+    if (method === 'GET') {
+      return await apiService.get(endpoint, { params });
+    } else if (method === 'POST') {
+      return await apiService.post(endpoint, data);
+    } else if (method === 'PUT') {
+      return await apiService.put(endpoint, data);
+    } else if (method === 'DELETE') {
+      return await apiService.delete(endpoint);
+    }
+
+    throw new Error(`Unsupported HTTP method: ${method}`);
+  }
 }
 
 export const authService = new AuthService();
