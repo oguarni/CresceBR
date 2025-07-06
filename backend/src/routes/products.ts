@@ -6,6 +6,7 @@ import {
   updateProduct,
   deleteProduct,
   getCategories,
+  getAvailableSpecifications,
   productValidation,
 } from '../controllers/productsController';
 import { authenticateJWT, isSupplier, isAdmin } from '../middleware/auth';
@@ -15,6 +16,7 @@ const router = Router();
 // Public routes
 router.get('/', getAllProducts);
 router.get('/categories', getCategories);
+router.get('/specifications', getAvailableSpecifications);
 router.get('/:id', getProductById);
 
 // Supplier-only routes (protected)

@@ -38,7 +38,7 @@ const App: React.FC = () => {
               <Route
                 path='my-quotations'
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['customer', 'admin']}>
                     <MyQuotationsPage />
                   </ProtectedRoute>
                 }
@@ -46,7 +46,7 @@ const App: React.FC = () => {
               <Route
                 path='quote-comparison'
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['customer', 'admin']}>
                     <QuoteComparisonPage />
                   </ProtectedRoute>
                 }
@@ -54,7 +54,7 @@ const App: React.FC = () => {
               <Route
                 path='my-orders'
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={['customer', 'admin']}>
                     <MyOrdersPage />
                   </ProtectedRoute>
                 }
@@ -80,7 +80,7 @@ const App: React.FC = () => {
               <Route
                 path='admin/products'
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute allowedRoles={['admin']}>
                     <AdminProductsPage />
                   </ProtectedRoute>
                 }
@@ -88,8 +88,64 @@ const App: React.FC = () => {
               <Route
                 path='admin/quotations'
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute allowedRoles={['admin']}>
                     <AdminQuotationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='admin/analytics'
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    {/* Analytics page component would go here */}
+                    <div>Analytics Dashboard (To be implemented)</div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='admin/company-verification'
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    {/* Company verification page would go here */}
+                    <div>Company Verification (To be implemented)</div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='admin/settings'
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    {/* Settings page would go here */}
+                    <div>System Settings (To be implemented)</div>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Supplier routes */}
+              <Route
+                path='supplier/dashboard'
+                element={
+                  <ProtectedRoute allowedRoles={['supplier']}>
+                    {/* Supplier dashboard would go here */}
+                    <div>Supplier Dashboard (To be implemented)</div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='supplier/products'
+                element={
+                  <ProtectedRoute allowedRoles={['supplier']} requireApproved>
+                    {/* Supplier products page would go here */}
+                    <div>Supplier Products Management (To be implemented)</div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='supplier/orders'
+                element={
+                  <ProtectedRoute allowedRoles={['supplier']} requireApproved>
+                    {/* Supplier orders page would go here */}
+                    <div>Supplier Orders Management (To be implemented)</div>
                   </ProtectedRoute>
                 }
               />

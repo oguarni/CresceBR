@@ -8,6 +8,21 @@ interface UserAttributes {
   password: string;
   cpf: string;
   address: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  phone?: string;
+  contactPerson?: string;
+  contactTitle?: string;
+  companySize?: 'micro' | 'small' | 'medium' | 'large' | 'enterprise';
+  annualRevenue?: 'under_500k' | '500k_2m' | '2m_10m' | '10m_50m' | '50m_200m' | 'over_200m';
+  certifications?: string[];
+  website?: string;
   role: 'customer' | 'admin' | 'supplier';
   status: 'pending' | 'approved' | 'rejected';
   companyName: string;
@@ -25,7 +40,28 @@ interface UserAttributes {
 interface UserCreationAttributes
   extends Optional<
     UserAttributes,
-    'id' | 'status' | 'cnpjValidated' | 'averageRating' | 'totalRatings' | 'createdAt' | 'updatedAt'
+    | 'id'
+    | 'status'
+    | 'cnpjValidated'
+    | 'averageRating'
+    | 'totalRatings'
+    | 'street'
+    | 'number'
+    | 'complement'
+    | 'neighborhood'
+    | 'city'
+    | 'state'
+    | 'zipCode'
+    | 'country'
+    | 'phone'
+    | 'contactPerson'
+    | 'contactTitle'
+    | 'companySize'
+    | 'annualRevenue'
+    | 'certifications'
+    | 'website'
+    | 'createdAt'
+    | 'updatedAt'
   > {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -34,6 +70,21 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public password!: string;
   public cpf!: string;
   public address!: string;
+  public street?: string;
+  public number?: string;
+  public complement?: string;
+  public neighborhood?: string;
+  public city?: string;
+  public state?: string;
+  public zipCode?: string;
+  public country?: string;
+  public phone?: string;
+  public contactPerson?: string;
+  public contactTitle?: string;
+  public companySize?: 'micro' | 'small' | 'medium' | 'large' | 'enterprise';
+  public annualRevenue?: 'under_500k' | '500k_2m' | '2m_10m' | '10m_50m' | '50m_200m' | 'over_200m';
+  public certifications?: string[];
+  public website?: string;
   public role!: 'customer' | 'admin' | 'supplier';
   public status!: 'pending' | 'approved' | 'rejected';
   public companyName!: string;
@@ -162,6 +213,89 @@ User.init(
         notEmpty: true,
       },
       comment: 'Type of company in the B2B marketplace',
+    },
+    street: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'Street address',
+    },
+    number: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment: 'Street number',
+    },
+    complement: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Address complement (apartment, suite, etc.)',
+    },
+    neighborhood: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Neighborhood/District',
+    },
+    city: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'City name',
+    },
+    state: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: 'State/Province',
+    },
+    zipCode: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      validate: {
+        is: /^\d{5}-?\d{3}$/i,
+      },
+      comment: 'ZIP/Postal code',
+    },
+    country: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'Brazil',
+      comment: 'Country name',
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      comment: 'Primary phone number',
+    },
+    contactPerson: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'Main contact person name',
+    },
+    contactTitle: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'Contact person title/position',
+    },
+    companySize: {
+      type: DataTypes.ENUM('micro', 'small', 'medium', 'large', 'enterprise'),
+      allowNull: true,
+      comment: 'Company size classification',
+    },
+    annualRevenue: {
+      type: DataTypes.ENUM('under_500k', '500k_2m', '2m_10m', '10m_50m', '50m_200m', 'over_200m'),
+      allowNull: true,
+      comment: 'Annual revenue range in BRL',
+    },
+    certifications: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+      comment: 'Business certifications and standards (ISO, etc.)',
+    },
+    website: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      validate: {
+        isUrl: true,
+      },
+      comment: 'Company website URL',
     },
   },
   {
