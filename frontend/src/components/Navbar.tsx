@@ -19,6 +19,8 @@ import {
   AdminPanelSettings,
   RequestQuote,
   Assignment,
+  Compare,
+  Receipt,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
@@ -56,6 +58,16 @@ const Navbar: React.FC = () => {
 
   const handleMyQuotations = () => {
     navigate('/my-quotations');
+    handleClose();
+  };
+
+  const handleQuoteComparison = () => {
+    navigate('/quote-comparison');
+    handleClose();
+  };
+
+  const handleMyOrders = () => {
+    navigate('/my-orders');
     handleClose();
   };
 
@@ -133,10 +145,20 @@ const Navbar: React.FC = () => {
                   </Typography>
                 </MenuItem>
                 {isCustomer && (
-                  <MenuItem onClick={handleMyQuotations}>
-                    <Assignment sx={{ mr: 1 }} />
-                    Minhas Cotações
-                  </MenuItem>
+                  <>
+                    <MenuItem onClick={handleMyQuotations}>
+                      <Assignment sx={{ mr: 1 }} />
+                      Minhas Cotações
+                    </MenuItem>
+                    <MenuItem onClick={handleMyOrders}>
+                      <Receipt sx={{ mr: 1 }} />
+                      Meus Pedidos
+                    </MenuItem>
+                    <MenuItem onClick={handleQuoteComparison}>
+                      <Compare sx={{ mr: 1 }} />
+                      Comparar Preços
+                    </MenuItem>
+                  </>
                 )}
                 {isAdmin && (
                   <MenuItem onClick={handleAdminPanel}>

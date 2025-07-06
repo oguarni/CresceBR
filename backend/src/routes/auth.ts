@@ -9,6 +9,11 @@ import {
   loginValidation,
   loginEmailValidation,
   supplierRegisterValidation,
+  refreshToken,
+  refreshTokenValidation,
+  logout,
+  logoutAllDevices,
+  getActiveSessions,
 } from '../controllers/authController';
 import { authenticateJWT } from '../middleware/auth';
 
@@ -28,5 +33,17 @@ router.post('/login-email', loginEmailValidation, loginWithEmail);
 
 // GET /auth/me
 router.get('/me', authenticateJWT, getProfile);
+
+// POST /auth/refresh
+router.post('/refresh', refreshTokenValidation, refreshToken);
+
+// POST /auth/logout
+router.post('/logout', logout);
+
+// POST /auth/logout-all
+router.post('/logout-all', authenticateJWT, logoutAllDevices);
+
+// GET /auth/sessions
+router.get('/sessions', authenticateJWT, getActiveSessions);
 
 export default router;
