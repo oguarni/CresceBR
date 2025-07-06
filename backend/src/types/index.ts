@@ -1,5 +1,5 @@
 // Re-export shared types and add backend-specific types
-export * from '@shared/types';
+export * from '../../../shared/types';
 
 // Backend-specific types that are not shared with frontend
 

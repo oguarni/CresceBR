@@ -4,7 +4,7 @@ export interface PricingTier {
   discount: number;
 }
 
-export interface User {
+export interface Company {
   id: number;
   email: string;
   password?: string; // Optional for responses (excluded for security)
@@ -12,16 +12,20 @@ export interface User {
   address: string;
   role: 'customer' | 'admin' | 'supplier';
   status: 'pending' | 'approved' | 'rejected';
-  companyName?: string;
-  corporateName?: string;
-  cnpj?: string;
-  cnpjValidated?: boolean;
-  industrySector?: string;
+  companyName: string;
+  corporateName: string;
+  cnpj: string;
+  cnpjValidated: boolean;
+  industrySector: string;
+  companyType: 'buyer' | 'supplier' | 'both';
   averageRating?: number;
   totalRatings?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+// Keep User interface for backward compatibility during migration
+export interface User extends Company {}
 
 export interface Product {
   id: number;
@@ -30,11 +34,13 @@ export interface Product {
   price: number;
   imageUrl: string;
   category: string;
-  supplierId?: number;
-  tierPricing?: PricingTier[];
-  specifications?: Record<string, any>;
-  unitPrice?: number;
-  minimumOrderQuantity?: number;
+  supplierId: number;
+  tierPricing: PricingTier[];
+  specifications: Record<string, any>;
+  unitPrice: number;
+  minimumOrderQuantity: number;
+  leadTime: number;
+  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'custom_order';
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -51,11 +57,14 @@ export interface QuotationItem {
 
 export interface Quotation {
   id: number;
-  userId: number;
-  user?: Omit<User, 'password'>;
+  companyId: number;
+  company?: Omit<Company, 'password'>;
   items: QuotationItem[];
   status: 'pending' | 'processed' | 'completed' | 'rejected';
   adminNotes: string | null;
+  totalAmount?: number;
+  validUntil?: Date;
+  requestedDeliveryDate?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -72,10 +81,17 @@ export interface CartItem {
 export interface AuthTokenPayload {
   id: number;
   email: string;
+  cnpj: string;
   role: 'customer' | 'admin' | 'supplier';
+  companyType: 'buyer' | 'supplier' | 'both';
 }
 
 export interface LoginRequest {
+  cnpj: string;
+  password: string;
+}
+
+export interface LoginEmailRequest {
   email: string;
   password: string;
 }
@@ -86,21 +102,22 @@ export interface RegisterRequest {
   cpf: string;
   address: string;
   role?: 'customer' | 'supplier';
-  companyName?: string;
-  corporateName?: string;
-  cnpj?: string;
-  industrySector?: string;
+  companyName: string;
+  corporateName: string;
+  cnpj: string;
+  industrySector: string;
+  companyType: 'buyer' | 'supplier' | 'both';
 }
 
 export interface AuthResponse {
   token: string;
-  user: Omit<User, 'password'>;
+  user: Omit<Company, 'password'>;
 }
 
 export interface Order {
   id: string;
-  userId: number;
-  user?: Omit<User, 'password'>;
+  companyId: number;
+  company?: Omit<Company, 'password'>;
   quotationId?: number;
   quotation?: Quotation;
   items: OrderItem[];

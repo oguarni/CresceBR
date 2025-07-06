@@ -10,18 +10,22 @@ import {
   InputAdornment,
   IconButton,
   CircularProgress,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Email, Lock, Business } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const LoginPage: React.FC = () => {
+  const [cnpj, setCnpj] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginType, setLoginType] = useState<'cnpj' | 'email'>('cnpj');
 
-  const { login } = useAuth();
+  const { login, loginWithEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,7 +36,11 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      if (loginType === 'cnpj') {
+        await login(cnpj, password);
+      } else {
+        await loginWithEmail(email, password);
+      }
       toast.success('Login realizado com sucesso!');
       navigate(from, { replace: true });
     } catch (err: any) {
@@ -74,26 +82,59 @@ const LoginPage: React.FC = () => {
             Faça login em sua conta
           </Typography>
 
+          <Tabs
+            value={loginType}
+            onChange={(_, newValue) => setLoginType(newValue)}
+            centered
+            sx={{ mb: 2 }}
+          >
+            <Tab label='CNPJ' value='cnpj' icon={<Business />} />
+            <Tab label='Email' value='email' icon={<Email />} />
+          </Tabs>
+
           <Box component='form' onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
-            <TextField
-              margin='normal'
-              required
-              fullWidth
-              id='email'
-              label='Email'
-              name='email'
-              autoComplete='email'
-              autoFocus
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position='start'>
-                    <Email />
-                  </InputAdornment>
-                ),
-              }}
-            />
+            {loginType === 'cnpj' ? (
+              <TextField
+                margin='normal'
+                required
+                fullWidth
+                id='cnpj'
+                label='CNPJ'
+                name='cnpj'
+                autoComplete='organization'
+                autoFocus
+                value={cnpj}
+                onChange={e => setCnpj(e.target.value)}
+                placeholder='00.000.000/0000-00'
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <Business />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            ) : (
+              <TextField
+                margin='normal'
+                required
+                fullWidth
+                id='email'
+                label='Email'
+                name='email'
+                autoComplete='email'
+                autoFocus
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <Email />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
             <TextField
               margin='normal'
               required
@@ -148,10 +189,10 @@ const LoginPage: React.FC = () => {
               <strong>Contas de teste:</strong>
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              Admin: admin@crescebr.com / admin123
+              Admin (Email): admin@crescebr.com / admin123
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              Cliente: cliente@teste.com / cliente123
+              Empresa (CNPJ): 11.222.333/0001-81 / empresa123
             </Typography>
           </Box>
         </Paper>

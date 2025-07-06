@@ -24,9 +24,9 @@ export const createOrderFromQuotation = asyncHandler(
     }
 
     const { quotationId } = req.body;
-    const userId = req.user?.id!;
+    const companyId = req.user?.id!;
 
-    const quotation = await Quotation.findOne({ where: { id: quotationId, userId } });
+    const quotation = await Quotation.findOne({ where: { id: quotationId, companyId } });
 
     if (!quotation) {
       return res
@@ -44,7 +44,7 @@ export const createOrderFromQuotation = asyncHandler(
       const { calculations } = await QuoteService.getQuotationWithCalculations(quotationId);
 
       const order = await Order.create({
-        userId,
+        companyId,
         quotationId,
         totalAmount: calculations.grandTotal,
         status: 'pending',
@@ -99,7 +99,7 @@ export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, 
 
   const { orderId } = req.params;
   const { status, trackingNumber, estimatedDeliveryDate, notes } = req.body;
-  const userId = req.user?.id!;
+  const companyId = req.user?.id!;
   const userRole = req.user?.role;
 
   if (userRole !== 'admin' && userRole !== 'supplier') {
@@ -118,7 +118,7 @@ export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, 
         estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : undefined,
         notes,
       },
-      userId
+      companyId
     );
 
     res.status(200).json({
@@ -135,17 +135,17 @@ export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, 
 });
 
 export const getUserOrders = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user?.id!;
+  const companyId = req.user?.id!;
   const { status, page = 1, limit = 20 } = req.query;
 
-  const filters: any = { userId };
+  const filters: any = { companyId };
   if (status) {
     filters.status = status;
   }
 
   try {
     const result = await OrderStatusService.getOrdersByStatus((status as any) || undefined, {
-      userId,
+      companyId,
       limit: parseInt(limit as string),
       offset: (parseInt(page as string) - 1) * parseInt(limit as string),
     });
@@ -170,13 +170,13 @@ export const getUserOrders = asyncHandler(async (req: AuthenticatedRequest, res:
 
 export const getOrderHistory = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { orderId } = req.params;
-  const userId = req.user?.id!;
+  const companyId = req.user?.id!;
   const userRole = req.user?.role;
 
   try {
     const result = await OrderStatusService.getOrderHistory(orderId);
 
-    if (userRole === 'customer' && result.order.userId !== userId) {
+    if (userRole === 'customer' && result.order.companyId !== companyId) {
       return res.status(403).json({
         success: false,
         error: 'Access denied',

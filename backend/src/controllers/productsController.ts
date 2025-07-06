@@ -8,19 +8,27 @@ import { AuthenticatedRequest } from '../middleware/auth';
 export const productValidation = [
   body('name').notEmpty().withMessage('Product name is required'),
   body('description').notEmpty().withMessage('Product description is required'),
-  body('price').isNumeric().withMessage('Price must be a number').custom((value) => {
-    if (value <= 0) {
-      throw new Error('Price must be greater than 0');
-    }
-    return true;
-  }),
+  body('price')
+    .isNumeric()
+    .withMessage('Price must be a number')
+    .custom(value => {
+      if (value <= 0) {
+        throw new Error('Price must be greater than 0');
+      }
+      return true;
+    }),
   body('imageUrl').isURL().withMessage('Image URL must be a valid URL'),
   body('category').notEmpty().withMessage('Category is required'),
+  body('specifications').optional().isString().withMessage('Specifications must be a string'),
+  body('minimumOrderQuantity')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Minimum order quantity must be at least 1'),
 ];
 
 export const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
   const { category, search, page = 1, limit = 10 } = req.query;
-  
+
   const offset = (Number(page) - 1) * Number(limit);
   const where: any = {};
 
@@ -96,7 +104,9 @@ export const createProduct = asyncHandler(async (req: AuthenticatedRequest, res:
     });
   }
 
-  const { name, description, price, imageUrl, category } = req.body;
+  const { name, description, price, imageUrl, category, specifications, minimumOrderQuantity } =
+    req.body;
+  const supplierId = req.user?.id!;
 
   const product = await Product.create({
     name,
@@ -104,6 +114,10 @@ export const createProduct = asyncHandler(async (req: AuthenticatedRequest, res:
     price: parseFloat(price),
     imageUrl,
     category,
+    supplierId,
+    specifications: specifications || null,
+    unitPrice: parseFloat(price),
+    minimumOrderQuantity: minimumOrderQuantity || 1,
   });
 
   res.status(201).json({
@@ -124,7 +138,8 @@ export const updateProduct = asyncHandler(async (req: AuthenticatedRequest, res:
   }
 
   const { id } = req.params;
-  const { name, description, price, imageUrl, category } = req.body;
+  const { name, description, price, imageUrl, category, specifications, minimumOrderQuantity } =
+    req.body;
 
   const product = await Product.findByPk(id);
 
@@ -141,6 +156,10 @@ export const updateProduct = asyncHandler(async (req: AuthenticatedRequest, res:
     price: parseFloat(price),
     imageUrl,
     category,
+    specifications: specifications !== undefined ? specifications : product.specifications,
+    unitPrice: parseFloat(price),
+    minimumOrderQuantity:
+      minimumOrderQuantity !== undefined ? minimumOrderQuantity : product.minimumOrderQuantity,
   });
 
   res.status(200).json({
@@ -177,7 +196,7 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
     order: [['category', 'ASC']],
   });
 
-  const categoryList = categories.map((item) => item.category);
+  const categoryList = categories.map(item => item.category);
 
   res.status(200).json({
     success: true,

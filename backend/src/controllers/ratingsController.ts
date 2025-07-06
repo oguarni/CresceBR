@@ -51,7 +51,7 @@ export const createRating = asyncHandler(async (req: AuthenticatedRequest, res: 
     const order = await Order.findOne({
       where: {
         id: orderId,
-        userId: buyerId,
+        companyId: buyerId,
         status: 'delivered',
       },
       include: [
@@ -85,7 +85,7 @@ export const createRating = asyncHandler(async (req: AuthenticatedRequest, res: 
     // If no orderId, check if buyer has any completed orders from this supplier
     const completedOrder = await Order.findOne({
       where: {
-        userId: buyerId,
+        companyId: buyerId,
         status: 'delivered',
       },
       include: [

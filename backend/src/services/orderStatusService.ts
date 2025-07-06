@@ -81,7 +81,7 @@ export class OrderStatusService {
   static async updateOrderStatus(
     orderId: string,
     updateData: OrderStatusUpdate,
-    userId: number
+    companyId: number
   ): Promise<Order> {
     const order = await Order.findByPk(orderId, {
       include: [
@@ -213,13 +213,13 @@ export class OrderStatusService {
   static async bulkUpdateOrderStatus(
     orderIds: string[],
     updateData: OrderStatusUpdate,
-    userId: number
+    companyId: number
   ): Promise<Order[]> {
     const updatedOrders: Order[] = [];
 
     for (const orderId of orderIds) {
       try {
-        const updatedOrder = await this.updateOrderStatus(orderId, updateData, userId);
+        const updatedOrder = await this.updateOrderStatus(orderId, updateData, companyId);
         updatedOrders.push(updatedOrder);
       } catch (error) {
         console.error(`Failed to update order ${orderId}:`, error);
@@ -232,7 +232,7 @@ export class OrderStatusService {
   static async getOrdersByStatus(
     status: OrderStatus,
     filters: {
-      userId?: number;
+      companyId?: number;
       startDate?: Date;
       endDate?: Date;
       limit?: number;
@@ -241,8 +241,8 @@ export class OrderStatusService {
   ): Promise<{ orders: Order[]; total: number }> {
     const whereClause: any = { status };
 
-    if (filters.userId) {
-      whereClause.userId = filters.userId;
+    if (filters.companyId) {
+      whereClause.companyId = filters.companyId;
     }
 
     if (filters.startDate && filters.endDate) {

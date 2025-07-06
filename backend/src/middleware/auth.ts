@@ -157,7 +157,7 @@ export const hasRole = (allowedRoles: string[]) => {
   };
 };
 
-export const isResourceOwner = (resourceUserIdField: string = 'userId') => {
+export const isResourceOwner = (resourceUserIdField: string = 'companyId') => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
@@ -317,7 +317,7 @@ export const canAccessOrder = async (
     }
 
     // Customer can access their own orders
-    if (req.user.role === 'customer' && order.userId === req.user.id) {
+    if (req.user.role === 'customer' && order.companyId === req.user.id) {
       next();
       return;
     }
@@ -327,7 +327,7 @@ export const canAccessOrder = async (
       const quotation = (order as any).quotation;
       if (quotation && quotation.items) {
         const hasSupplierProduct = quotation.items.some(
-          (item: any) => item.product && item.product.supplierId === req.user.id
+          (item: any) => item.product && item.product.supplierId === req.user!.id
         );
 
         if (hasSupplierProduct) {

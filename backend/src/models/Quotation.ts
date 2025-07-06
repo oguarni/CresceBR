@@ -4,10 +4,12 @@ import User from './User';
 
 interface QuotationAttributes {
   id: number;
-  userId: number;
+  companyId: number;
   status: 'pending' | 'processed' | 'completed' | 'rejected';
   adminNotes: string | null;
   totalAmount?: number;
+  validUntil?: Date;
+  requestedDeliveryDate?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -15,7 +17,13 @@ interface QuotationAttributes {
 interface QuotationCreationAttributes
   extends Optional<
     QuotationAttributes,
-    'id' | 'adminNotes' | 'totalAmount' | 'createdAt' | 'updatedAt'
+    | 'id'
+    | 'adminNotes'
+    | 'totalAmount'
+    | 'validUntil'
+    | 'requestedDeliveryDate'
+    | 'createdAt'
+    | 'updatedAt'
   > {}
 
 class Quotation
@@ -23,10 +31,12 @@ class Quotation
   implements QuotationAttributes
 {
   public id!: number;
-  public userId!: number;
+  public companyId!: number;
   public status!: 'pending' | 'processed' | 'completed' | 'rejected';
   public adminNotes!: string | null;
   public totalAmount?: number;
+  public validUntil?: Date;
+  public requestedDeliveryDate?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -38,13 +48,14 @@ Quotation.init(
       autoIncrement: true,
       primaryKey: true,
     },
-    userId: {
+    companyId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: User,
         key: 'id',
       },
+      comment: 'Reference to the company that requested the quotation',
     },
     status: {
       type: DataTypes.ENUM('pending', 'processed', 'completed', 'rejected'),
@@ -59,6 +70,16 @@ Quotation.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
       comment: 'Total calculated amount for the quotation',
+    },
+    validUntil: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Date until which the quotation is valid',
+    },
+    requestedDeliveryDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Requested delivery date by the buyer',
     },
   },
   {

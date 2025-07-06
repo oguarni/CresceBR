@@ -6,7 +6,7 @@ import Quotation from './Quotation';
 interface OrderAttributes {
   id: string;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  userId: number;
+  companyId: number;
   quotationId: number;
   totalAmount: number;
   estimatedDeliveryDate?: Date;
@@ -24,7 +24,7 @@ interface OrderCreationAttributes
 class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
   public id!: string;
   public status!: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  public userId!: number;
+  public companyId!: number;
   public quotationId!: number;
   public totalAmount!: number;
   public estimatedDeliveryDate?: Date;
@@ -45,13 +45,14 @@ Order.init(
       allowNull: false,
       defaultValue: 'pending',
     },
-    userId: {
+    companyId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: User,
         key: 'id',
       },
+      comment: 'Reference to the company that placed the order',
     },
     quotationId: {
       type: DataTypes.INTEGER,

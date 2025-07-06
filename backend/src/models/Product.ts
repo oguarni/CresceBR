@@ -14,11 +14,13 @@ interface ProductAttributes {
   price: number;
   imageUrl: string;
   category: string;
-  supplierId?: number;
-  tierPricing?: PricingTier[];
-  specifications?: Record<string, any>;
-  unitPrice?: number;
-  minimumOrderQuantity?: number;
+  supplierId: number;
+  tierPricing: PricingTier[];
+  specifications: Record<string, any>;
+  unitPrice: number;
+  minimumOrderQuantity: number;
+  leadTime: number;
+  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'custom_order';
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,14 +28,7 @@ interface ProductAttributes {
 interface ProductCreationAttributes
   extends Optional<
     ProductAttributes,
-    | 'id'
-    | 'supplierId'
-    | 'tierPricing'
-    | 'specifications'
-    | 'unitPrice'
-    | 'minimumOrderQuantity'
-    | 'createdAt'
-    | 'updatedAt'
+    'id' | 'tierPricing' | 'availability' | 'leadTime' | 'createdAt' | 'updatedAt'
   > {}
 
 class Product
@@ -46,11 +41,13 @@ class Product
   public price!: number;
   public imageUrl!: string;
   public category!: string;
-  public supplierId?: number;
-  public tierPricing?: PricingTier[];
-  public specifications?: Record<string, any>;
-  public unitPrice?: number;
-  public minimumOrderQuantity?: number;
+  public supplierId!: number;
+  public tierPricing!: PricingTier[];
+  public specifications!: Record<string, any>;
+  public unitPrice!: number;
+  public minimumOrderQuantity!: number;
+  public leadTime!: number;
+  public availability!: 'in_stock' | 'out_of_stock' | 'limited' | 'custom_order';
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -102,7 +99,7 @@ Product.init(
     },
     supplierId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -110,23 +107,47 @@ Product.init(
     },
     tierPricing: {
       type: DataTypes.JSON,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: [],
       comment: 'JSON field for quantity-based pricing tiers',
     },
     specifications: {
       type: DataTypes.JSON,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: {},
       comment: 'JSON field for technical specifications and product details',
     },
     unitPrice: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
+      allowNull: false,
+      validate: {
+        isDecimal: true,
+        min: 0,
+      },
       comment: 'Price per unit for bulk ordering',
     },
     minimumOrderQuantity: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
+      validate: {
+        min: 1,
+      },
       comment: 'Minimum quantity required for orders',
+    },
+    leadTime: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 7,
+      validate: {
+        min: 0,
+      },
+      comment: 'Lead time in days for product delivery',
+    },
+    availability: {
+      type: DataTypes.ENUM('in_stock', 'out_of_stock', 'limited', 'custom_order'),
+      allowNull: false,
+      defaultValue: 'in_stock',
+      comment: 'Product availability status',
     },
   },
   {

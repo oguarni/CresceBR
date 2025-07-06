@@ -10,11 +10,12 @@ interface UserAttributes {
   address: string;
   role: 'customer' | 'admin' | 'supplier';
   status: 'pending' | 'approved' | 'rejected';
-  companyName: string | null;
-  corporateName: string | null;
-  cnpj: string | null;
+  companyName: string;
+  corporateName: string;
+  cnpj: string;
   cnpjValidated: boolean;
-  industrySector: string | null;
+  industrySector: string;
+  companyType: 'buyer' | 'supplier' | 'both';
   averageRating?: number;
   totalRatings?: number;
   createdAt?: Date;
@@ -24,13 +25,7 @@ interface UserAttributes {
 interface UserCreationAttributes
   extends Optional<
     UserAttributes,
-    | 'id'
-    | 'status'
-    | 'cnpjValidated'
-    | 'corporateName'
-    | 'industrySector'
-    | 'createdAt'
-    | 'updatedAt'
+    'id' | 'status' | 'cnpjValidated' | 'averageRating' | 'totalRatings' | 'createdAt' | 'updatedAt'
   > {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -41,11 +36,12 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public address!: string;
   public role!: 'customer' | 'admin' | 'supplier';
   public status!: 'pending' | 'approved' | 'rejected';
-  public companyName!: string | null;
-  public corporateName!: string | null;
-  public cnpj!: string | null;
+  public companyName!: string;
+  public corporateName!: string;
+  public cnpj!: string;
   public cnpjValidated!: boolean;
-  public industrySector!: string | null;
+  public industrySector!: string;
+  public companyType!: 'buyer' | 'supplier' | 'both';
   public averageRating?: number;
   public totalRatings?: number;
   public readonly createdAt!: Date;
@@ -107,17 +103,29 @@ User.init(
     },
     companyName: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [2, 255],
+      },
     },
     corporateName: {
       type: DataTypes.STRING(255),
-      allowNull: true,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        len: [2, 255],
+      },
       comment: 'Legal corporate name for business registration',
     },
     cnpj: {
       type: DataTypes.STRING(18),
-      allowNull: true,
+      allowNull: false,
       unique: true,
+      validate: {
+        notEmpty: true,
+        len: [14, 18],
+      },
     },
     cnpjValidated: {
       type: DataTypes.BOOLEAN,
@@ -126,8 +134,34 @@ User.init(
     },
     industrySector: {
       type: DataTypes.STRING(100),
-      allowNull: true,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        isIn: [
+          [
+            'machinery',
+            'raw_materials',
+            'components',
+            'electronics',
+            'textiles',
+            'chemicals',
+            'automotive',
+            'food_beverage',
+            'construction',
+            'pharmaceutical',
+            'other',
+          ],
+        ],
+      },
       comment: 'Industry sector (machinery, raw_materials, components, etc.)',
+    },
+    companyType: {
+      type: DataTypes.ENUM('buyer', 'supplier', 'both'),
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+      comment: 'Type of company in the B2B marketplace',
     },
   },
   {

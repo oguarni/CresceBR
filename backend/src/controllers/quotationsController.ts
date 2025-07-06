@@ -33,7 +33,7 @@ export const createQuotation = asyncHandler(async (req: AuthenticatedRequest, re
   }
 
   const { items }: CreateQuotationRequest = req.body;
-  const userId = req.user!.id;
+  const companyId = req.user!.id;
   const userRole = req.user!.role;
 
   // Only customers can create quotations
@@ -57,7 +57,7 @@ export const createQuotation = asyncHandler(async (req: AuthenticatedRequest, re
 
   // Create quotation
   const quotation = await Quotation.create({
-    userId,
+    companyId,
     status: 'pending',
     adminNotes: null,
   });
@@ -98,7 +98,7 @@ export const createQuotation = asyncHandler(async (req: AuthenticatedRequest, re
 
 export const getCustomerQuotations = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const userId = req.user!.id;
+    const companyId = req.user!.id;
     const userRole = req.user!.role;
 
     // Only customers can access their own quotations
@@ -110,7 +110,7 @@ export const getCustomerQuotations = asyncHandler(
     }
 
     const quotations = await Quotation.findAll({
-      where: { userId },
+      where: { companyId },
       include: [
         {
           model: QuotationItem,
@@ -135,7 +135,7 @@ export const getCustomerQuotations = asyncHandler(
 
 export const getQuotationById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
-  const userId = req.user!.id;
+  const companyId = req.user!.id;
   const userRole = req.user!.role;
 
   const quotation = await Quotation.findByPk(id, {
@@ -166,7 +166,7 @@ export const getQuotationById = asyncHandler(async (req: AuthenticatedRequest, r
   }
 
   // Customers can only access their own quotations, admins can access all
-  if (userRole === 'customer' && quotation.userId !== userId) {
+  if (userRole === 'customer' && quotation.companyId !== companyId) {
     return res.status(403).json({
       success: false,
       error: 'Access denied',
@@ -340,13 +340,13 @@ export const calculateQuote = asyncHandler(async (req: AuthenticatedRequest, res
 export const getQuotationCalculations = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const companyId = req.user!.id;
     const userRole = req.user!.role;
 
     try {
       const result = await QuoteService.getQuotationWithCalculations(parseInt(id));
 
-      if (userRole === 'customer' && result.quotation.userId !== userId) {
+      if (userRole === 'customer' && result.quotation.companyId !== companyId) {
         return res.status(403).json({
           success: false,
           error: 'Access denied',
