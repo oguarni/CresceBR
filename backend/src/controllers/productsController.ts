@@ -27,7 +27,19 @@ export const productValidation = [
 ];
 
 export const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { category, search, page = 1, limit = 10 } = req.query;
+  const {
+    category,
+    search,
+    page = 1,
+    limit = 10,
+    minPrice,
+    maxPrice,
+    minMoq,
+    maxMoq,
+    maxLeadTime,
+    availability,
+    specifications,
+  } = req.query;
 
   const offset = (Number(page) - 1) * Number(limit);
   const where: any = {};
@@ -52,7 +64,71 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
           [Op.like]: `%${search}%`,
         },
       },
+      {
+        category: {
+          [Op.like]: `%${search}%`,
+        },
+      },
     ];
+  }
+
+  // Price range filter
+  if (minPrice && typeof minPrice === 'string') {
+    where.price = {
+      ...where.price,
+      [Op.gte]: parseFloat(minPrice),
+    };
+  }
+  if (maxPrice && typeof maxPrice === 'string') {
+    where.price = {
+      ...where.price,
+      [Op.lte]: parseFloat(maxPrice),
+    };
+  }
+
+  // MOQ range filter
+  if (minMoq && typeof minMoq === 'string') {
+    where.minimumOrderQuantity = {
+      ...where.minimumOrderQuantity,
+      [Op.gte]: parseInt(minMoq),
+    };
+  }
+  if (maxMoq && typeof maxMoq === 'string') {
+    where.minimumOrderQuantity = {
+      ...where.minimumOrderQuantity,
+      [Op.lte]: parseInt(maxMoq),
+    };
+  }
+
+  // Lead time filter
+  if (maxLeadTime && typeof maxLeadTime === 'string') {
+    where.leadTime = {
+      [Op.lte]: parseInt(maxLeadTime),
+    };
+  }
+
+  // Availability filter
+  if (availability) {
+    const availabilityArray = Array.isArray(availability) ? availability : [availability];
+    where.availability = {
+      [Op.in]: availabilityArray,
+    };
+  }
+
+  // Technical specifications filter
+  if (specifications && typeof specifications === 'string') {
+    try {
+      const specsFilter = JSON.parse(specifications);
+      const specConditions = Object.entries(specsFilter).map(([key, value]) => ({
+        [`specifications.${key}`]: value,
+      }));
+
+      if (specConditions.length > 0) {
+        where[Op.and] = specConditions;
+      }
+    } catch (error) {
+      console.error('Error parsing specifications filter:', error);
+    }
   }
 
   const { count, rows: products } = await Product.findAndCountAll({
@@ -201,5 +277,37 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
   res.status(200).json({
     success: true,
     data: categoryList,
+  });
+});
+
+export const getAvailableSpecifications = asyncHandler(async (req: Request, res: Response) => {
+  const products = await Product.findAll({
+    attributes: ['specifications'],
+  });
+
+  const allSpecs: Record<string, Set<string>> = {};
+
+  products.forEach(product => {
+    if (product.specifications && typeof product.specifications === 'object') {
+      Object.entries(product.specifications).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          if (!allSpecs[key]) {
+            allSpecs[key] = new Set();
+          }
+          allSpecs[key].add(String(value));
+        }
+      });
+    }
+  });
+
+  // Convert Sets to arrays for JSON serialization
+  const specsWithArrays: Record<string, string[]> = {};
+  Object.entries(allSpecs).forEach(([key, valueSet]) => {
+    specsWithArrays[key] = Array.from(valueSet).sort();
+  });
+
+  res.status(200).json({
+    success: true,
+    data: specsWithArrays,
   });
 });

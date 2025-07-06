@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { User, AuthResponse } from '@shared/types';
+import { User, AuthResponse, RegisterRequest } from '@shared/types';
 import { authService } from '../services/authService';
 import { apiService } from '../services/api';
 
@@ -21,17 +21,7 @@ type AuthAction =
 interface AuthContextType extends AuthState {
   login: (cnpj: string, password: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
-  register: (
-    email: string,
-    password: string,
-    cpf: string,
-    address: string,
-    companyName: string,
-    corporateName: string,
-    cnpj: string,
-    industrySector: string,
-    companyType: 'buyer' | 'supplier' | 'both'
-  ) => Promise<void>;
+  register: (registerData: RegisterRequest) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
 }
@@ -177,30 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (
-    email: string,
-    password: string,
-    cpf: string,
-    address: string,
-    companyName: string,
-    corporateName: string,
-    cnpj: string,
-    industrySector: string,
-    companyType: 'buyer' | 'supplier' | 'both'
-  ): Promise<void> => {
+  const register = async (registerData: RegisterRequest): Promise<void> => {
     dispatch({ type: 'AUTH_START' });
     try {
-      const response = await authService.register(
-        email,
-        password,
-        cpf,
-        address,
-        companyName,
-        corporateName,
-        cnpj,
-        industrySector,
-        companyType
-      );
+      const response = await authService.register(registerData);
       localStorage.setItem('crescebr_token', response.token);
 
       // Set token in axios headers

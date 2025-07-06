@@ -12,6 +12,7 @@ import {
   Box,
   useMediaQuery,
   useTheme,
+  Divider,
 } from '@mui/material';
 import {
   ShoppingCart,
@@ -21,10 +22,20 @@ import {
   Assignment,
   Compare,
   Receipt,
+  Verified,
+  Analytics,
+  Settings,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useQuotationRequest } from '../contexts/QuotationContext';
+import { usePermissions } from './ProtectedRoute';
+import PermissionGuard, {
+  AdminOnly,
+  SupplierOnly,
+  CustomerOnly,
+  ApprovedSupplierOnly,
+} from './PermissionGuard';
 import toast from 'react-hot-toast';
 
 const Navbar: React.FC = () => {
@@ -32,6 +43,7 @@ const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const { totalItems, toggleCart } = useCart();
   const { totalItems: quotationItems } = useQuotationRequest();
+  const permissions = usePermissions();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -71,8 +83,15 @@ const Navbar: React.FC = () => {
     handleClose();
   };
 
-  const isCustomer = isAuthenticated && user?.role === 'customer';
-  const isAdmin = isAuthenticated && user?.role === 'admin';
+  const handleAnalytics = () => {
+    navigate('/admin/analytics');
+    handleClose();
+  };
+
+  const handleSupplierDashboard = () => {
+    navigate('/supplier/dashboard');
+    handleClose();
+  };
 
   return (
     <AppBar position='sticky' elevation={1}>
@@ -92,8 +111,8 @@ const Navbar: React.FC = () => {
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Cart or Quotation Request Button */}
-          {isCustomer || !isAuthenticated ? (
+          {/* Dynamic Action Buttons Based on Permissions */}
+          <CustomerOnly>
             <IconButton
               color='inherit'
               onClick={() => navigate('/quotation-request')}
@@ -103,10 +122,24 @@ const Navbar: React.FC = () => {
                 <RequestQuote />
               </Badge>
             </IconButton>
-          ) : (
+          </CustomerOnly>
+
+          <AdminOnly>
             <IconButton color='inherit' onClick={toggleCart} aria-label='shopping cart'>
               <Badge badgeContent={totalItems} color='secondary'>
                 <ShoppingCart />
+              </Badge>
+            </IconButton>
+          </AdminOnly>
+
+          {!isAuthenticated && (
+            <IconButton
+              color='inherit'
+              onClick={() => navigate('/quotation-request')}
+              aria-label='quotation request'
+            >
+              <Badge badgeContent={quotationItems} color='secondary'>
+                <RequestQuote />
               </Badge>
             </IconButton>
           )}
@@ -140,32 +173,96 @@ const Navbar: React.FC = () => {
                 onClose={handleClose}
               >
                 <MenuItem disabled>
-                  <Typography variant='body2' color='text.secondary'>
-                    {user?.email}
-                  </Typography>
+                  <Box>
+                    <Typography variant='body2' color='text.secondary'>
+                      {user?.email}
+                    </Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                      {user?.role === 'admin' && 'Administrador'}
+                      {user?.role === 'supplier' &&
+                        `Fornecedor ${user?.status === 'approved' ? '(Aprovado)' : '(Pendente)'}`}
+                      {user?.role === 'customer' && 'Cliente'}
+                    </Typography>
+                  </Box>
                 </MenuItem>
-                {isCustomer && (
-                  <>
-                    <MenuItem onClick={handleMyQuotations}>
-                      <Assignment sx={{ mr: 1 }} />
-                      Minhas Cotações
-                    </MenuItem>
-                    <MenuItem onClick={handleMyOrders}>
+
+                <Divider />
+
+                {/* Customer Menu Items */}
+                <CustomerOnly>
+                  <MenuItem onClick={handleMyQuotations}>
+                    <Assignment sx={{ mr: 1 }} />
+                    Minhas Cotações
+                  </MenuItem>
+                  <MenuItem onClick={handleMyOrders}>
+                    <Receipt sx={{ mr: 1 }} />
+                    Meus Pedidos
+                  </MenuItem>
+                  <MenuItem onClick={handleQuoteComparison}>
+                    <Compare sx={{ mr: 1 }} />
+                    Comparar Preços
+                  </MenuItem>
+                </CustomerOnly>
+
+                {/* Supplier Menu Items */}
+                <SupplierOnly>
+                  <MenuItem onClick={handleSupplierDashboard}>
+                    <Analytics sx={{ mr: 1 }} />
+                    Dashboard Fornecedor
+                  </MenuItem>
+                  <ApprovedSupplierOnly>
+                    <MenuItem
+                      onClick={() => {
+                        navigate('/supplier/products');
+                        handleClose();
+                      }}
+                    >
                       <Receipt sx={{ mr: 1 }} />
-                      Meus Pedidos
+                      Meus Produtos
                     </MenuItem>
-                    <MenuItem onClick={handleQuoteComparison}>
-                      <Compare sx={{ mr: 1 }} />
-                      Comparar Preços
+                    <MenuItem
+                      onClick={() => {
+                        navigate('/supplier/orders');
+                        handleClose();
+                      }}
+                    >
+                      <Assignment sx={{ mr: 1 }} />
+                      Pedidos Recebidos
                     </MenuItem>
-                  </>
-                )}
-                {isAdmin && (
+                  </ApprovedSupplierOnly>
+                </SupplierOnly>
+
+                {/* Admin Menu Items */}
+                <AdminOnly>
                   <MenuItem onClick={handleAdminPanel}>
                     <AdminPanelSettings sx={{ mr: 1 }} />
                     Painel Admin
                   </MenuItem>
-                )}
+                  <MenuItem onClick={handleAnalytics}>
+                    <Analytics sx={{ mr: 1 }} />
+                    Analytics
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      navigate('/admin/company-verification');
+                      handleClose();
+                    }}
+                  >
+                    <Verified sx={{ mr: 1 }} />
+                    Verificação de Empresas
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      navigate('/admin/settings');
+                      handleClose();
+                    }}
+                  >
+                    <Settings sx={{ mr: 1 }} />
+                    Configurações
+                  </MenuItem>
+                </AdminOnly>
+
+                <Divider />
                 <MenuItem onClick={handleLogout}>Sair</MenuItem>
               </Menu>
             </>

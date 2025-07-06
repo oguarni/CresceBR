@@ -54,6 +54,55 @@ interface CompareSupplierQuotesResponse {
   shippingMethod: string;
 }
 
+interface CalculateQuoteRequest {
+  items: {
+    productId: number;
+    quantity: number;
+  }[];
+  buyerLocation?: string;
+  supplierLocation?: string;
+  shippingMethod?: 'standard' | 'express' | 'economy';
+}
+
+interface QuoteCalculationResult {
+  productId: number;
+  basePrice: number;
+  quantity: number;
+  tierDiscount: number;
+  unitPriceAfterDiscount: number;
+  subtotal: number;
+  shippingCost: number;
+  tax: number;
+  total: number;
+  savings: number;
+  appliedTier: {
+    minQuantity: number;
+    maxQuantity: number | null;
+    discount: number;
+  } | null;
+}
+
+interface QuoteComparisonResult {
+  items: QuoteCalculationResult[];
+  totalSubtotal: number;
+  totalShipping: number;
+  totalTax: number;
+  grandTotal: number;
+  totalSavings: number;
+}
+
+interface CalculateQuoteResponse {
+  calculations: QuoteComparisonResult;
+  summary: {
+    totalItems: number;
+    subtotal: string;
+    shipping: string;
+    tax: string;
+    total: string;
+    savings: string;
+  };
+}
+
 class QuotationsService {
   // Customer methods
   async createQuotation(quotationData: CreateQuotationRequest): Promise<Quotation> {
@@ -81,6 +130,31 @@ class QuotationsService {
 
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to fetch quotation');
+    }
+
+    return response.data;
+  }
+
+  async calculateQuote(
+    items: { productId: number; quantity: number }[],
+    options?: {
+      buyerLocation?: string;
+      supplierLocation?: string;
+      shippingMethod?: 'standard' | 'express' | 'economy';
+    }
+  ): Promise<CalculateQuoteResponse> {
+    const requestData: CalculateQuoteRequest = {
+      items,
+      ...options,
+    };
+
+    const response = await apiService.post<ApiResponse<CalculateQuoteResponse>>(
+      '/quotations/calculate',
+      requestData
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to calculate quote');
     }
 
     return response.data;
