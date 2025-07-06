@@ -11,6 +11,7 @@ import {
   validateSupplierCNPJ,
   getSupplierMetrics,
   getVerificationQueue,
+  getDashboardAnalytics,
 } from '../controllers/adminController';
 
 const router = Router();
@@ -18,10 +19,11 @@ const router = Router();
 // All admin routes require authentication and admin role
 router.use(authenticateJWT, isAdmin);
 
-// Example admin route
+// Dashboard and analytics
 router.get('/dashboard', (req, res) => {
   res.json({ success: true, message: 'Welcome to the admin dashboard' });
 });
+router.get('/analytics', getDashboardAnalytics);
 
 // Company verification and management
 router.get('/companies/pending', getAllPendingCompanies);

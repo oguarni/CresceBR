@@ -311,3 +311,134 @@ export const getAvailableSpecifications = asyncHandler(async (req: Request, res:
     data: specsWithArrays,
   });
 });
+
+export const importProductsFromCSV = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const multer = require('multer');
+    const path = require('path');
+    const { CSVImporter } = require('../utils/csvImporter');
+
+    // Configure multer for file upload
+    const storage = multer.diskStorage({
+      destination: (req: any, file: any, cb: any) => {
+        cb(null, 'uploads/');
+      },
+      filename: (req: any, file: any, cb: any) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      },
+    });
+
+    const upload = multer({
+      storage: storage,
+      fileFilter: (req: any, file: any, cb: any) => {
+        if (
+          file.mimetype === 'text/csv' ||
+          path.extname(file.originalname).toLowerCase() === '.csv'
+        ) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only CSV files are allowed'), false);
+        }
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+      },
+    }).single('csvFile');
+
+    upload(req, res, async (err: any) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          error: err.message || 'File upload failed',
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'No CSV file provided',
+        });
+      }
+
+      try {
+        const { skipErrors = true, batchSize = 100 } = req.body;
+        const supplierId = req.user?.id!;
+
+        const result = await CSVImporter.importProductsFromCSV(req.file.path, {
+          batchSize: parseInt(batchSize) || 100,
+          skipErrors: skipErrors !== 'false',
+          supplierId,
+        });
+
+        // Clean up uploaded file
+        const fs = require('fs');
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+
+        res.status(200).json({
+          success: result.success,
+          message: `Import completed. ${result.imported} products imported, ${result.failed} failed.`,
+          data: {
+            imported: result.imported,
+            failed: result.failed,
+            errors: result.errors.slice(0, 10), // Limit errors in response
+            totalErrors: result.errors.length,
+          },
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Import failed',
+        });
+      }
+    });
+  }
+);
+
+export const generateSampleCSV = asyncHandler(async (req: Request, res: Response) => {
+  const { CSVImporter } = require('../utils/csvImporter');
+  const path = require('path');
+
+  const sampleFilePath = path.join('uploads', `sample-products-${Date.now()}.csv`);
+
+  try {
+    CSVImporter.generateSampleCSV(sampleFilePath);
+
+    res.download(sampleFilePath, 'sample-products.csv', err => {
+      if (err) {
+        console.error('Error downloading file:', err);
+      }
+
+      // Clean up the file after download
+      const fs = require('fs');
+      if (fs.existsSync(sampleFilePath)) {
+        fs.unlinkSync(sampleFilePath);
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate sample CSV',
+    });
+  }
+});
+
+export const getImportStats = asyncHandler(async (req: Request, res: Response) => {
+  const { CSVImporter } = require('../utils/csvImporter');
+
+  try {
+    const stats = await CSVImporter.getImportStats();
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get import statistics',
+    });
+  }
+});

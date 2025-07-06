@@ -356,3 +356,173 @@ export const getVerificationQueue = asyncHandler(
     });
   }
 );
+
+export const getDashboardAnalytics = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { Op } = require('sequelize');
+
+    // Get time ranges for comparison
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisYear = new Date(now.getFullYear(), 0, 1);
+
+    // Company statistics
+    const totalCompanies = await User.count({ where: { role: 'supplier' } });
+    const pendingCompanies = await User.count({
+      where: { role: 'supplier', status: 'pending' },
+    });
+    const approvedCompanies = await User.count({
+      where: { role: 'supplier', status: 'approved' },
+    });
+    const unvalidatedCNPJ = await User.count({
+      where: {
+        role: 'supplier',
+        cnpjValidated: false,
+        cnpj: { [Op.ne]: null },
+      },
+    });
+
+    // Product statistics
+    const totalProducts = await Product.count();
+    const productsByCategory = await Product.findAll({
+      attributes: [
+        'category',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
+      ],
+      group: ['category'],
+      raw: true,
+    });
+
+    // Order statistics
+    const totalOrders = await Order.count();
+    const thisMonthOrders = await Order.count({
+      where: {
+        createdAt: { [Op.gte]: thisMonth },
+      },
+    });
+    const lastMonthOrders = await Order.count({
+      where: {
+        createdAt: {
+          [Op.gte]: lastMonth,
+          [Op.lt]: thisMonth,
+        },
+      },
+    });
+
+    // Revenue statistics
+    const allOrders = await Order.findAll({
+      attributes: ['totalAmount', 'createdAt', 'status'],
+    });
+
+    const totalRevenue = allOrders.reduce(
+      (sum, order) => sum + parseFloat(order.totalAmount.toString()),
+      0
+    );
+
+    const thisMonthRevenue = allOrders
+      .filter(order => new Date(order.createdAt) >= thisMonth)
+      .reduce((sum, order) => sum + parseFloat(order.totalAmount.toString()), 0);
+
+    const lastMonthRevenue = allOrders
+      .filter(
+        order => new Date(order.createdAt) >= lastMonth && new Date(order.createdAt) < thisMonth
+      )
+      .reduce((sum, order) => sum + parseFloat(order.totalAmount.toString()), 0);
+
+    // Order status distribution
+    const ordersByStatus = allOrders.reduce((acc: any, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Quotation statistics
+    const totalQuotations = await Quotation.count();
+    const quotationsByStatus = await Quotation.findAll({
+      attributes: [
+        'status',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
+      ],
+      group: ['status'],
+      raw: true,
+    });
+
+    // Recent activity summary
+    const recentOrders = await Order.count({
+      where: {
+        createdAt: { [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    const recentCompanyRegistrations = await User.count({
+      where: {
+        role: 'supplier',
+        createdAt: { [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    // Calculate growth rates
+    const orderGrowthRate =
+      lastMonthOrders > 0
+        ? ((thisMonthOrders - lastMonthOrders) / lastMonthOrders) * 100
+        : thisMonthOrders > 0
+          ? 100
+          : 0;
+
+    const revenueGrowthRate =
+      lastMonthRevenue > 0
+        ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+        : thisMonthRevenue > 0
+          ? 100
+          : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        summary: {
+          companies: {
+            total: totalCompanies,
+            pending: pendingCompanies,
+            approved: approvedCompanies,
+            unvalidatedCNPJ,
+            approvalRate:
+              totalCompanies > 0 ? ((approvedCompanies / totalCompanies) * 100).toFixed(1) : '0',
+          },
+          products: {
+            total: totalProducts,
+            byCategory: productsByCategory,
+          },
+          orders: {
+            total: totalOrders,
+            thisMonth: thisMonthOrders,
+            lastMonth: lastMonthOrders,
+            growthRate: orderGrowthRate.toFixed(1),
+            byStatus: ordersByStatus,
+            recentWeek: recentOrders,
+          },
+          revenue: {
+            total: totalRevenue,
+            thisMonth: thisMonthRevenue,
+            lastMonth: lastMonthRevenue,
+            growthRate: revenueGrowthRate.toFixed(1),
+            formatted: {
+              total: `R$ ${totalRevenue.toFixed(2)}`,
+              thisMonth: `R$ ${thisMonthRevenue.toFixed(2)}`,
+              lastMonth: `R$ ${lastMonthRevenue.toFixed(2)}`,
+            },
+          },
+          quotations: {
+            total: totalQuotations,
+            byStatus: quotationsByStatus,
+          },
+          activity: {
+            recentOrders,
+            recentCompanyRegistrations,
+            verificationQueueSize: pendingCompanies,
+            urgentTasks: pendingCompanies + unvalidatedCNPJ,
+          },
+        },
+      },
+    });
+  }
+);

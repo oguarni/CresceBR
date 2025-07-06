@@ -63,7 +63,7 @@ describe('Ratings Controller', () => {
       const mockSupplier = createMockUser({ id: 2, role: 'supplier' });
       const mockOrder = createMockOrder({
         id: 'order-123',
-        userId: 1,
+        companyId: 1,
         status: 'delivered',
       });
       const mockRating = {
@@ -112,7 +112,7 @@ describe('Ratings Controller', () => {
       const mockSupplier = createMockUser({ id: 2, role: 'supplier' });
       const mockOrder = createMockOrder({
         id: 'order-123',
-        userId: 1,
+        companyId: 1,
         status: 'delivered',
       });
 
@@ -177,7 +177,7 @@ describe('Ratings Controller', () => {
       const mockSupplier = createMockUser({ id: 2, role: 'supplier' });
       const mockOrder = createMockOrder({
         id: 'order-123',
-        userId: 1,
+        companyId: 1,
         status: 'delivered',
       });
       const existingRating = { id: 1, orderId: 'order-123', buyerId: 1 };

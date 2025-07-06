@@ -279,6 +279,13 @@ describe('JWT Utilities', () => {
           id: testCase.id,
           email: `${testCase.role}@example.com`,
           role: testCase.role,
+          cnpj: `1234567800019${testCase.id}`,
+          companyType:
+            testCase.role === 'admin'
+              ? 'both'
+              : testCase.role === 'supplier'
+                ? 'supplier'
+                : 'buyer',
         };
 
         mockJwt.verify.mockReturnValue(payload as any);
@@ -415,6 +422,8 @@ describe('JWT Utilities', () => {
         id: 1,
         email: 'integration@example.com',
         role: 'customer',
+        cnpj: '12345678000196',
+        companyType: 'buyer',
       };
       const mockToken = 'mock-integration-token';
 
@@ -437,6 +446,8 @@ describe('JWT Utilities', () => {
         id: 2,
         email: 'headertest@example.com',
         role: 'admin',
+        cnpj: '12.345.678/0001-92',
+        companyType: 'both',
       };
       const mockToken = 'header-test-token';
       const authHeader = `Bearer ${mockToken}`;
@@ -459,6 +470,8 @@ describe('JWT Utilities', () => {
         id: 42,
         email: 'e2e@example.com',
         role: 'supplier',
+        cnpj: '42.000.000/0001-42',
+        companyType: 'supplier',
       };
       const mockToken = 'e2e-flow-token';
       const authHeader = `Bearer ${mockToken}`;

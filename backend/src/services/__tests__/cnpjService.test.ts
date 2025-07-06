@@ -87,23 +87,18 @@ describe('CNPJService', () => {
       const validCNPJ = '11.222.333/0001-81';
       const mockResponse = {
         data: {
-          status: 200,
           razao_social: 'Test Company Ltd',
-          natureza_juridica: {
-            descricao: 'Sociedade Limitada',
-          },
-          estabelecimento: {
-            nome_fantasia: 'Test Company',
-            logradouro: 'Test Street',
-            numero: '123',
-            bairro: 'Test District',
-            cidade: { nome: 'Test City' },
-            estado: { nome: 'Test State' },
-            cep: '12345-678',
-            telefone1: '11999999999',
-            email: 'test@example.com',
-            situacao_cadastral: 'ATIVA',
-          },
+          nome_fantasia: 'Test Company',
+          logradouro: 'Test Street',
+          numero: '123',
+          bairro: 'Test District',
+          municipio: 'Test City',
+          uf: 'Test State',
+          cep: '12345-678',
+          ddd_telefone_1: '11999999999',
+          email: 'test@example.com',
+          descricao_natureza_juridica: 'Sociedade Limitada',
+          descricao_situacao_cadastral: 'ATIVA',
         },
       };
 
@@ -231,20 +226,17 @@ describe('CNPJService', () => {
       const validCNPJ = '11.222.333/0001-81';
       const mockResponse = {
         data: {
-          status: 200,
           razao_social: 'Test Company',
-          estabelecimento: {
-            nome_fantasia: 'Test Company',
-            logradouro: 'Test Street',
-            numero: '123',
-            bairro: 'Test District',
-            cidade: { nome: 'Test City' },
-            estado: { nome: 'Test State' },
-            cep: '12345-678',
-            telefone1: '11999999999',
-            email: 'test@example.com',
-            situacao_cadastral: 'ATIVA',
-          },
+          nome_fantasia: 'Test Company',
+          logradouro: 'Test Street',
+          numero: '123',
+          bairro: 'Test District',
+          municipio: 'Test City',
+          uf: 'Test State',
+          cep: '12345-678',
+          ddd_telefone_1: '11999999999',
+          email: 'test@example.com',
+          descricao_situacao_cadastral: 'ATIVA',
         },
       };
 
@@ -252,12 +244,15 @@ describe('CNPJService', () => {
 
       await CNPJService.validateCNPJWithAPI(validCNPJ);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith('https://publica.cnpj.ws/cnpj/11222333000181', {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'CresceBR-B2B-Marketplace/1.0',
-        },
-      });
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://brasilapi.com.br/api/cnpj/v1/11222333000181',
+        {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'CresceBR-B2B-Marketplace/1.0',
+          },
+        }
+      );
     });
   });
 
@@ -307,7 +302,9 @@ describe('CNPJService', () => {
       expect(result.companyName).toBe('New Company Name');
       expect(mockUser.update).toHaveBeenCalledWith({
         companyName: 'New Company Name',
+        corporateName: 'New Company Name',
         cnpj: '11.222.333/0001-81',
+        cnpjValidated: true,
       });
     });
 

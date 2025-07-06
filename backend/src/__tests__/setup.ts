@@ -58,7 +58,7 @@ global.createMockProduct = (overrides = {}) => ({
 
 global.createMockOrder = (overrides = {}) => ({
   id: 'order-123',
-  userId: 1,
+  companyId: 1,
   quotationId: 1,
   totalAmount: 100.0,
   status: 'pending',
@@ -69,7 +69,7 @@ global.createMockOrder = (overrides = {}) => ({
 
 global.createMockQuotation = (overrides = {}) => ({
   id: 1,
-  userId: 1,
+  companyId: 1,
   status: 'processed',
   totalAmount: 100.0,
   createdAt: new Date(),

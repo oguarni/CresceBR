@@ -408,11 +408,11 @@ describe('OrderStatusService', () => {
     it('should filter by user ID when provided', async () => {
       MockOrder.findAndCountAll.mockResolvedValue({ count: 0, rows: [] } as any);
 
-      await OrderStatusService.getOrdersByStatus('pending', { userId: 1 });
+      await OrderStatusService.getOrdersByStatus('pending', { companyId: 1 });
 
       expect(MockOrder.findAndCountAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: 'pending', userId: 1 },
+          where: { status: 'pending', companyId: 1 },
         })
       );
     });
