@@ -1,8 +1,9 @@
 import { Sequelize } from 'sequelize';
 
 // Mock database for tests
-export const mockSequelize = new Sequelize('sqlite::memory:', {
+export const mockSequelize = new Sequelize({
   dialect: 'sqlite',
+  storage: ':memory:',
   logging: false,
 });
 
