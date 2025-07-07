@@ -39,6 +39,9 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
     maxLeadTime,
     availability,
     specifications,
+    sortBy = 'createdAt',
+    sortOrder = 'DESC',
+    facets = false,
   } = req.query;
 
   const offset = (Number(page) - 1) * Number(limit);
@@ -51,8 +54,13 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
     };
   }
 
-  // Search in name and description (case-insensitive for SQLite)
+  // Enhanced search with relevance scoring (case-insensitive for SQLite)
   if (search && typeof search === 'string') {
+    const searchTerms = search
+      .toLowerCase()
+      .split(' ')
+      .filter(term => term.length > 0);
+
     where[Op.or] = [
       {
         name: {
@@ -69,7 +77,31 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
           [Op.like]: `%${search}%`,
         },
       },
+      // Add specifications search
+      {
+        specifications: {
+          [Op.like]: `%${search}%`,
+        },
+      },
     ];
+
+    // For multiple search terms, create additional OR conditions
+    if (searchTerms.length > 1) {
+      searchTerms.forEach(term => {
+        where[Op.or].push(
+          {
+            name: {
+              [Op.like]: `%${term}%`,
+            },
+          },
+          {
+            description: {
+              [Op.like]: `%${term}%`,
+            },
+          }
+        );
+      });
+    }
   }
 
   // Price range filter
@@ -115,28 +147,123 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
     };
   }
 
-  // Technical specifications filter
+  // Enhanced technical specifications filter
   if (specifications && typeof specifications === 'string') {
     try {
       const specsFilter = JSON.parse(specifications);
-      const specConditions = Object.entries(specsFilter).map(([key, value]) => ({
-        [`specifications.${key}`]: value,
-      }));
+      const specConditions: any[] = [];
+
+      Object.entries(specsFilter).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          // Handle array of values (OR condition)
+          const arrayConditions = value.map(val => ({
+            [`specifications.${key}`]: val,
+          }));
+          specConditions.push({
+            [Op.or]: arrayConditions,
+          });
+        } else if (typeof value === 'object' && value !== null) {
+          // Handle range queries (e.g., {min: 10, max: 50})
+          if ('min' in value || 'max' in value) {
+            const rangeCondition: any = {};
+            if ('min' in value) {
+              rangeCondition[Op.gte] = value.min;
+            }
+            if ('max' in value) {
+              rangeCondition[Op.lte] = value.max;
+            }
+            specConditions.push({
+              [`specifications.${key}`]: rangeCondition,
+            });
+          } else {
+            specConditions.push({
+              [`specifications.${key}`]: value,
+            });
+          }
+        } else {
+          // Handle simple key-value pairs
+          specConditions.push({
+            [`specifications.${key}`]: value,
+          });
+        }
+      });
 
       if (specConditions.length > 0) {
-        where[Op.and] = specConditions;
+        where[Op.and] = [...(where[Op.and] || []), ...specConditions];
       }
     } catch (error) {
       console.error('Error parsing specifications filter:', error);
     }
   }
 
+  // Enhanced sorting options
+  const validSortFields = [
+    'createdAt',
+    'name',
+    'price',
+    'category',
+    'minimumOrderQuantity',
+    'leadTime',
+  ];
+  const validSortOrders = ['ASC', 'DESC'];
+
+  const sortField = validSortFields.includes(sortBy as string) ? (sortBy as string) : 'createdAt';
+  const order = validSortOrders.includes(sortOrder as string) ? (sortOrder as string) : 'DESC';
+
   const { count, rows: products } = await Product.findAndCountAll({
     where,
     limit: Number(limit),
     offset,
-    order: [['createdAt', 'DESC']],
+    order: [[sortField, order]],
   });
+
+  // Generate facets if requested
+  let facetData = {};
+  if (facets === 'true') {
+    const [categoryFacets, availabilityFacets, priceRanges] = await Promise.all([
+      // Category facets
+      Product.findAll({
+        attributes: ['category', [Product.sequelize!.fn('COUNT', '*'), 'count']],
+        where,
+        group: ['category'],
+        order: [['category', 'ASC']],
+      }),
+      // Availability facets
+      Product.findAll({
+        attributes: ['availability', [Product.sequelize!.fn('COUNT', '*'), 'count']],
+        where,
+        group: ['availability'],
+        order: [['availability', 'ASC']],
+      }),
+      // Price range facets
+      Product.findAll({
+        attributes: [
+          [Product.sequelize!.fn('MIN', Product.sequelize!.col('price')), 'minPrice'],
+          [Product.sequelize!.fn('MAX', Product.sequelize!.col('price')), 'maxPrice'],
+          [Product.sequelize!.fn('AVG', Product.sequelize!.col('price')), 'avgPrice'],
+        ],
+        where,
+      }),
+    ]);
+
+    facetData = {
+      categories: categoryFacets.map((item: any) => ({
+        value: item.category,
+        count: parseInt(item.getDataValue('count')),
+      })),
+      availability: availabilityFacets.map((item: any) => ({
+        value: item.availability,
+        count: parseInt(item.getDataValue('count')),
+      })),
+      priceRange: priceRanges[0]
+        ? {
+            min: parseFloat(priceRanges[0].getDataValue('minPrice')) || 0,
+            max: parseFloat(priceRanges[0].getDataValue('maxPrice')) || 0,
+            avg: parseFloat(priceRanges[0].getDataValue('avgPrice')) || 0,
+          }
+        : null,
+    };
+  }
 
   res.status(200).json({
     success: true,
@@ -147,6 +274,20 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
         page: Number(page),
         limit: Number(limit),
         totalPages: Math.ceil(count / Number(limit)),
+      },
+      facets: facets === 'true' ? facetData : undefined,
+      searchMeta: {
+        sortBy: sortField,
+        sortOrder: order,
+        filters: {
+          category: category || null,
+          search: search || null,
+          priceRange: { min: minPrice || null, max: maxPrice || null },
+          moqRange: { min: minMoq || null, max: maxMoq || null },
+          maxLeadTime: maxLeadTime || null,
+          availability: availability || null,
+          hasSpecifications: !!specifications,
+        },
       },
     },
   });
