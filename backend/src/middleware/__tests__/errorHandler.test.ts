@@ -75,6 +75,9 @@ describe('Error Handler Middleware', () => {
           validatorKey: 'is_null',
           validatorName: null,
           validatorArgs: [],
+          isValidationErrorItemOrigin: () => true,
+          normalizeString: (str: string) => str,
+          getValidatorKey: () => 'is_null',
         },
         {
           message: 'Password must be at least 6 characters',
@@ -86,8 +89,11 @@ describe('Error Handler Middleware', () => {
           validatorKey: 'len',
           validatorName: null,
           validatorArgs: [6, 255],
+          isValidationErrorItemOrigin: () => true,
+          normalizeString: (str: string) => str,
+          getValidatorKey: () => 'len',
         },
-      ]);
+      ] as any);
 
       // Act
       errorHandler(validationError, mockRequest as Request, mockResponse as Response, mockNext);
@@ -435,8 +441,11 @@ describe('Error Handler Middleware', () => {
           validatorKey: 'test',
           validatorName: null,
           validatorArgs: [],
+          isValidationErrorItemOrigin: () => true,
+          normalizeString: (str: string) => str,
+          getValidatorKey: () => 'test',
         },
-      ]);
+      ] as any);
 
       const failingAsyncFunction = jest.fn().mockRejectedValue(error);
       const wrappedFunction = asyncHandler(failingAsyncFunction);

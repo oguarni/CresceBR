@@ -279,7 +279,9 @@ describe('Auth Middleware', () => {
       mockRequest.user = {
         id: 1,
         email: 'admin@example.com',
+        cnpj: '12345678901234',
         role: 'admin',
+        companyType: 'both',
       };
 
       // Act
@@ -312,7 +314,9 @@ describe('Auth Middleware', () => {
       mockRequest.user = {
         id: 2,
         email: 'customer@example.com',
+        cnpj: '23456789012345',
         role: 'customer',
+        companyType: 'buyer',
       };
 
       // Act
@@ -332,7 +336,9 @@ describe('Auth Middleware', () => {
       mockRequest.user = {
         id: 3,
         email: 'supplier@example.com',
+        cnpj: '34567890123456',
         role: 'supplier',
+        companyType: 'supplier',
       };
 
       // Act
@@ -369,7 +375,9 @@ describe('Auth Middleware', () => {
       mockRequest.user = {
         id: 1,
         email: 'supplier@example.com',
+        cnpj: '12345678901234',
         role: 'supplier',
+        companyType: 'supplier',
       };
 
       // Act
@@ -402,7 +410,9 @@ describe('Auth Middleware', () => {
       mockRequest.user = {
         id: 2,
         email: 'customer@example.com',
+        cnpj: '23456789012345',
         role: 'customer',
+        companyType: 'buyer',
       };
 
       // Act
@@ -422,7 +432,9 @@ describe('Auth Middleware', () => {
       mockRequest.user = {
         id: 3,
         email: 'admin@example.com',
+        cnpj: '34567890123456',
         role: 'admin',
+        companyType: 'both',
       };
 
       // Act
