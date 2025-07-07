@@ -5,6 +5,19 @@ interface CreateOrderFromQuotationRequest {
   quotationId: number;
 }
 
+interface CreateOrderRequest {
+  items: {
+    productId: number;
+    quantity: number;
+  }[];
+  shippingAddress: string;
+}
+
+interface ShippingCalculationResponse {
+  cost: number;
+  days: number;
+}
+
 interface UpdateOrderStatusRequest {
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   trackingNumber?: string;
@@ -44,6 +57,82 @@ class OrdersService {
     }
 
     return response.data;
+  }
+
+  // Create order directly (for cart checkout)
+  async createOrder(orderData: CreateOrderRequest): Promise<{ orderId: number; order: Order }> {
+    const response = await apiService.post<ApiResponse<{ orderId: number; order: Order }>>(
+      '/orders/direct',
+      orderData
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to create order');
+    }
+
+    return response.data;
+  }
+
+  // Calculate shipping cost
+  async calculateShipping(cep: string, totalValue: number): Promise<ShippingCalculationResponse> {
+    // Simulate shipping calculation based on CEP and order value
+    const cleanCep = cep.replace(/\D/g, '');
+
+    if (cleanCep.length !== 8) {
+      throw new Error('CEP inválido');
+    }
+
+    // Simulate different shipping costs based on CEP regions
+    const firstDigit = parseInt(cleanCep[0]);
+    let baseCost = 0;
+    let days = 0;
+
+    // Simple simulation based on Brazilian CEP regions
+    switch (firstDigit) {
+      case 0: // São Paulo (metropolitan area)
+      case 1:
+        baseCost = 15;
+        days = 2;
+        break;
+      case 2: // Rio de Janeiro and ES
+      case 3: // Minas Gerais
+        baseCost = 20;
+        days = 3;
+        break;
+      case 4: // Bahia and SE
+      case 5: // PE, PB, RN, AL
+        baseCost = 25;
+        days = 5;
+        break;
+      case 6: // CE, PI, MA
+      case 7: // DF, GO, TO
+        baseCost = 30;
+        days = 6;
+        break;
+      case 8: // PR, SC
+        baseCost = 18;
+        days = 4;
+        break;
+      case 9: // RS, RO, AC, AM, RR, AP, PA
+        baseCost = 35;
+        days = 7;
+        break;
+      default:
+        baseCost = 25;
+        days = 5;
+    }
+
+    // Apply free shipping for orders over R$ 500
+    if (totalValue >= 500) {
+      baseCost = 0;
+    } else if (totalValue >= 200) {
+      baseCost = baseCost * 0.5; // 50% discount for orders over R$ 200
+    }
+
+    return {
+      cost: Math.round(baseCost * 100) / 100, // Round to 2 decimal places
+      days,
+    };
   }
 
   // Get user's orders with pagination and filtering
@@ -212,3 +301,4 @@ class OrdersService {
 }
 
 export const ordersService = new OrdersService();
+export type { CreateOrderRequest, ShippingCalculationResponse };

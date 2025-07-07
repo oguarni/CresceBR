@@ -14,4 +14,11 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   verbose: true,
+
+  // Globally redirect database imports to our mock
+  moduleNameMapper: {
+    '^../config/database$': '<rootDir>/src/__tests__/mocks/sequelize.mock.ts',
+    '^../../config/database$': '<rootDir>/src/__tests__/mocks/sequelize.mock.ts',
+    '^../../../config/database$': '<rootDir>/src/__tests__/mocks/sequelize.mock.ts',
+  },
 };
