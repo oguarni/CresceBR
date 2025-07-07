@@ -20,6 +20,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../services/quotationsService', () => ({
   quotationsService: {
     createQuotation: vi.fn(),
+    calculateQuote: vi.fn(),
   },
 }));
 
@@ -45,10 +46,12 @@ const mockQuotationContext = {
 
 const mockAuthContext = {
   user: null,
-  token: null,
+  accessToken: null,
+  refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
   login: vi.fn(),
+  loginWithEmail: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
   fetchUser: vi.fn(),
@@ -112,6 +115,20 @@ describe('QuotationRequestPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNavigate.mockClear();
+
+    // Setup default mock for calculateQuote
+    vi.mocked(quotationsService.calculateQuote).mockResolvedValue({
+      success: true,
+      calculations: {
+        items: [
+          { productId: 1, quantity: 10, unitPrice: 1500, totalPrice: 15000 },
+          { productId: 2, quantity: 25, unitPrice: 25, totalPrice: 625 },
+        ],
+        totalAmount: 15625,
+        discounts: [],
+        fees: [],
+      },
+    });
   });
 
   describe('Empty State', () => {
@@ -173,8 +190,8 @@ describe('QuotationRequestPage', () => {
       expect(screen.getByText('Categoria: Safety Equipment')).toBeInTheDocument();
 
       // Check reference prices
-      expect(screen.getByText('Preço de referência: R$ 1.500,00')).toBeInTheDocument();
-      expect(screen.getByText('Preço de referência: R$ 25,00')).toBeInTheDocument();
+      expect(screen.getByText('Preço base: R$ 1.500,00')).toBeInTheDocument();
+      expect(screen.getByText('Preço base: R$ 25,00')).toBeInTheDocument();
     });
 
     it('should display quantities correctly', () => {
@@ -304,8 +321,15 @@ describe('QuotationRequestPage', () => {
       mockAuthContext.user = {
         id: 1,
         email: 'supplier@test.com',
+        cpf: '123.456.789-00',
+        address: 'Test Address',
         role: 'supplier',
         companyName: 'Test Supplier',
+        corporateName: 'Test Supplier LTDA',
+        cnpj: '12.345.678/0001-90',
+        cnpjValidated: true,
+        industrySector: 'technology',
+        companyType: 'supplier',
         status: 'approved',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -322,8 +346,15 @@ describe('QuotationRequestPage', () => {
       mockAuthContext.user = {
         id: 1,
         email: 'customer@test.com',
+        cpf: '987.654.321-00',
+        address: 'Customer Address',
         role: 'customer',
         companyName: 'Test Customer',
+        corporateName: 'Test Customer LTDA',
+        cnpj: '98.765.432/0001-11',
+        cnpjValidated: true,
+        industrySector: 'technology',
+        companyType: 'buyer',
         status: 'approved',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -353,8 +384,15 @@ describe('QuotationRequestPage', () => {
       mockAuthContext.user = {
         id: 1,
         email: 'customer@test.com',
+        cpf: '987.654.321-00',
+        address: 'Customer Address',
         role: 'customer',
         companyName: 'Test Customer',
+        corporateName: 'Test Customer LTDA',
+        cnpj: '98.765.432/0001-11',
+        cnpjValidated: true,
+        industrySector: 'technology',
+        companyType: 'buyer',
         status: 'approved',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -456,8 +494,15 @@ describe('QuotationRequestPage', () => {
       mockAuthContext.user = {
         id: 1,
         email: 'supplier@test.com',
+        cpf: '123.456.789-00',
+        address: 'Test Address',
         role: 'supplier',
         companyName: 'Test Supplier',
+        corporateName: 'Test Supplier LTDA',
+        cnpj: '12.345.678/0001-90',
+        cnpjValidated: true,
+        industrySector: 'technology',
+        companyType: 'supplier',
         status: 'approved',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -535,8 +580,8 @@ describe('QuotationRequestPage', () => {
       renderQuotationRequestPage();
 
       // Check that prices are formatted correctly
-      expect(screen.getByText('Preço de referência: R$ 1.500,00')).toBeInTheDocument();
-      expect(screen.getByText('Preço de referência: R$ 25,00')).toBeInTheDocument();
+      expect(screen.getByText('Preço base: R$ 1.500,00')).toBeInTheDocument();
+      expect(screen.getByText('Preço base: R$ 25,00')).toBeInTheDocument();
     });
 
     it('should show reference price disclaimer', () => {

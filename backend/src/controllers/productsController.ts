@@ -257,9 +257,9 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
       })),
       priceRange: priceRanges[0]
         ? {
-            min: parseFloat(priceRanges[0].getDataValue('minPrice')) || 0,
-            max: parseFloat(priceRanges[0].getDataValue('maxPrice')) || 0,
-            avg: parseFloat(priceRanges[0].getDataValue('avgPrice')) || 0,
+            min: parseFloat((priceRanges[0] as any).getDataValue('minPrice')) || 0,
+            max: parseFloat((priceRanges[0] as any).getDataValue('maxPrice')) || 0,
+            avg: parseFloat((priceRanges[0] as any).getDataValue('avgPrice')) || 0,
           }
         : null,
     };

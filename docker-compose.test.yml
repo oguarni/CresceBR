@@ -1,0 +1,7 @@
+version: '3.8'
+
+services:
+  backend:
+    command: ['sh', '-c', 'sleep infinity'] # Keep container running for tests
+    environment:
+      - NODE_ENV=test

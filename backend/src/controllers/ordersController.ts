@@ -54,8 +54,8 @@ export const createOrderFromQuotation = asyncHandler(
         include: [
           {
             model: User,
-            as: 'user',
-            attributes: ['id', 'email', 'role'],
+            as: 'company',
+            attributes: ['id', 'email', 'role', 'companyName', 'cnpj'],
           },
           {
             model: Quotation,

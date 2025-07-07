@@ -152,8 +152,8 @@ export const getQuotationById = asyncHandler(async (req: AuthenticatedRequest, r
       },
       {
         model: User,
-        as: 'user',
-        attributes: ['id', 'email', 'cpf', 'address', 'role'],
+        as: 'company',
+        attributes: ['id', 'email', 'role', 'companyName', 'cnpj', 'companyType'],
       },
     ],
   });
@@ -205,8 +205,8 @@ export const getAllQuotations = asyncHandler(async (req: AuthenticatedRequest, r
       },
       {
         model: User,
-        as: 'user',
-        attributes: ['id', 'email', 'cpf', 'address', 'role'],
+        as: 'company',
+        attributes: ['id', 'email', 'role', 'companyName', 'cnpj', 'companyType'],
       },
     ],
     order: [['createdAt', 'DESC']],
@@ -276,8 +276,8 @@ export const updateQuotation = asyncHandler(async (req: AuthenticatedRequest, re
       },
       {
         model: User,
-        as: 'user',
-        attributes: ['id', 'email', 'cpf', 'address', 'role'],
+        as: 'company',
+        attributes: ['id', 'email', 'role', 'companyName', 'cnpj', 'companyType'],
       },
     ],
   });
@@ -403,8 +403,8 @@ export const processQuotationWithCalculations = asyncHandler(
           },
           {
             model: User,
-            as: 'user',
-            attributes: ['id', 'email', 'cpf', 'address', 'role'],
+            as: 'company',
+            attributes: ['id', 'email', 'role', 'companyName', 'cnpj', 'companyType'],
           },
         ],
       });
