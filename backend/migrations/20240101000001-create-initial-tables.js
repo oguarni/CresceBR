@@ -1,185 +1,165 @@
 'use strict';
-
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     // Create Users table
-    await queryInterface.createTable('users', {
+    await queryInterface.createTable('Users', {
       id: {
-        type: Sequelize.INTEGER,
-        autoIncrement: true,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
         primaryKey: true,
+        allowNull: false,
       },
       email: {
-        type: Sequelize.STRING(255),
+        type: Sequelize.STRING,
         allowNull: false,
         unique: true,
       },
       password: {
-        type: Sequelize.STRING(255),
-        allowNull: false,
-      },
-      cpf: {
-        type: Sequelize.STRING(14),
-        allowNull: false,
-        unique: true,
-      },
-      address: {
-        type: Sequelize.TEXT,
+        type: Sequelize.STRING,
         allowNull: false,
       },
       role: {
-        type: Sequelize.ENUM('customer', 'admin'),
+        type: Sequelize.ENUM('admin', 'supplier'),
         allowNull: false,
-        defaultValue: 'customer',
       },
       createdAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
       updatedAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
     });
 
     // Create Products table
-    await queryInterface.createTable('products', {
+    await queryInterface.createTable('Products', {
       id: {
-        type: Sequelize.INTEGER,
-        autoIncrement: true,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
         primaryKey: true,
+        allowNull: false,
       },
       name: {
-        type: Sequelize.STRING(255),
+        type: Sequelize.STRING,
         allowNull: false,
       },
       description: {
         type: Sequelize.TEXT,
-        allowNull: false,
       },
       price: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
       },
-      imageUrl: {
-        type: Sequelize.STRING(500),
+      stock: {
+        type: Sequelize.INTEGER,
         allowNull: false,
       },
-      category: {
-        type: Sequelize.STRING(100),
-        allowNull: false,
+      companyId: {
+        type: Sequelize.UUID,
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
       },
       createdAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
       updatedAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
     });
-
     // Create Quotations table
-    await queryInterface.createTable('quotations', {
+    
+    await queryInterface.createTable('Quotations', {
       id: {
-        type: Sequelize.INTEGER,
-        autoIncrement: true,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
         primaryKey: true,
-      },
-      userId: {
-        type: Sequelize.INTEGER,
         allowNull: false,
+      },
+      status: {
+        type: Sequelize.ENUM('pending', 'responded', 'accepted', 'rejected', 'expired'),
+        defaultValue: 'pending',
+        allowNull: false,
+      },
+      companyId: {
+        type: Sequelize.UUID,
         references: {
-          model: 'users',
+          model: 'Users',
           key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      status: {
-        type: Sequelize.ENUM('pending', 'processed', 'completed', 'rejected'),
-        allowNull: false,
-        defaultValue: 'pending',
-      },
       adminNotes: {
         type: Sequelize.TEXT,
-        allowNull: true,
       },
       createdAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
       updatedAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
     });
 
     // Create Quotation Items table
-    await queryInterface.createTable('quotation_items', {
+    await queryInterface.createTable('QuotationItems', {
       id: {
-        type: Sequelize.INTEGER,
-        autoIncrement: true,
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
         primaryKey: true,
+        allowNull: false,
       },
-      quotationId: {
+      quantity: {
         type: Sequelize.INTEGER,
         allowNull: false,
+      },
+      unitPrice: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true, // Preço pode ser nulo até o vendedor responder
+      },
+      quotationId: {
+        type: Sequelize.UUID,
         references: {
-          model: 'quotations',
+          model: 'Quotations',
           key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
       productId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
+        type: Sequelize.UUID,
         references: {
-          model: 'products',
+          model: 'Products',
           key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      quantity: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-      },
       createdAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
       updatedAt: {
-        type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        type: Sequelize.DATE,
       },
     });
-
-    // Add indexes for better performance
-    await queryInterface.addIndex('users', ['email']);
-    await queryInterface.addIndex('users', ['cpf']);
-    await queryInterface.addIndex('products', ['category']);
-    await queryInterface.addIndex('quotations', ['userId']);
-    await queryInterface.addIndex('quotations', ['status']);
-    await queryInterface.addIndex('quotation_items', ['quotationId']);
-    await queryInterface.addIndex('quotation_items', ['productId']);
   },
 
   async down(queryInterface, Sequelize) {
     // Drop tables in reverse order due to foreign key constraints
-    await queryInterface.dropTable('quotation_items');
-    await queryInterface.dropTable('quotations');
-    await queryInterface.dropTable('products');
-    await queryInterface.dropTable('users');
-  }
+    await queryInterface.dropTable('QuotationItems');
+    await queryInterface.dropTable('Quotations');
+    await queryInterface.dropTable('Products');
+    await queryInterface.dropTable('Users');
+  },
 };
