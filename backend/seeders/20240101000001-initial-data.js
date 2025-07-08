@@ -1,79 +1,102 @@
 'use strict';
-
+const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Hash passwords
-    const adminPasswordHash = await bcrypt.hash('admin123', 10);
-    const customerPasswordHash = await bcrypt.hash('cliente123', 10);
+    const salt = await bcrypt.genSalt(10);
 
-    // Create admin and customer users
-    await queryInterface.bulkInsert('users', [
+    // --- Create User IDs ---
+    const adminId = uuidv4();
+    const supplierId = uuidv4();
+    const buyerId = uuidv4();
+
+    // --- Users (Companies) ---
+    await queryInterface.bulkInsert('Users', [
       {
+        id: adminId,
         email: 'admin@crescebr.com',
-        password: adminPasswordHash,
-        cpf: '123.456.789-00',
-        address: 'Rua Principal, 123, Cascavel, PR',
+        password: await bcrypt.hash('admin123', salt),
+        companyName: 'CresceBR Admin',
+        cnpj: '00000000000000', // CNPJ fictício para admin
         role: 'admin',
+        status: 'approved',
+        street: 'Rua da Administração',
+        number: '100',
+        complement: 'Sala 1',
+        neighborhood: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+        zipCode: '01000-000',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        email: 'cliente@teste.com',
-        password: customerPasswordHash,
-        cpf: '987.654.321-00',
-        address: 'Av. Brasil, 456, Foz do Iguaçu, PR',
-        role: 'customer',
+        id: supplierId,
+        email: 'supplier@agro.com',
+        password: await bcrypt.hash('supplier123', salt),
+        companyName: 'AgroTech Fornecedora',
+        cnpj: '11222333000144', // CNPJ válido para testes
+        role: 'supplier',
+        status: 'approved',
+        street: 'Avenida do Campo',
+        number: '500',
+        complement: '',
+        neighborhood: 'Zona Rural',
+        city: 'Ribeirão Preto',
+        state: 'SP',
+        zipCode: '14000-000',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ]);
+      {
+        id: buyerId,
+        email: 'buyer@construtora.com',
+        password: await bcrypt.hash('buyer123', salt),
+        companyName: 'Construtora Edifica',
+        cnpj: '44555666000177', // CNPJ válido para testes
+        role: 'buyer',
+        status: 'approved',
+        street: 'Rua das Obras',
+        number: '1234',
+        complement: 'Bloco A',
+        neighborhood: 'Bairro Industrial',
+        city: 'Belo Horizonte',
+        state: 'MG',
+        zipCode: '30000-000',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ], {});
 
-    // Create sample products
-    await queryInterface.bulkInsert('products', [
+    // --- Products ---
+    await queryInterface.bulkInsert('Products', [
       {
-        name: 'Equipamento Industrial XYZ',
-        description: 'Equipamento de alta qualidade para uso industrial com garantia de 2 anos.',
-        price: 15000.00,
-        imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158',
-        category: 'Equipamentos',
+        id: uuidv4(),
+        name: 'Semente de Soja Transgênica',
+        description: 'Saca de 20kg de semente de soja de alta produtividade, resistente a pragas.',
+        price: 250.00,
+        stock: 1000,
+        companyId: supplierId, // Associado à AgroTech
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        name: 'Ferramenta Profissional ABC',
-        description: 'Ferramenta durável e eficiente para trabalhos pesados.',
-        price: 2500.00,
-        imageUrl: 'https://images.unsplash.com/photo-1572981779307-38b8cabb2407',
-        category: 'Ferramentas',
+        id: uuidv4(),
+        name: 'Fertilizante NPK 10-10-10',
+        description: 'Fertilizante balanceado para diversas culturas. Embalagem de 50kg.',
+        price: 180.50,
+        stock: 500,
+        companyId: supplierId, // Associado à AgroTech
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      {
-        name: 'Material de Construção Premium',
-        description: 'Material de alta qualidade para construção civil.',
-        price: 850.00,
-        imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd',
-        category: 'Construção',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        name: 'Sistema de Automação',
-        description: 'Sistema completo de automação industrial com interface intuitiva.',
-        price: 45000.00,
-        imageUrl: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837',
-        category: 'Automação',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
+    ], {});
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('products', null, {});
-    await queryInterface.bulkDelete('users', null, {});
+    await queryInterface.bulkDelete('Products', null, {});
+    await queryInterface.bulkDelete('Users', null, {});
   }
 };

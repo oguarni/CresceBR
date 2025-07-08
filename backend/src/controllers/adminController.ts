@@ -118,8 +118,8 @@ export const getTransactionMonitoring = asyncHandler(
       include: [
         {
           model: User,
-          as: 'user',
-          attributes: ['id', 'email', 'companyName', 'role'],
+          as: 'company',
+          attributes: ['id', 'email', 'companyName', 'role', 'cnpj', 'companyType'],
         },
         {
           model: Quotation,

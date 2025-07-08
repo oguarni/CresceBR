@@ -1,11 +1,12 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { User, AuthResponse, RegisterRequest } from '@shared/types';
 import { authService } from '../services/authService';
 import { apiService } from '../services/api';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -27,17 +28,17 @@ interface AuthContextType extends AuthState {
 }
 
 const getInitialState = (): AuthState => {
-  const token = localStorage.getItem('crescebr_token');
+  const accessToken = localStorage.getItem('crescebr_access_token');
+  const refreshToken = localStorage.getItem('crescebr_refresh_token');
 
   return {
     user: null,
-    token,
+    accessToken,
+    refreshToken,
     isAuthenticated: false,
-    isLoading: !!token, // If token exists, we need to verify it
+    isLoading: !!accessToken, // If token exists, we need to verify it
   };
 };
-
-const initialState: AuthState = getInitialState();
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
@@ -50,7 +51,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: action.payload.user,
-        token: action.payload.token,
+        accessToken: action.payload.accessToken,
+        refreshToken: action.payload.refreshToken,
         isAuthenticated: true,
         isLoading: false,
       };
@@ -65,7 +67,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: null,
-        token: null,
+        accessToken: null,
+        refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
       };
@@ -73,7 +76,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: null,
-        token: null,
+        accessToken: null,
+        refreshToken: null,
         isAuthenticated: false,
         isLoading: false,
       };
@@ -90,59 +94,63 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(authReducer, undefined, getInitialState);
 
-  const fetchUser = async (): Promise<void> => {
+  const fetchUser = useCallback(async (): Promise<void> => {
     try {
-      const token = localStorage.getItem('crescebr_token');
-      if (!token) {
+      const accessToken = localStorage.getItem('crescebr_access_token');
+      if (!accessToken) {
         dispatch({ type: 'AUTH_FAILURE' });
         return;
       }
 
       // Set token in axios headers
-      apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
       const response = await apiService.get<{
         success: boolean;
         data: { user: User };
         error?: string;
-      }>('/auth/me');
+      }>('/auth/profile');
 
       if (response.success) {
         dispatch({ type: 'USER_LOADED', payload: response.data.user });
       } else {
         // Invalid token, clear it
-        localStorage.removeItem('crescebr_token');
+        localStorage.removeItem('crescebr_access_token');
+        localStorage.removeItem('crescebr_refresh_token');
         delete apiService.getRawApi().defaults.headers.common['Authorization'];
         dispatch({ type: 'AUTH_FAILURE' });
       }
     } catch (error: any) {
       console.error('Failed to fetch user:', error);
       // Token is invalid or expired, clear it
-      localStorage.removeItem('crescebr_token');
+      localStorage.removeItem('crescebr_access_token');
+      localStorage.removeItem('crescebr_refresh_token');
       delete apiService.getRawApi().defaults.headers.common['Authorization'];
       dispatch({ type: 'AUTH_FAILURE' });
     }
-  };
+  }, []);
 
   // Verify token and load user on app start
   useEffect(() => {
-    if (state.token && !state.isAuthenticated && state.isLoading) {
+    if (state.accessToken && !state.isAuthenticated && state.isLoading) {
       fetchUser();
-    } else if (!state.token) {
+    } else if (!state.accessToken) {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.token, state.isAuthenticated, state.isLoading]);
+  }, [state.accessToken, state.isAuthenticated, state.isLoading, fetchUser]);
 
   const login = async (cnpj: string, password: string): Promise<void> => {
     dispatch({ type: 'AUTH_START' });
     try {
       const response = await authService.login(cnpj, password);
-      localStorage.setItem('crescebr_token', response.token);
+      localStorage.setItem('crescebr_access_token', response.accessToken);
+      localStorage.setItem('crescebr_refresh_token', response.refreshToken);
 
       // Set token in axios headers
-      apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+      apiService.getRawApi().defaults.headers.common['Authorization'] =
+        `Bearer ${response.accessToken}`;
 
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
     } catch (error) {
@@ -155,10 +163,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'AUTH_START' });
     try {
       const response = await authService.loginWithEmail(email, password);
-      localStorage.setItem('crescebr_token', response.token);
+      localStorage.setItem('crescebr_access_token', response.accessToken);
+      localStorage.setItem('crescebr_refresh_token', response.refreshToken);
 
       // Set token in axios headers
-      apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+      apiService.getRawApi().defaults.headers.common['Authorization'] =
+        `Bearer ${response.accessToken}`;
 
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
     } catch (error) {
@@ -171,10 +181,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'AUTH_START' });
     try {
       const response = await authService.register(registerData);
-      localStorage.setItem('crescebr_token', response.token);
+      localStorage.setItem('crescebr_access_token', response.accessToken);
+      localStorage.setItem('crescebr_refresh_token', response.refreshToken);
 
       // Set token in axios headers
-      apiService.getRawApi().defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+      apiService.getRawApi().defaults.headers.common['Authorization'] =
+        `Bearer ${response.accessToken}`;
 
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
     } catch (error) {
@@ -184,7 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = (): void => {
-    localStorage.removeItem('crescebr_token');
+    localStorage.removeItem('crescebr_access_token');
+    localStorage.removeItem('crescebr_refresh_token');
     delete apiService.getRawApi().defaults.headers.common['Authorization'];
     dispatch({ type: 'LOGOUT' });
   };

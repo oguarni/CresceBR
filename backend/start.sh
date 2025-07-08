@@ -1,67 +1,27 @@
-#!/bin/bash
+#!/bin/sh
+
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
-echo "🚀 Starting CresceBR Backend..."
+echo "Backend startup script initiated."
 
-# Wait for database to be ready
-echo "⏳ Waiting for database to be ready..."
-until nc -z db 5432; do
-  echo "Database is not ready yet, waiting..."
-  sleep 2
-done
-echo "✅ Database is ready!"
+# The wait-for-it.sh script is executed from docker-compose to ensure the database is ready.
+echo "Database is ready. Proceeding with migrations..."
 
-# Function to run migrations with retry
-run_migrations() {
-  local max_attempts=3
-  local attempt=1
-  
-  while [ $attempt -le $max_attempts ]; do
-    echo "📊 Running database migrations (attempt $attempt/$max_attempts)..."
-    
-    if npx sequelize-cli db:migrate; then
-      echo "✅ Migrations completed successfully"
-      return 0
-    else
-      echo "❌ Migration attempt $attempt failed"
-      if [ $attempt -eq $max_attempts ]; then
-        echo "💥 All migration attempts failed"
-        exit 1
-      fi
-      echo "⏳ Waiting 5 seconds before retry..."
-      sleep 5
-      attempt=$((attempt + 1))
-    fi
-  done
-}
+# Run database migrations
+npx sequelize-cli db:migrate
 
-# Function to run seeders with retry
-run_seeders() {
-  local max_attempts=3
-  local attempt=1
-  
-  while [ $attempt -le $max_attempts ]; do
-    echo "🌱 Running database seeders (attempt $attempt/$max_attempts)..."
-    
-    if npx sequelize-cli db:seed:all; then
-      echo "✅ Seeders completed successfully"
-      return 0
-    else
-      echo "❌ Seeder attempt $attempt failed"
-      if [ $attempt -eq $max_attempts ]; then
-        echo "⚠️  Seeders failed, but continuing startup..."
-        return 0
-      fi
-      echo "⏳ Waiting 3 seconds before retry..."
-      sleep 3
-      attempt=$((attempt + 1))
-    fi
-  done
-}
+echo "Migrations completed successfully."
 
-# Run migrations and seeders
-run_migrations
-run_seeders
+# Seed the database with initial data
+# This is crucial for the application to have default users, products, etc.
+echo "Seeding database..."
+npx sequelize-cli db:seed:all
 
-echo "🎯 Starting the application..."
-exec node dist/server.js
+echo "Database seeding completed successfully."
+
+# Start the server using the docker-specific command
+echo "Starting application server..."
+npm run start:docker
+
+echo "Server started."

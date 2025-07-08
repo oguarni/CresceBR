@@ -121,13 +121,11 @@ const SupplierOrdersPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await ordersService.getUserOrders();
-      if (response.success && response.data) {
-        // Filter to only show orders for products from this supplier
-        const supplierOrders = response.data.filter((order: Order) =>
-          order.items?.some(item => item.product?.supplierId === user?.id)
-        );
-        setOrders(supplierOrders);
-      }
+      // Filter to only show orders for products from this supplier
+      const supplierOrders = response.orders.filter((order: Order) =>
+        order.items?.some(item => item.product?.supplierId === user?.id)
+      );
+      setOrders(supplierOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
       toast.error('Error loading orders');
@@ -139,9 +137,7 @@ const SupplierOrdersPage: React.FC = () => {
   const loadOrderHistory = async (orderId: string) => {
     try {
       const response = await ordersService.getOrderHistory(orderId);
-      if (response.success && response.data) {
-        setOrderHistory(response.data);
-      }
+      setOrderHistory(response.timeline);
     } catch (error) {
       console.error('Error loading order history:', error);
     }
@@ -162,25 +158,20 @@ const SupplierOrdersPage: React.FC = () => {
 
       const response = await ordersService.updateOrderStatus(
         statusUpdateDialog.order.id,
-        statusUpdateDialog.newStatus,
-        statusUpdateDialog.notes
+        updateData
       );
 
-      if (response.success) {
-        toast.success('Order status updated successfully');
-        setStatusUpdateDialog({
-          open: false,
-          order: null,
-          newStatus: '',
-          trackingNumber: '',
-          notes: '',
-        });
-        loadOrders();
-        if (selectedOrder?.id === statusUpdateDialog.order.id) {
-          loadOrderHistory(statusUpdateDialog.order.id);
-        }
-      } else {
-        toast.error(response.error || 'Error updating order status');
+      toast.success('Order status updated successfully');
+      setStatusUpdateDialog({
+        open: false,
+        order: null,
+        newStatus: '',
+        trackingNumber: '',
+        notes: '',
+      });
+      loadOrders();
+      if (selectedOrder?.id === statusUpdateDialog.order.id) {
+        loadOrderHistory(statusUpdateDialog.order.id);
       }
     } catch (error) {
       toast.error('Error updating order status');

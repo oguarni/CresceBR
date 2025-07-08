@@ -17,10 +17,32 @@ import { QuoteService } from '../../services/quoteService';
 import Order from '../../models/Order';
 import Quotation from '../../models/Quotation';
 import User from '../../models/User';
+import {
+  createMockCompany,
+  createMockUser,
+  createMockOrder,
+  createMockQuotation,
+  createMockQuotationItem,
+} from '../../__tests__/setup';
 
 // Mock the services and models
-jest.mock('../../services/orderStatusService');
-jest.mock('../../services/quoteService');
+jest.mock('../../services/orderStatusService', () => ({
+  OrderStatusService: {
+    updateOrderStatus: jest.fn(),
+    getOrdersByStatus: jest.fn(),
+    getOrderHistory: jest.fn(),
+    getOrderStatusStats: jest.fn(),
+  },
+}));
+
+jest.mock('../../services/quoteService', () => ({
+  QuoteService: {
+    getQuotationWithCalculations: jest.fn(),
+    calculateQuote: jest.fn(),
+    createQuotation: jest.fn(),
+  },
+}));
+
 jest.mock('../../models/Order');
 jest.mock('../../models/Quotation');
 jest.mock('../../models/User');
@@ -36,6 +58,7 @@ jest.mock('../../middleware/errorHandler', () => ({
   ),
 }));
 
+// Type the mocked services and models
 const MockOrderStatusService = OrderStatusService as jest.Mocked<typeof OrderStatusService>;
 const MockQuoteService = QuoteService as jest.Mocked<typeof QuoteService>;
 const MockOrder = Order as jest.Mocked<typeof Order>;
@@ -65,9 +88,15 @@ describe('Orders Controller', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mock authentication middleware to pass
+    // Mock authentication middleware to pass with companyId
     (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-      req.user = { id: 1, role: 'buyer', email: 'buyer@test.com' };
+      req.user = {
+        id: 1,
+        role: 'customer',
+        email: 'buyer@test.com',
+        companyId: 1,
+        cnpj: '12.345.678/0001-90',
+      };
       next();
     });
   });
@@ -91,14 +120,14 @@ describe('Orders Controller', () => {
       });
 
       MockQuotation.findOne.mockResolvedValue(mockQuotation as any);
-      MockQuoteService.getQuotationWithCalculations.mockResolvedValue({
+      (MockQuoteService.getQuotationWithCalculations as jest.Mock).mockResolvedValue({
         quotation: mockQuotation as any,
         calculations: mockCalculations,
       });
       MockOrder.create.mockResolvedValue(mockOrder as any);
       MockOrder.findByPk.mockResolvedValue({
         ...mockOrder,
-        user: { id: 1, email: 'buyer@test.com', role: 'buyer' },
+        company: createMockCompany({ id: 1 }),
         quotation: mockQuotation,
       } as any);
 
@@ -165,7 +194,13 @@ describe('Orders Controller', () => {
     beforeEach(() => {
       // Mock as supplier for these tests
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 2, role: 'supplier', email: 'supplier@test.com' };
+        req.user = {
+          id: 2,
+          role: 'supplier',
+          email: 'supplier@test.com',
+          companyId: 2,
+          cnpj: '98.765.432/0001-10',
+        };
         next();
       });
     });
@@ -204,7 +239,13 @@ describe('Orders Controller', () => {
 
     it('should update order status successfully as admin', async () => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'admin', email: 'admin@test.com' };
+        req.user = {
+          id: 1,
+          role: 'admin',
+          email: 'admin@test.com',
+          companyId: 1,
+          cnpj: '00.000.000/0001-00',
+        };
         next();
       });
 
@@ -221,7 +262,13 @@ describe('Orders Controller', () => {
 
     it('should return 403 when user is not admin or supplier', async () => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 3, role: 'buyer', email: 'buyer@test.com' };
+        req.user = {
+          id: 3,
+          role: 'customer',
+          email: 'buyer@test.com',
+          companyId: 3,
+          cnpj: '11.111.111/0001-11',
+        };
         next();
       });
 
@@ -359,7 +406,13 @@ describe('Orders Controller', () => {
       };
 
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'customer', email: 'customer@test.com' };
+        req.user = {
+          id: 1,
+          role: 'customer',
+          email: 'customer@test.com',
+          companyId: 1,
+          cnpj: '12.345.678/0001-90',
+        };
         next();
       });
 
@@ -378,7 +431,13 @@ describe('Orders Controller', () => {
       };
 
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'admin', email: 'admin@test.com' };
+        req.user = {
+          id: 1,
+          role: 'admin',
+          email: 'admin@test.com',
+          companyId: 1,
+          cnpj: '00.000.000/0001-00',
+        };
         next();
       });
 
@@ -391,7 +450,13 @@ describe('Orders Controller', () => {
   describe('GET /api/admin/orders', () => {
     beforeEach(() => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'admin', email: 'admin@test.com' };
+        req.user = {
+          id: 1,
+          role: 'admin',
+          email: 'admin@test.com',
+          companyId: 1,
+          cnpj: '00.000.000/0001-00',
+        };
         next();
       });
     });
@@ -412,7 +477,13 @@ describe('Orders Controller', () => {
 
     it('should return 403 for non-admin', async () => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'buyer', email: 'buyer@test.com' };
+        req.user = {
+          id: 1,
+          role: 'customer',
+          email: 'buyer@test.com',
+          companyId: 1,
+          cnpj: '12.345.678/0001-90',
+        };
         next();
       });
 
@@ -448,7 +519,13 @@ describe('Orders Controller', () => {
   describe('GET /api/admin/orders/stats', () => {
     beforeEach(() => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'admin', email: 'admin@test.com' };
+        req.user = {
+          id: 1,
+          role: 'admin',
+          email: 'admin@test.com',
+          companyId: 1,
+          cnpj: '00.000.000/0001-00',
+        };
         next();
       });
     });
@@ -477,7 +554,13 @@ describe('Orders Controller', () => {
 
     it('should return 403 for non-admin', async () => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'supplier', email: 'supplier@test.com' };
+        req.user = {
+          id: 1,
+          role: 'supplier',
+          email: 'supplier@test.com',
+          companyId: 2,
+          cnpj: '98.765.432/0001-10',
+        };
         next();
       });
 
