@@ -1,3 +1,4 @@
+import { Op, fn, col } from 'sequelize';
 import Order from '../models/Order';
 import User from '../models/User';
 import Quotation from '../models/Quotation';
@@ -247,7 +248,7 @@ export class OrderStatusService {
 
     if (filters.startDate && filters.endDate) {
       whereClause.createdAt = {
-        [require('sequelize').Op.between]: [filters.startDate, filters.endDate],
+        [Op.between]: [filters.startDate, filters.endDate],
       };
     }
 
@@ -281,10 +282,7 @@ export class OrderStatusService {
     averageProcessingTime: number;
   }> {
     const statusCounts = await Order.findAll({
-      attributes: [
-        'status',
-        [require('sequelize').fn('COUNT', require('sequelize').col('status')), 'count'],
-      ],
+      attributes: ['status', [fn('COUNT', col('status')), 'count']],
       group: ['status'],
       raw: true,
     });
