@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { body, validationResult, query } from 'express-validator';
 import { Op } from 'sequelize';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import Product from '../models/Product';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { CSVImporter } from '../utils/csvImporter';
 
 export const productValidation = [
   body('name').notEmpty().withMessage('Product name is required'),
@@ -257,9 +261,9 @@ export const getAllProducts = asyncHandler(async (req: Request, res: Response) =
       })),
       priceRange: priceRanges[0]
         ? {
-            min: parseFloat(priceRanges[0].getDataValue('minPrice')) || 0,
-            max: parseFloat(priceRanges[0].getDataValue('maxPrice')) || 0,
-            avg: parseFloat(priceRanges[0].getDataValue('avgPrice')) || 0,
+            min: parseFloat((priceRanges[0] as any).getDataValue('minPrice')) || 0,
+            max: parseFloat((priceRanges[0] as any).getDataValue('maxPrice')) || 0,
+            avg: parseFloat((priceRanges[0] as any).getDataValue('avgPrice')) || 0,
           }
         : null,
     };
@@ -455,10 +459,6 @@ export const getAvailableSpecifications = asyncHandler(async (req: Request, res:
 
 export const importProductsFromCSV = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const multer = require('multer');
-    const path = require('path');
-    const { CSVImporter } = require('../utils/csvImporter');
-
     // Configure multer for file upload
     const storage = multer.diskStorage({
       destination: (req: any, file: any, cb: any) => {
@@ -513,7 +513,6 @@ export const importProductsFromCSV = asyncHandler(
         });
 
         // Clean up uploaded file
-        const fs = require('fs');
         if (fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
@@ -539,9 +538,6 @@ export const importProductsFromCSV = asyncHandler(
 );
 
 export const generateSampleCSV = asyncHandler(async (req: Request, res: Response) => {
-  const { CSVImporter } = require('../utils/csvImporter');
-  const path = require('path');
-
   const sampleFilePath = path.join('uploads', `sample-products-${Date.now()}.csv`);
 
   try {
@@ -553,7 +549,6 @@ export const generateSampleCSV = asyncHandler(async (req: Request, res: Response
       }
 
       // Clean up the file after download
-      const fs = require('fs');
       if (fs.existsSync(sampleFilePath)) {
         fs.unlinkSync(sampleFilePath);
       }
@@ -567,8 +562,6 @@ export const generateSampleCSV = asyncHandler(async (req: Request, res: Response
 });
 
 export const getImportStats = asyncHandler(async (req: Request, res: Response) => {
-  const { CSVImporter } = require('../utils/csvImporter');
-
   try {
     const stats = await CSVImporter.getImportStats();
 

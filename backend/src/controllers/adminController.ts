@@ -1,9 +1,12 @@
 import { Response } from 'express';
+import { Op, fn, col } from 'sequelize';
 import { AuthenticatedRequest } from '../middleware/auth';
 import User from '../models/User';
 import Product from '../models/Product';
 import Order from '../models/Order';
 import Quotation from '../models/Quotation';
+import QuotationItem from '../models/QuotationItem';
+import Rating from '../models/Rating';
 import { asyncHandler } from '../middleware/errorHandler';
 import { CNPJService } from '../services/cnpjService';
 
@@ -103,10 +106,7 @@ export const getTransactionMonitoring = asyncHandler(
     const whereClause: any = {};
     if (startDate && endDate) {
       whereClause.createdAt = {
-        [require('sequelize').Op.between]: [
-          new Date(startDate as string),
-          new Date(endDate as string),
-        ],
+        [Op.between]: [new Date(startDate as string), new Date(endDate as string)],
       };
     }
     if (status) {
@@ -246,7 +246,6 @@ export const getSupplierMetrics = asyncHandler(async (req: AuthenticatedRequest,
   });
 
   // Get orders related to this supplier's products
-  const { Op } = require('sequelize');
   const orders = await Order.findAll({
     include: [
       {
@@ -254,7 +253,7 @@ export const getSupplierMetrics = asyncHandler(async (req: AuthenticatedRequest,
         as: 'quotation',
         include: [
           {
-            model: require('../models/QuotationItem').default,
+            model: QuotationItem,
             as: 'items',
             include: [
               {
@@ -270,7 +269,6 @@ export const getSupplierMetrics = asyncHandler(async (req: AuthenticatedRequest,
   });
 
   // Get ratings for this supplier
-  const Rating = (await import('../models/Rating')).default;
   const ratings = await Rating.findAll({
     where: { supplierId: userId },
     attributes: ['score', 'comment', 'createdAt'],
@@ -334,7 +332,7 @@ export const getVerificationQueue = asyncHandler(
       whereClause.status = 'pending';
     } else if (filter === 'unvalidated_cnpj') {
       whereClause.cnpjValidated = false;
-      whereClause.cnpj = { [require('sequelize').Op.ne]: null };
+      whereClause.cnpj = { [Op.ne]: null };
     }
 
     const companies = await User.findAndCountAll({
@@ -359,8 +357,6 @@ export const getVerificationQueue = asyncHandler(
 
 export const getDashboardAnalytics = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const { Op } = require('sequelize');
-
     // Get time ranges for comparison
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -379,17 +375,14 @@ export const getDashboardAnalytics = asyncHandler(
       where: {
         role: 'supplier',
         cnpjValidated: false,
-        cnpj: { [Op.ne]: null },
+        cnpj: { [Op.ne]: null as any },
       },
     });
 
     // Product statistics
     const totalProducts = await Product.count();
     const productsByCategory = await Product.findAll({
-      attributes: [
-        'category',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
-      ],
+      attributes: ['category', [fn('COUNT', col('id')), 'count']],
       group: ['category'],
       raw: true,
     });
@@ -439,10 +432,7 @@ export const getDashboardAnalytics = asyncHandler(
     // Quotation statistics
     const totalQuotations = await Quotation.count();
     const quotationsByStatus = await Quotation.findAll({
-      attributes: [
-        'status',
-        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count'],
-      ],
+      attributes: ['status', [fn('COUNT', col('id')), 'count']],
       group: ['status'],
       raw: true,
     });

@@ -39,14 +39,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler - temporarily commented out
-// app.use('*', (req, res) => {
-//   res.status(404).json({
-//     success: false,
-//     error: 'Route not found',
-//   });
-// });
-
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
