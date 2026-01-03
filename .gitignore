@@ -1,4 +1,4 @@
-# Arquivo .gitignore otimizado para o projeto CresceBR
+# CresceBR Project .gitignore
 
 # Logs
 logs
@@ -9,7 +9,7 @@ yarn-error.log*
 lerna-debug.log*
 pnpm-debug.log*
 
-# Arquivos de ambiente
+# Environment files
 .env
 .env.local
 .env.development.local
@@ -17,15 +17,15 @@ pnpm-debug.log*
 .env.production.local
 .env.*.local
 
-# Dependências e Módulos
-# Ignore para todos os workspaces (raiz, backend, frontend, shared)
+# Dependencies and Modules
+# Ignore for all workspaces (root, backend, frontend, shared)
 **/node_modules
 node_modules/
 .pnp
 .pnp.js
 .yarn/install-state.gz
 
-# Saídas de Build e Compilação
+# Build and Compilation outputs
 **/dist
 **/build
 .next/
@@ -38,7 +38,7 @@ backend/dist/
 frontend/dist/
 shared/dist/
 
-# Arquivos de configuração de IDEs e Editores
+# IDE and Editor configuration files
 .idea/
 .vscode/*
 !.vscode/settings.json
@@ -47,12 +47,12 @@ shared/dist/
 !.vscode/extensions.json
 *.sublime-workspace
 
-# Arquivos de Sistema Operacional
+# Operating System files
 .DS_Store
 Thumbs.db
 ehthumbs.db
 
-# Cache de ferramentas
+# Tool caches
 .npm
 .eslintcache
 .prettiercache
@@ -71,18 +71,29 @@ uploads/
 *.test.db
 test.sqlite
 
-# Arquivos de Teste
+# Test coverage
 /coverage
 
-# Arquivos específicos do Next.js (se aplicável no futuro)
+# Next.js specific files (if applicable in the future)
 .next
 next-env.d.ts
 
-# Arquivos específicos de Docker
-# Se você tiver dados de volume que não devem ser commitados
+# Docker volume data (if not to be committed)
 # docker-data/
 
-# Arquivos de configuração local do Sequelize
-# Se você tiver um .sequelizerc que aponte para configs locais
+# Local Sequelize configuration files
 config/config.local.json
 
+# Git filter-repo backup files
+.git-rewrite/
+filter-repo/
+*.orig
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Package lock files (optional - uncomment if using yarn or pnpm exclusively)
+# package-lock.json
