@@ -251,6 +251,29 @@ export const requireAllPermissions = (permissions: Permission[]) => {
   };
 };
 
+// Simple role-based middleware for routes
+export const requireRole = (...allowedRoles: string[]) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+      return;
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      res.status(403).json({
+        success: false,
+        error: `Access denied. Required role: ${allowedRoles.join(' or ')}`,
+      });
+      return;
+    }
+
+    next();
+  };
+};
+
 // Helper function to check permissions in controllers
 export const checkPermission = async (userId: number, permission: Permission): Promise<boolean> => {
   try {
