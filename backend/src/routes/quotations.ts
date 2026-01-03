@@ -14,28 +14,31 @@ import {
   getMultipleSupplierQuotes,
   getMultipleSupplierQuotesValidation,
 } from '../controllers/quotationsController';
-import { authenticateJWT, isSupplier, isAdmin } from '../middleware/auth';
+import { authenticateJWT } from '../middleware/auth';
+import { requireRole } from '../middleware/rbac';
 
 const router = Router();
 
 // All quotation routes require authentication
 router.use(authenticateJWT);
 
-// Customer routes
-router.post('/', createQuotationValidation, createQuotation);
-router.get('/', getCustomerQuotations);
+// Customer routes - only customers can create and view their quotations
+router.post('/', requireRole('customer'), createQuotationValidation, createQuotation);
+router.get('/', requireRole('customer'), getCustomerQuotations);
+
+// Shared routes - customers can view their own, admins can view all
 router.get('/:id', getQuotationById);
 router.get('/:id/calculations', getQuotationCalculations);
 
-// Quote calculation routes
+// Quote calculation routes - available to all authenticated users
 router.post('/calculate', calculateQuoteValidation, calculateQuote);
 router.post('/compare-suppliers', getMultipleSupplierQuotesValidation, getMultipleSupplierQuotes);
 
-// Supplier routes
-router.put('/supplier/:id', updateQuotationValidation, isSupplier, updateQuotation);
+// Supplier routes - suppliers can update quotations
+router.put('/supplier/:id', requireRole('supplier'), updateQuotationValidation, updateQuotation);
 
-// Admin routes
-router.get('/admin/all', isAdmin, getAllQuotations);
-router.post('/admin/:id/process', isAdmin, processQuotationWithCalculations);
+// Admin routes - only admins can access admin endpoints
+router.get('/admin/all', requireRole('admin'), getAllQuotations);
+router.post('/admin/:id/process', requireRole('admin'), processQuotationWithCalculations);
 
 export default router;
