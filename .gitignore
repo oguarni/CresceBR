@@ -99,6 +99,10 @@ filter-repo/
 .claude/
 **/.claude/
 
+# Database files
+*.db
+*.sqlite
+
 # Database backups
 *.db.backup
 *.db.bak
