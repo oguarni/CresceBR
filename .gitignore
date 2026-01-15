@@ -95,5 +95,14 @@ filter-repo/
 *.swp
 *~
 
+# Claude Code configuration (local/personal settings)
+.claude/
+**/.claude/
+
+# Database backups
+*.db.backup
+*.db.bak
+*.sqlite.backup
+
 # Package lock files (optional - uncomment if using yarn or pnpm exclusively)
 # package-lock.json
