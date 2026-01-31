@@ -1,19 +1,18 @@
-import bcrypt from 'bcryptjs';
-import User from '../User';
-import sequelize from '../../config/database';
+// Mock sequelize config BEFORE imports
+jest.mock('../../config/database', () => {
+  const { Sequelize } = require('sequelize');
+  return {
+    __esModule: true,
+    default: new Sequelize('sqlite::memory:', { logging: false }),
+  };
+});
 
 // Mock bcryptjs
 jest.mock('bcryptjs');
-const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
-// Mock sequelize config
-jest.mock('../../config/database', () => ({
-  __esModule: true,
-  default: {
-    define: jest.fn(),
-    sync: jest.fn(),
-  },
-}));
+import bcrypt from 'bcryptjs';
+import User from '../User';
+const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 
 describe('User Model', () => {
   beforeEach(() => {

@@ -1,17 +1,16 @@
-// Mock the database connection
-jest.mock('../../config/database', () => ({
-    __esModule: true,
-    default: {
-        define: jest.fn(),
-        sync: jest.fn(),
-    },
-}));
-
-import OrderStatusHistory from '../OrderStatusHistory';
-import Order from '../Order';
+// Mock the database connection BEFORE imports
+jest.mock('../../config/database', () => {
+    const { Sequelize } = require('sequelize');
+    return {
+        __esModule: true,
+        default: new Sequelize('sqlite::memory:', { logging: false }),
+    };
+});
 
 // Mock related models
 jest.mock('../Order');
+
+import OrderStatusHistory from '../OrderStatusHistory';
 
 describe('OrderStatusHistory Model', () => {
     beforeEach(() => {
@@ -28,7 +27,6 @@ describe('OrderStatusHistory Model', () => {
                 'fromStatus',
                 'notes',
                 'changedBy',
-                'createdAt',
             ];
 
             // Act
@@ -38,6 +36,10 @@ describe('OrderStatusHistory Model', () => {
             expectedAttributes.forEach(attr => {
                 expect(statusHistory).toHaveProperty(attr);
             });
+
+            // createdAt is set by Sequelize on save, not on new instance
+            // But the model definition should include it
+            expect(OrderStatusHistory.rawAttributes).toHaveProperty('createdAt');
         });
 
         it('should have correct data types for model attributes', () => {
@@ -63,8 +65,8 @@ describe('OrderStatusHistory Model', () => {
             statusHistory.changedBy = 1;
             expect(typeof statusHistory.changedBy).toBe('number');
 
-            // createdAt is readonly in TS model but exists at runtime
-            expect(statusHistory).toHaveProperty('createdAt');
+            // createdAt is defined in the model schema
+            expect(OrderStatusHistory.rawAttributes).toHaveProperty('createdAt');
         });
 
         it('should allow null values for optional fields', () => {

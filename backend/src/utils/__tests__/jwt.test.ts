@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { generateToken, verifyToken, extractTokenFromHeader } from '../jwt';
+import { generateToken, verifyToken, extractTokenFromHeader, tokenManager } from '../jwt';
 import { AuthTokenPayload } from '../../types';
 
 // Unmock the module we are testing (mocked in setup.ts)
@@ -23,6 +23,8 @@ describe('JWT Utilities', () => {
   afterAll(() => {
     // Restore original environment variables
     process.env = originalEnv;
+    // Clean up TokenManager interval to prevent Jest from hanging
+    tokenManager.destroy();
   });
 
   describe('generateToken', () => {

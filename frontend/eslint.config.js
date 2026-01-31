@@ -50,6 +50,11 @@ export default [
         // React
         React: 'readonly',
         JSX: 'readonly',
+        // Node globals
+        process: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly',
+        global: 'readonly',
       },
     },
     plugins: {
@@ -117,6 +122,11 @@ export default [
         afterAll: 'readonly',
         afterEach: 'readonly',
         vi: 'readonly',
+        // Node globals
+        process: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly',
+        global: 'readonly',
       },
     },
     plugins: {

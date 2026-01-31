@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { AuthTokenPayload } from '../types';
 
 const getJwtSecret = () => process.env.JWT_SECRET || 'fallback-secret-key';
-const getRefreshTokenSecret = () => process.env.REFRESH_TOKEN_SECRET || 'fallback-refresh-secret-key';
+
 const getJwtExpiresIn = () => process.env.JWT_EXPIRES_IN || '15m';
 const getRefreshTokenExpiresIn = () => process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 

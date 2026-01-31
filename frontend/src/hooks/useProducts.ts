@@ -4,7 +4,7 @@ import { Product } from '@shared/types';
 
 interface UseProductsOptions {
   autoFetch?: boolean;
-  filters?: Record<string, any>;
+  filters?: Record<string, string | number | boolean>;
 }
 
 export const useProducts = (options: UseProductsOptions = { autoFetch: true }) => {
