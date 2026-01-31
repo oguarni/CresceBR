@@ -121,7 +121,7 @@ describe('Error Handler Middleware', () => {
           validatorName: null,
           validatorArgs: [],
         },
-      ]);
+      ] as any);
 
       // Act
       errorHandler(validationError, mockRequest as Request, mockResponse as Response, mockNext);

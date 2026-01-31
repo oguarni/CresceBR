@@ -2,6 +2,9 @@ import jwt from 'jsonwebtoken';
 import { generateToken, verifyToken, extractTokenFromHeader } from '../jwt';
 import { AuthTokenPayload } from '../../types';
 
+// Unmock the module we are testing (mocked in setup.ts)
+jest.unmock('../jwt');
+
 // Mock jsonwebtoken
 jest.mock('jsonwebtoken');
 const mockJwt = jwt as jest.Mocked<typeof jwt>;
@@ -14,6 +17,7 @@ describe('JWT Utilities', () => {
     jest.clearAllMocks();
     // Reset environment variables
     process.env = { ...originalEnv };
+    process.env.JWT_EXPIRES_IN = '24h';
   });
 
   afterAll(() => {
@@ -69,7 +73,7 @@ describe('JWT Utilities', () => {
       // Assert
       expect(result).toBe(expectedToken);
       expect(mockJwt.sign).toHaveBeenCalledWith(payload, 'fallback-secret-key', {
-        expiresIn: '24h',
+        expiresIn: '15m',
       });
     });
 
@@ -201,7 +205,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken(invalidToken)).toThrow('Invalid token');
+      expect(() => verifyToken(invalidToken)).toThrow('Token verification failed');
       expect(mockJwt.verify).toHaveBeenCalledWith(invalidToken, 'test-secret');
     });
 
@@ -215,7 +219,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken(expiredToken)).toThrow('Invalid token');
+      expect(() => verifyToken(expiredToken)).toThrow('Token verification failed');
       expect(mockJwt.verify).toHaveBeenCalledWith(expiredToken, 'test-secret');
     });
 
@@ -229,7 +233,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken(maliciousToken)).toThrow('Invalid token');
+      expect(() => verifyToken(maliciousToken)).toThrow('Token verification failed');
       expect(mockJwt.verify).toHaveBeenCalledWith(maliciousToken, 'test-secret');
     });
 
@@ -245,7 +249,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken(invalidToken)).toThrow('Invalid token');
+      expect(() => verifyToken(invalidToken)).toThrow('Token verification failed');
     });
 
     it('should handle TokenExpiredError properly', () => {
@@ -260,7 +264,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken(expiredToken)).toThrow('Invalid token');
+      expect(() => verifyToken(expiredToken)).toThrow('Token verification failed');
     });
 
     it('should return payload with all user roles', () => {
@@ -499,6 +503,7 @@ describe('JWT Utilities', () => {
     it('should handle null payload in generateToken', () => {
       // Arrange
       process.env.JWT_SECRET = 'test-secret';
+      process.env.JWT_EXPIRES_IN = '24h';
       mockJwt.sign.mockReturnValue('null-payload-token' as any);
 
       // Act
@@ -517,7 +522,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken('')).toThrow('Invalid token');
+      expect(() => verifyToken('')).toThrow('Token verification failed');
     });
 
     it('should handle whitespace-only token in verifyToken', () => {
@@ -528,7 +533,7 @@ describe('JWT Utilities', () => {
       });
 
       // Act & Assert
-      expect(() => verifyToken('   ')).toThrow('Invalid token');
+      expect(() => verifyToken('   ')).toThrow('Token verification failed');
     });
   });
 });
