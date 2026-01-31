@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { AuthTokenPayload } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'fallback-refresh-secret-key';
+const _REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'fallback-refresh-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m'; // Shorter access token expiry
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'; // Longer refresh token expiry
 
@@ -204,8 +204,8 @@ class TokenManager {
     const oldestToken =
       activeTokens.length > 0
         ? activeTokens.reduce((oldest, current) =>
-            current.createdAt < oldest.createdAt ? current : oldest
-          ).createdAt
+          current.createdAt < oldest.createdAt ? current : oldest
+        ).createdAt
         : null;
 
     return {

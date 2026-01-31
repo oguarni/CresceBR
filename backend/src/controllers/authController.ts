@@ -10,7 +10,7 @@ import {
 } from '../utils/jwt';
 import { asyncHandler } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { RegisterRequest, LoginRequest, AuthResponse } from '../types';
+import { RegisterRequest, LoginRequest, AuthResponse as _AuthResponse } from '../types';
 import { CNPJService } from '../services/cnpjService';
 
 export const registerValidation = [

@@ -474,7 +474,6 @@ describe('JWT Utilities', () => {
         companyType: 'supplier',
       };
       const mockToken = 'e2e-flow-token';
-      const authHeader = `Bearer ${mockToken}`;
 
       process.env.JWT_SECRET = 'e2e-secret';
       mockJwt.sign.mockReturnValue(mockToken as any);

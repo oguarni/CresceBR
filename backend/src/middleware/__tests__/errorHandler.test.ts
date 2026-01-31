@@ -21,7 +21,7 @@ describe('Error Handler Middleware', () => {
     mockNext = jest.fn();
 
     // Spy on console.error to verify logging
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
   });
 
   afterEach(() => {

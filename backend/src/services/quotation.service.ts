@@ -88,7 +88,7 @@ class QuotationService {
     return quotationRepository.findByIdWithItemsAndUser(id);
   }
 
-  async processWithCalculations(id: number, calculations: any) {
+  async processWithCalculations(id: number, _calculations: any) {
     const quotation = await quotationRepository.findById(id);
 
     if (!quotation) {

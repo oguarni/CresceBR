@@ -31,7 +31,7 @@ interface ValidationResult {
 }
 
 export class CSVImporter {
-  private static validateProductRow(row: ProductCSVRow, rowNumber: number): ValidationResult {
+  private static validateProductRow(row: ProductCSVRow, _rowNumber: number): ValidationResult {
     const errors: string[] = [];
 
     if (!row.name || row.name.trim().length === 0) {
@@ -169,8 +169,6 @@ export class CSVImporter {
           .on('error', reject);
       });
 
-      let processed = 0;
-
       for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize);
         const transaction = await sequelize.transaction();
@@ -200,7 +198,6 @@ export class CSVImporter {
 
               await this.processProductRow(row, transaction);
               result.imported++;
-              processed++;
             } catch (error) {
               result.failed++;
               result.errors.push({
