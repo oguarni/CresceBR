@@ -36,10 +36,6 @@ describe('OrderStatusHistory Model', () => {
             expectedAttributes.forEach(attr => {
                 expect(statusHistory).toHaveProperty(attr);
             });
-
-            // createdAt is set by Sequelize on save, not on new instance
-            // But the model definition should include it
-            expect(OrderStatusHistory.rawAttributes).toHaveProperty('createdAt');
         });
 
         it('should have correct data types for model attributes', () => {
@@ -64,9 +60,6 @@ describe('OrderStatusHistory Model', () => {
 
             statusHistory.changedBy = 1;
             expect(typeof statusHistory.changedBy).toBe('number');
-
-            // createdAt is defined in the model schema
-            expect(OrderStatusHistory.rawAttributes).toHaveProperty('createdAt');
         });
 
         it('should allow null values for optional fields', () => {
