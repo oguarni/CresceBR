@@ -32,6 +32,6 @@ steps:
         set -e
         sleep 5
         export PGPASSWORD="$$DB_PASSWORD"
-        psql -h sqlproxy -U crescebr_app -d crescebr -c "UPDATE products SET \"imageUrl\" = 'https://images.unsplash.com/photo-1716662383104-1dcc763a916d' WHERE price = 15000.00 AND \"unitPrice\" = 15000.00;"
+        psql -h sqlproxy -U crescebr_app -d crescebr -c "UPDATE products SET \"imageUrl\" = 'https://images.unsplash.com/photo-1716662383104-1dcc763a916d' WHERE name = 'Professional Hydraulic Press';"
         echo "--- R$15,000 product row after update ---"
-        psql -h sqlproxy -U crescebr_app -d crescebr -c "SELECT id, name, price, \"unitPrice\", \"imageUrl\" FROM products WHERE price = 15000.00 AND \"unitPrice\" = 15000.00;"
+        psql -h sqlproxy -U crescebr_app -d crescebr -c "SELECT id, name, price, \"unitPrice\", \"imageUrl\" FROM products WHERE name = 'Professional Hydraulic Press';"
