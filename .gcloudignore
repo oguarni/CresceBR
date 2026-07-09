@@ -1,12 +1,121 @@
-# Keep the Cloud Build upload small and clean.
+# Cloud Build upload context for `gcloud builds submit`.
+# Keep Cloud Build configs, Dockerfiles, lockfiles, package manifests, and
+# application source. Exclude local state, generated output, and secrets.
+
+# gcloud / git metadata
+.gcloudignore
 .git/
 .gitignore
-node_modules/
-**/coverage/
-*.log
-backend/crescebr_b2b.db
-backend/uploads/
-frontend/*.txt
+.gitattributes
+.github/
+
+# Local automation and editor state
 .husky/
 .claude/
+.claudeignore
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Local environment, credentials, and secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.staging
+.env.production
+.env.*.local
+.gcp/
+*.pem
+*.key
+*.p12
+*.pfx
+*-key.json
+*-keyfile.json
+service-account*.json
+serviceAccount*.json
+gcp-*.json
+google-credentials*.json
+credentials.json
+
+# Dependencies and package-manager state
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+.npm/
+.pnpm-store/
+pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
+
+# Build output and tool caches
+**/dist/
+**/build/
+.next/
+out/
+.cache/
+.parcel-cache/
+.vite/
+.vitest/
+*.tsbuildinfo
+.tscache/
+
+# Tests, coverage, and browser-test artifacts
+**/coverage/
+.nyc_output/
+playwright-report/
+test-results/
+e2e/
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/setupTests.ts
+
+# Runtime data and user uploads
+backend/crescebr_b2b.db
+backend/uploads/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+
+# Firebase local state and generated hosting assets
+.firebase/
+firebase-public/*
+!firebase-public/.gitkeep
+firebase-debug.log*
+firebase-debug.*.log*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Docs and local-only files not needed by Docker image builds
 docs/
+frontend/*.txt
+CLAUDE.md
+**/CLAUDE.md
+Dockerfile.dev
+**/Dockerfile.dev
+docker-compose.yml
+
+# OS, temporary, and backup files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.tmp
+*.temp
+*.swp
+*.bak
+*.orig
+*~
