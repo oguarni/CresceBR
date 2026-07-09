@@ -1,4 +1,4 @@
-# One-off: give the R$15,000 machinery product the drill photo requested for
+# One-off: give the R$15,000 hydraulic press product a matching press photo in
 # the live catalog. Mirrors the change in
 # backend/seeders/20240101000001-initial-data.cjs for the already-seeded DB.
 options:
@@ -32,6 +32,6 @@ steps:
         set -e
         sleep 5
         export PGPASSWORD="$$DB_PASSWORD"
-        psql -h sqlproxy -U crescebr_app -d crescebr -c "UPDATE products SET \"imageUrl\" = 'https://images.unsplash.com/photo-1716662383104-1dcc763a916d' WHERE name = 'Professional Hydraulic Press';"
+        psql -h sqlproxy -U crescebr_app -d crescebr -c "UPDATE products SET \"imageUrl\" = 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Hydraulic_press.jpg/960px-Hydraulic_press.jpg' WHERE name = 'Professional Hydraulic Press';"
         echo "--- R$15,000 product row after update ---"
         psql -h sqlproxy -U crescebr_app -d crescebr -c "SELECT id, name, price, \"unitPrice\", \"imageUrl\" FROM products WHERE name = 'Professional Hydraulic Press';"
