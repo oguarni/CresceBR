@@ -149,7 +149,7 @@ module.exports = {
         name: 'Professional Hydraulic Press',
         description: 'Heavy-duty hydraulic press with 50-ton capacity. Digital pressure gauge included.',
         price: 15000.00,
-        imageUrl: 'https://images.unsplash.com/photo-1567789884554-0b844b597180',
+        imageUrl: 'https://images.unsplash.com/photo-1716662383104-1dcc763a916d',
         supplierId: supplierId,
         category: 'Machinery',
         unitPrice: 15000.00,
