@@ -18,11 +18,13 @@ import { Remove, Add, Delete, ShoppingCartCheckout, ArrowBack } from '@mui/icons
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrderStep } from '../utils/orderQuantity';
+import { useT } from '../contexts/LanguageContext';
 
 const CartPage: React.FC = () => {
   const { items, totalPrice, updateQuantity, removeItem, clearCart } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
 
   const handleQuantityChange = (itemId: number, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -52,7 +54,7 @@ const CartPage: React.FC = () => {
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant='h4' gutterBottom>
-            Seu carrinho está vazio
+            {t('cart.empty')}
           </Typography>
           <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
             Adicione alguns produtos ao seu carrinho para continuar
@@ -210,7 +212,7 @@ const CartPage: React.FC = () => {
 
               {!isAuthenticated && (
                 <Alert severity='info' sx={{ mb: 2 }}>
-                  Faça login para finalizar a compra
+                  {t('cart.loginToCheckout')}
                 </Alert>
               )}
 

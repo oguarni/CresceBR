@@ -51,6 +51,7 @@ import {
 } from 'recharts';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
 
 interface TransactionData {
   orders: OrderDetail[];
@@ -92,6 +93,7 @@ interface DashboardMetrics {
 }
 
 const AdminTransactionMonitoringPage: React.FC = () => {
+  const t = useT();
   const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,9 +118,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
       if (dateRange.endDate) params.endDate = dateRange.endDate;
       if (statusFilter) params.status = statusFilter;
 
-      const response = await authService.adminRequest('/admin/transactions', {
+      const response = (await authService.adminRequest('/admin/transactions', {
         params,
-      }) as { data: TransactionData };
+      })) as { data: TransactionData };
 
       setTransactionData(response.data);
 
@@ -174,7 +176,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
     });
   };
 
-  const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  const getStatusColor = (
+    status: string
+  ): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     switch (status.toLowerCase()) {
       case 'delivered':
         return 'success';
@@ -243,15 +247,15 @@ const AdminTransactionMonitoringPage: React.FC = () => {
     if (!transactionData) return;
 
     const csvData = transactionData.orders.map(order => ({
-      'ID do Pedido': order.id,
-      Empresa: order.user.companyName,
-      Status: getStatusLabel(order.status),
-      'Valor Total': order.totalAmount,
-      'Data de Criação': formatDate(order.createdAt),
-      'Data de Entrega': order.estimatedDeliveryDate
+      [t('transactionMonitoring.csv.orderId')]: order.id,
+      [t('transactionMonitoring.csv.company')]: order.user.companyName,
+      [t('transactionMonitoring.csv.status')]: getStatusLabel(order.status),
+      [t('transactionMonitoring.csv.totalValue')]: order.totalAmount,
+      [t('transactionMonitoring.csv.createdAt')]: formatDate(order.createdAt),
+      [t('transactionMonitoring.csv.deliveryDate')]: order.estimatedDeliveryDate
         ? formatDate(order.estimatedDeliveryDate)
         : 'N/A',
-      'Número de Rastreamento': order.trackingNumber || 'N/A',
+      [t('transactionMonitoring.csv.trackingNumber')]: order.trackingNumber || 'N/A',
     }));
 
     // Simple CSV export (in a real app, you'd use a proper CSV library)
@@ -268,7 +272,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
 
-    toast.success('Relatório exportado com sucesso!');
+    toast.success(t('transactionMonitoring.exportSuccess'));
   };
 
   if (loading && !transactionData) {
@@ -289,7 +293,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant='h4' component='h1'>
-            Monitoramento de Transações
+            {t('transactionMonitoring.title')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
@@ -311,7 +315,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
           </Box>
         </Box>
         <Typography variant='body1' color='text.secondary'>
-          Acompanhe as vendas, receitas e tendências do marketplace
+          {t('transactionMonitoring.subtitle')}
         </Typography>
       </Box>
 
@@ -338,7 +342,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 label='Data Inicial'
                 type='date'
                 value={dateRange.startDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setDateRange(prev => ({ ...prev, startDate: e.target.value }))
+                }
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -348,7 +354,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 label='Data Final'
                 type='date'
                 value={dateRange.endDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setDateRange(prev => ({ ...prev, endDate: e.target.value }))
+                }
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -439,7 +447,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 >
                   <Box>
                     <Typography color='textSecondary' gutterBottom variant='body2'>
-                      Valor Médio do Pedido
+                      {t('transactionMonitoring.averageOrderValue')}
                     </Typography>
                     <Typography variant='h4'>
                       {formatCurrency(metrics.averageOrderValue)}
@@ -462,7 +470,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 >
                   <Box>
                     <Typography color='textSecondary' gutterBottom variant='body2'>
-                      Taxa de Conclusão
+                      {t('transactionMonitoring.completionRate')}
                     </Typography>
                     <Typography variant='h4'>
                       {metrics.totalOrders > 0
@@ -488,7 +496,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>
-                Receita dos Últimos 30 Dias
+                {t('transactionMonitoring.revenueLast30Days')}
               </Typography>
               <Box sx={{ height: 300 }}>
                 <ResponsiveContainer width='100%' height='100%'>
@@ -498,7 +506,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                     <XAxis dataKey='date' />
                     {/* @ts-expect-error recharts v3 JSX type compatibility */}
                     <YAxis tickFormatter={(value: number) => `R$ ${(value / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(value: unknown) => [formatCurrency(value as number), 'Receita']} />
+                    <Tooltip
+                      formatter={(value: unknown) => [formatCurrency(value as number), 'Receita']}
+                    />
                     {/* @ts-expect-error recharts v3 JSX type compatibility */}
                     <Line type='monotone' dataKey='revenue' stroke='#1976d2' strokeWidth={2} />
                   </LineChart>
@@ -524,7 +534,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                       cy='50%'
                       outerRadius={80}
                       dataKey='value'
-                      label={(entry: { name: string; value: number }) => `${entry.name}: ${entry.value}`}
+                      label={(entry: { name: string; value: number }) =>
+                        `${entry.name}: ${entry.value}`
+                      }
                     >
                       {statusPieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -543,7 +555,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
       <Card>
         <CardContent>
           <Typography variant='h6' gutterBottom>
-            Transações Recentes
+            {t('transactionMonitoring.recentTransactions')}
           </Typography>
           <TableContainer>
             <Table>
@@ -554,7 +566,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                   <TableCell>Status</TableCell>
                   <TableCell align='right'>Valor</TableCell>
                   <TableCell>Data</TableCell>
-                  <TableCell align='center'>Ações</TableCell>
+                  <TableCell align='center'>{t('common.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -610,10 +622,10 @@ const AdminTransactionMonitoringPage: React.FC = () => {
             <Box textAlign='center' py={4}>
               <ShoppingCart sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
               <Typography variant='h6' color='text.secondary' gutterBottom>
-                Nenhuma transação encontrada
+                {t('transactionMonitoring.emptyTitle')}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                Ajuste os filtros para ver mais transações
+                {t('transactionMonitoring.emptySubtitle')}
               </Typography>
             </Box>
           )}
@@ -660,7 +672,9 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant='subtitle2'>Data de Criação</Typography>
+                  <Typography variant='subtitle2'>
+                    {t('transactionMonitoring.createdAt')}
+                  </Typography>
                   <Typography variant='body2' sx={{ mb: 2 }}>
                     {formatDate(selectedOrder.createdAt)}
                   </Typography>
@@ -670,17 +684,21 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                   <Typography variant='body2' sx={{ mb: 2 }}>
                     {selectedOrder.estimatedDeliveryDate
                       ? formatDate(selectedOrder.estimatedDeliveryDate)
-                      : 'Não definida'}
+                      : t('common.notDefined')}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant='subtitle2'>Número de Rastreamento</Typography>
+                  <Typography variant='subtitle2'>
+                    {t('transactionMonitoring.trackingNumber')}
+                  </Typography>
                   <Typography variant='body2' sx={{ mb: 2 }}>
-                    {selectedOrder.trackingNumber || 'Não disponível'}
+                    {selectedOrder.trackingNumber || t('common.notAvailable')}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant='subtitle2'>ID da Cotação</Typography>
+                  <Typography variant='subtitle2'>
+                    {t('transactionMonitoring.quotationId')}
+                  </Typography>
                   <Typography variant='body2' sx={{ mb: 2 }}>
                     #{selectedOrder.quotationId}
                   </Typography>

@@ -49,7 +49,11 @@ import {
 import { Quotation } from '@shared/types';
 import { quotationsService } from '../services/quotationsService';
 import { formatBRL } from '../utils/currency';
+import { useT } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
+import { browserLogger } from '../utils/browserLogger';
+
+type Translate = ReturnType<typeof useT>;
 
 interface QuotationResponse {
   quotationId: number;
@@ -85,7 +89,248 @@ const initialResponse: QuotationResponse = {
   notes: '',
 };
 
+const getStatusColor = (
+  status: string
+): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  switch (status) {
+    case 'pending':
+      return 'warning';
+    case 'processed':
+      return 'info';
+    case 'completed':
+      return 'success';
+    case 'rejected':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return <Schedule />;
+    case 'processed':
+      return <PlayArrow />;
+    case 'completed':
+      return <CheckCircle />;
+    case 'rejected':
+      return <Cancel />;
+    default:
+      return <Info />;
+  }
+};
+
+const getPriorityColor = (
+  requestedDeliveryDate?: Date
+): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  if (!requestedDeliveryDate) return 'default';
+
+  const now = new Date();
+  const delivery = new Date(requestedDeliveryDate);
+  const daysDiff = Math.ceil((delivery.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (daysDiff < 7) return 'error'; // Urgent
+  if (daysDiff < 14) return 'warning'; // High
+  if (daysDiff < 30) return 'info'; // Medium
+  return 'success'; // Low
+};
+
+// Tab order in the UI. Indexes into quotationsByStatus and the
+// supplierQuotations.empty.* / .tabs.* dictionary sections, so the array order
+// and the Tabs render order must stay in sync.
+const TAB_KEYS = ['all', 'pending', 'processed', 'completed', 'rejected'] as const;
+
+const QUOTATION_STATUSES = ['pending', 'processed', 'completed', 'rejected'] as const;
+
+type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
+
+const isQuotationStatus = (status: string): status is QuotationStatus =>
+  (QUOTATION_STATUSES as readonly string[]).includes(status);
+
+/**
+ * Renders a quotation status in the active language, falling back to the raw
+ * value so an unrecognised status from the API still shows something useful.
+ *
+ * @example
+ * translateStatus(t, 'pending'); // 'Pendente' under pt
+ */
+const translateStatus = (t: Translate, status: string): string =>
+  isQuotationStatus(status) ? t(`supplierQuotations.status.${status}`) : status;
+
+type PriorityKey = 'none' | 'urgent' | 'high' | 'medium' | 'low';
+
+/**
+ * Classifies a quotation's urgency from its requested delivery date.
+ *
+ * Returns a stable, language-independent key. The priority filter compares
+ * against this key, so it must never be replaced by a translated label —
+ * doing so silently breaks filtering in any non-English locale.
+ *
+ * @example
+ * getPriorityKey(new Date(Date.now() + 3 * 864e5)); // 'urgent'
+ */
+const getPriorityKey = (requestedDeliveryDate?: Date): PriorityKey => {
+  if (!requestedDeliveryDate) return 'none';
+
+  const now = new Date();
+  const delivery = new Date(requestedDeliveryDate);
+  const daysDiff = Math.ceil((delivery.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (daysDiff < 7) return 'urgent';
+  if (daysDiff < 14) return 'high';
+  if (daysDiff < 30) return 'medium';
+  return 'low';
+};
+
+interface QuotationCardProps {
+  quotation: Quotation;
+  onViewDetails: (quotation: Quotation) => void;
+  onRespond: (quotation: Quotation) => void;
+  onAccept: (quotationId: number) => void;
+  onReject: (quotationId: number, reason: string) => void;
+}
+
+/**
+ * Summary card for a single quotation request in the supplier queue.
+ *
+ * Declared at module scope on purpose: defining it inside SupplierQuotationsPage
+ * gave React a new component type on every render, remounting each card and
+ * discarding its DOM state (and focus) on any parent state change.
+ *
+ * @example
+ * <QuotationCard
+ *   quotation={quotation}
+ *   onViewDetails={handleViewDetails}
+ *   onRespond={handleRespond}
+ *   onAccept={handleAcceptQuotation}
+ *   onReject={handleRejectQuotation}
+ * />
+ */
+const QuotationCard: React.FC<QuotationCardProps> = ({
+  quotation,
+  onViewDetails,
+  onRespond,
+  onAccept,
+  onReject,
+}) => {
+  const t = useT();
+
+  return (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display='flex' justifyContent='space-between' alignItems='start' mb={2}>
+          <Box>
+            <Typography variant='h6'>
+              {t('supplierQuotations.card.quoteRequest', { id: quotation.id })}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {quotation.company?.companyName}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {new Date(quotation.createdAt!).toLocaleDateString()}
+            </Typography>
+          </Box>
+          <Box display='flex' gap={1} flexDirection='column' alignItems='flex-end'>
+            <Chip
+              label={translateStatus(t, quotation.status)}
+              color={getStatusColor(quotation.status)}
+              icon={getStatusIcon(quotation.status)}
+            />
+            {quotation.requestedDeliveryDate && (
+              <Chip
+                label={t(
+                  `supplierQuotations.priority.${getPriorityKey(quotation.requestedDeliveryDate)}`
+                )}
+                color={getPriorityColor(quotation.requestedDeliveryDate)}
+                size='small'
+              />
+            )}
+          </Box>
+        </Box>
+
+        <Box mb={2}>
+          <Typography variant='body2' color='text.secondary'>
+            {t('supplierQuotations.card.items', { count: quotation.items?.length || 0 })}
+          </Typography>
+          {quotation.totalAmount && (
+            <Typography variant='body2' color='text.secondary'>
+              {t('supplierQuotations.card.estimatedValue', {
+                value: formatBRL(quotation.totalAmount),
+              })}
+            </Typography>
+          )}
+          {quotation.requestedDeliveryDate && (
+            <Typography variant='body2' color='text.secondary'>
+              {t('supplierQuotations.requestedDelivery', {
+                date: new Date(quotation.requestedDeliveryDate).toLocaleDateString(),
+              })}
+            </Typography>
+          )}
+        </Box>
+
+        <Box display='flex' alignItems='center' gap={1}>
+          {quotation.items?.slice(0, 3).map((item, index) => (
+            <Chip
+              key={index}
+              label={`${item.quantity}x ${item.product?.name || t('supplierQuotations.productFallback')}`}
+              size='small'
+              variant='outlined'
+            />
+          ))}
+          {(quotation.items?.length || 0) > 3 && (
+            <Chip
+              label={t('supplierQuotations.card.moreItems', {
+                count: (quotation.items?.length || 0) - 3,
+              })}
+              size='small'
+              variant='outlined'
+            />
+          )}
+        </Box>
+      </CardContent>
+
+      <CardActions>
+        <Button size='small' startIcon={<Visibility />} onClick={() => onViewDetails(quotation)}>
+          {t('supplierQuotations.card.details')}
+        </Button>
+        {quotation.status === 'pending' && (
+          <>
+            <Button
+              size='small'
+              variant='contained'
+              startIcon={<Send />}
+              onClick={() => onRespond(quotation)}
+            >
+              {t('supplierQuotations.card.respond')}
+            </Button>
+            <Button
+              size='small'
+              variant='outlined'
+              color='success'
+              startIcon={<CheckCircle />}
+              onClick={() => onAccept(quotation.id)}
+            >
+              {t('supplierQuotations.card.accept')}
+            </Button>
+            <Button
+              size='small'
+              variant='outlined'
+              color='error'
+              startIcon={<Cancel />}
+              onClick={() => onReject(quotation.id, t('supplierQuotations.declineReason'))}
+            >
+              {t('supplierQuotations.card.decline')}
+            </Button>
+          </>
+        )}
+      </CardActions>
+    </Card>
+  );
+};
+
 const SupplierQuotationsPage: React.FC = () => {
+  const t = useT();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(0);
@@ -111,12 +356,12 @@ const SupplierQuotationsPage: React.FC = () => {
       const data = await quotationsService.getSupplierQuotations();
       setQuotations(data);
     } catch (_error) {
-      console.error('Error loading quotations:', _error);
-      toast.error('Error loading quotations');
+      browserLogger.error('Failed to load quotations', { error: _error });
+      toast.error(t('supplierQuotations.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadQuotations();
@@ -160,10 +405,10 @@ const SupplierQuotationsPage: React.FC = () => {
   const handleAcceptQuotation = async (quotationId: number) => {
     try {
       await quotationsService.updateSupplierQuotation(quotationId, { status: 'completed' });
-      toast.success('Quotation accepted successfully');
+      toast.success(t('supplierQuotations.acceptSuccess'));
       loadQuotations();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error accepting quotation');
+      toast.error(error instanceof Error ? error.message : t('supplierQuotations.acceptError'));
     }
   };
 
@@ -173,10 +418,10 @@ const SupplierQuotationsPage: React.FC = () => {
         status: 'rejected',
         adminNotes: reason,
       });
-      toast.success('Quotation rejected');
+      toast.success(t('supplierQuotations.rejectSuccess'));
       loadQuotations();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error rejecting quotation');
+      toast.error(error instanceof Error ? error.message : t('supplierQuotations.rejectError'));
     }
   };
 
@@ -186,7 +431,7 @@ const SupplierQuotationsPage: React.FC = () => {
         status: 'processed',
         adminNotes: responseDialog.response.notes || undefined,
       });
-      toast.success('Quotation response submitted successfully');
+      toast.success(t('supplierQuotations.submitSuccess'));
       setResponseDialog({
         open: false,
         quotation: null,
@@ -194,7 +439,7 @@ const SupplierQuotationsPage: React.FC = () => {
       });
       loadQuotations();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error submitting quotation response');
+      toast.error(error instanceof Error ? error.message : t('supplierQuotations.submitError'));
     }
   };
 
@@ -228,66 +473,6 @@ const SupplierQuotationsPage: React.FC = () => {
     });
   };
 
-  const getStatusColor = (
-    status: string
-  ): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (status) {
-      case 'pending':
-        return 'warning';
-      case 'processed':
-        return 'info';
-      case 'completed':
-        return 'success';
-      case 'rejected':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Schedule />;
-      case 'processed':
-        return <PlayArrow />;
-      case 'completed':
-        return <CheckCircle />;
-      case 'rejected':
-        return <Cancel />;
-      default:
-        return <Info />;
-    }
-  };
-
-  const getPriorityColor = (
-    requestedDeliveryDate?: Date
-  ): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    if (!requestedDeliveryDate) return 'default';
-
-    const now = new Date();
-    const delivery = new Date(requestedDeliveryDate);
-    const daysDiff = Math.ceil((delivery.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysDiff < 7) return 'error'; // Urgent
-    if (daysDiff < 14) return 'warning'; // High
-    if (daysDiff < 30) return 'info'; // Medium
-    return 'success'; // Low
-  };
-
-  const getPriorityLabel = (requestedDeliveryDate?: Date) => {
-    if (!requestedDeliveryDate) return 'No deadline';
-
-    const now = new Date();
-    const delivery = new Date(requestedDeliveryDate);
-    const daysDiff = Math.ceil((delivery.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysDiff < 7) return 'Urgent';
-    if (daysDiff < 14) return 'High';
-    if (daysDiff < 30) return 'Medium';
-    return 'Low';
-  };
-
   const filteredQuotations = quotations.filter(quotation => {
     const matchesSearch =
       quotation.id.toString().includes(searchTerm) ||
@@ -317,8 +502,7 @@ const SupplierQuotationsPage: React.FC = () => {
 
     let matchesPriority = true;
     if (priorityFilter) {
-      const priority = getPriorityLabel(quotation.requestedDeliveryDate);
-      matchesPriority = priority.toLowerCase() === priorityFilter.toLowerCase();
+      matchesPriority = getPriorityKey(quotation.requestedDeliveryDate) === priorityFilter;
     }
 
     return matchesSearch && matchesStatus && matchesDate && matchesPriority;
@@ -331,112 +515,6 @@ const SupplierQuotationsPage: React.FC = () => {
     rejected: filteredQuotations.filter(q => q.status === 'rejected'),
     all: filteredQuotations,
   };
-
-  const QuotationCard: React.FC<{ quotation: Quotation }> = ({ quotation }) => (
-    <Card sx={{ mb: 2 }}>
-      <CardContent>
-        <Box display='flex' justifyContent='space-between' alignItems='start' mb={2}>
-          <Box>
-            <Typography variant='h6'>Quote Request #{quotation.id}</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {quotation.company?.companyName}
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {new Date(quotation.createdAt!).toLocaleDateString()}
-            </Typography>
-          </Box>
-          <Box display='flex' gap={1} flexDirection='column' alignItems='flex-end'>
-            <Chip
-              label={quotation.status}
-              color={getStatusColor(quotation.status)}
-              icon={getStatusIcon(quotation.status)}
-            />
-            {quotation.requestedDeliveryDate && (
-              <Chip
-                label={getPriorityLabel(quotation.requestedDeliveryDate)}
-                color={getPriorityColor(quotation.requestedDeliveryDate)}
-                size='small'
-              />
-            )}
-          </Box>
-        </Box>
-
-        <Box mb={2}>
-          <Typography variant='body2' color='text.secondary'>
-            Items: {quotation.items?.length || 0}
-          </Typography>
-          {quotation.totalAmount && (
-            <Typography variant='body2' color='text.secondary'>
-              Estimated Value: {formatBRL(quotation.totalAmount)}
-            </Typography>
-          )}
-          {quotation.requestedDeliveryDate && (
-            <Typography variant='body2' color='text.secondary'>
-              Requested Delivery: {new Date(quotation.requestedDeliveryDate).toLocaleDateString()}
-            </Typography>
-          )}
-        </Box>
-
-        <Box display='flex' alignItems='center' gap={1}>
-          {quotation.items?.slice(0, 3).map((item, index) => (
-            <Chip
-              key={index}
-              label={`${item.quantity}x ${item.product?.name || 'Product'}`}
-              size='small'
-              variant='outlined'
-            />
-          ))}
-          {(quotation.items?.length || 0) > 3 && (
-            <Chip
-              label={`+${(quotation.items?.length || 0) - 3} more`}
-              size='small'
-              variant='outlined'
-            />
-          )}
-        </Box>
-      </CardContent>
-
-      <CardActions>
-        <Button
-          size='small'
-          startIcon={<Visibility />}
-          onClick={() => handleViewDetails(quotation)}
-        >
-          Details
-        </Button>
-        {quotation.status === 'pending' && (
-          <>
-            <Button
-              size='small'
-              variant='contained'
-              startIcon={<Send />}
-              onClick={() => handleRespond(quotation)}
-            >
-              Respond
-            </Button>
-            <Button
-              size='small'
-              variant='outlined'
-              color='success'
-              startIcon={<CheckCircle />}
-              onClick={() => handleAcceptQuotation(quotation.id)}
-            >
-              Accept
-            </Button>
-            <Button
-              size='small'
-              variant='outlined'
-              color='error'
-              startIcon={<Cancel />}
-              onClick={() => handleRejectQuotation(quotation.id, 'Not available')}
-            >
-              Decline
-            </Button>
-          </>
-        )}
-      </CardActions>
-    </Card>
-  );
 
   if (loading) {
     return (
@@ -453,15 +531,15 @@ const SupplierQuotationsPage: React.FC = () => {
       {/* Header */}
       <Box mb={4}>
         <Typography variant='h4' component='h1' gutterBottom>
-          Quotation Management
+          {t('supplierQuotations.title')}
         </Typography>
         <Typography variant='subtitle1' color='text.secondary'>
-          Manage quotation requests from buyers and send competitive quotes
+          {t('supplierQuotations.subtitle')}
         </Typography>
       </Box>
 
       {/* Statistics */}
-      <Grid container spacing={3} mb={4}>
+      <Grid container spacing={3} mb={4} data-testid='quotation-stats'>
         <Grid item xs={12} sm={3}>
           <Card>
             <CardContent>
@@ -469,7 +547,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <Assignment color='primary' sx={{ mr: 1 }} />
                 <Box>
                   <Typography color='text.secondary' variant='body2'>
-                    Total Requests
+                    {t('supplierQuotations.stats.totalRequests')}
                   </Typography>
                   <Typography variant='h6'>{quotations.length}</Typography>
                 </Box>
@@ -484,7 +562,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <Schedule color='warning' sx={{ mr: 1 }} />
                 <Box>
                   <Typography color='text.secondary' variant='body2'>
-                    Pending Response
+                    {t('supplierQuotations.stats.pendingResponse')}
                   </Typography>
                   <Typography variant='h6'>{quotationsByStatus.pending.length}</Typography>
                 </Box>
@@ -499,7 +577,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <CheckCircle color='success' sx={{ mr: 1 }} />
                 <Box>
                   <Typography color='text.secondary' variant='body2'>
-                    Completed
+                    {t('supplierQuotations.stats.completed')}
                   </Typography>
                   <Typography variant='h6'>{quotationsByStatus.completed.length}</Typography>
                 </Box>
@@ -514,7 +592,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <TrendingUp color='info' sx={{ mr: 1 }} />
                 <Box>
                   <Typography color='text.secondary' variant='body2'>
-                    Win Rate
+                    {t('supplierQuotations.stats.winRate')}
                   </Typography>
                   <Typography variant='h6'>
                     {quotations.length > 0
@@ -536,7 +614,7 @@ const SupplierQuotationsPage: React.FC = () => {
             <Grid item xs={12} sm={3}>
               <TextField
                 fullWidth
-                placeholder='Search quotations...'
+                placeholder={t('supplierQuotations.filters.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -550,48 +628,48 @@ const SupplierQuotationsPage: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={2}>
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
+                <InputLabel>{t('supplierQuotations.filters.status')}</InputLabel>
                 <Select
                   value={statusFilter}
-                  label='Status'
+                  label={t('supplierQuotations.filters.status')}
                   onChange={e => setStatusFilter(e.target.value)}
                 >
-                  <MenuItem value=''>All Status</MenuItem>
-                  <MenuItem value='pending'>Pending</MenuItem>
-                  <MenuItem value='processed'>Processed</MenuItem>
-                  <MenuItem value='completed'>Completed</MenuItem>
-                  <MenuItem value='rejected'>Rejected</MenuItem>
+                  <MenuItem value=''>{t('supplierQuotations.filters.allStatus')}</MenuItem>
+                  <MenuItem value='pending'>{t('supplierQuotations.status.pending')}</MenuItem>
+                  <MenuItem value='processed'>{t('supplierQuotations.status.processed')}</MenuItem>
+                  <MenuItem value='completed'>{t('supplierQuotations.status.completed')}</MenuItem>
+                  <MenuItem value='rejected'>{t('supplierQuotations.status.rejected')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={2}>
               <FormControl fullWidth>
-                <InputLabel>Priority</InputLabel>
+                <InputLabel>{t('supplierQuotations.filters.priority')}</InputLabel>
                 <Select
                   value={priorityFilter}
-                  label='Priority'
+                  label={t('supplierQuotations.filters.priority')}
                   onChange={e => setPriorityFilter(e.target.value)}
                 >
-                  <MenuItem value=''>All Priority</MenuItem>
-                  <MenuItem value='urgent'>Urgent</MenuItem>
-                  <MenuItem value='high'>High</MenuItem>
-                  <MenuItem value='medium'>Medium</MenuItem>
-                  <MenuItem value='low'>Low</MenuItem>
+                  <MenuItem value=''>{t('supplierQuotations.filters.allPriority')}</MenuItem>
+                  <MenuItem value='urgent'>{t('supplierQuotations.priority.urgent')}</MenuItem>
+                  <MenuItem value='high'>{t('supplierQuotations.priority.high')}</MenuItem>
+                  <MenuItem value='medium'>{t('supplierQuotations.priority.medium')}</MenuItem>
+                  <MenuItem value='low'>{t('supplierQuotations.priority.low')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={2}>
               <FormControl fullWidth>
-                <InputLabel>Date Range</InputLabel>
+                <InputLabel>{t('supplierQuotations.filters.dateRange')}</InputLabel>
                 <Select
                   value={dateFilter}
-                  label='Date Range'
+                  label={t('supplierQuotations.filters.dateRange')}
                   onChange={e => setDateFilter(e.target.value)}
                 >
-                  <MenuItem value=''>All Time</MenuItem>
-                  <MenuItem value='today'>Today</MenuItem>
-                  <MenuItem value='week'>This Week</MenuItem>
-                  <MenuItem value='month'>This Month</MenuItem>
+                  <MenuItem value=''>{t('supplierQuotations.filters.allTime')}</MenuItem>
+                  <MenuItem value='today'>{t('supplierQuotations.filters.today')}</MenuItem>
+                  <MenuItem value='week'>{t('supplierQuotations.filters.thisWeek')}</MenuItem>
+                  <MenuItem value='month'>{t('supplierQuotations.filters.thisMonth')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -601,41 +679,43 @@ const SupplierQuotationsPage: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={selectedTab} onChange={(_, newValue) => setSelectedTab(newValue)} sx={{ mb: 2 }}>
-        <Tab label={`All (${quotationsByStatus.all.length})`} />
-        <Tab label={`Pending (${quotationsByStatus.pending.length})`} />
-        <Tab label={`Processed (${quotationsByStatus.processed.length})`} />
-        <Tab label={`Completed (${quotationsByStatus.completed.length})`} />
-        <Tab label={`Rejected (${quotationsByStatus.rejected.length})`} />
+        <Tab label={`${t('supplierQuotations.tabs.all')} (${quotationsByStatus.all.length})`} />
+        <Tab
+          label={`${t('supplierQuotations.tabs.pending')} (${quotationsByStatus.pending.length})`}
+        />
+        <Tab
+          label={`${t('supplierQuotations.tabs.processed')} (${quotationsByStatus.processed.length})`}
+        />
+        <Tab
+          label={`${t('supplierQuotations.tabs.completed')} (${quotationsByStatus.completed.length})`}
+        />
+        <Tab
+          label={`${t('supplierQuotations.tabs.rejected')} (${quotationsByStatus.rejected.length})`}
+        />
       </Tabs>
 
       {/* Quotations List */}
       {(() => {
-        let displayQuotations = quotationsByStatus.all;
-        if (selectedTab === 1) displayQuotations = quotationsByStatus.pending;
-        if (selectedTab === 2) displayQuotations = quotationsByStatus.processed;
-        if (selectedTab === 3) displayQuotations = quotationsByStatus.completed;
-        if (selectedTab === 4) displayQuotations = quotationsByStatus.rejected;
+        const activeTab = TAB_KEYS[selectedTab] ?? 'all';
+        const displayQuotations = quotationsByStatus[activeTab];
 
         if (displayQuotations.length === 0) {
           return (
             <Alert severity='info' sx={{ mt: 2 }}>
-              {selectedTab === 0
-                ? 'No quotation requests found.'
-                : `No ${
-                    selectedTab === 1
-                      ? 'pending'
-                      : selectedTab === 2
-                        ? 'processed'
-                        : selectedTab === 3
-                          ? 'completed'
-                          : 'rejected'
-                  } quotations found.`}
+              {t(`supplierQuotations.empty.${activeTab}`)}
             </Alert>
           );
         }
 
         return displayQuotations.map(quotation => (
-          <QuotationCard key={quotation.id} quotation={quotation} />
+          <QuotationCard
+            key={quotation.id}
+            quotation={quotation}
+            onViewDetails={handleViewDetails}
+            onRespond={handleRespond}
+            onAccept={handleAcceptQuotation}
+            onReject={handleRejectQuotation}
+          />
         ));
       })()}
 
@@ -648,32 +728,39 @@ const SupplierQuotationsPage: React.FC = () => {
         maxWidth='lg'
         fullWidth
       >
-        <DialogTitle>Respond to Quote Request #{responseDialog.quotation?.id}</DialogTitle>
+        <DialogTitle>
+          {t('supplierQuotations.response.title', { id: responseDialog.quotation?.id ?? '' })}
+        </DialogTitle>
         <DialogContent>
           {responseDialog.quotation && (
             <Box>
               {/* Customer Info */}
               <Box mb={3}>
                 <Typography variant='h6' gutterBottom>
-                  Customer Information
+                  {t('supplierQuotations.customerInfo')}
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
                     <Typography variant='body2' color='text.secondary'>
-                      Company: {responseDialog.quotation.company?.companyName}
+                      {t('supplierQuotations.response.company', {
+                        name: responseDialog.quotation.company?.companyName ?? '',
+                      })}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Email: {responseDialog.quotation.company?.email}
+                      {t('supplierQuotations.response.email', {
+                        email: responseDialog.quotation.company?.email ?? '',
+                      })}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant='body2' color='text.secondary'>
-                      Requested Delivery:{' '}
-                      {responseDialog.quotation.requestedDeliveryDate
-                        ? new Date(
-                            responseDialog.quotation.requestedDeliveryDate
-                          ).toLocaleDateString()
-                        : 'Not specified'}
+                      {t('supplierQuotations.requestedDelivery', {
+                        date: responseDialog.quotation.requestedDeliveryDate
+                          ? new Date(
+                              responseDialog.quotation.requestedDeliveryDate
+                            ).toLocaleDateString()
+                          : t('supplierQuotations.response.notSpecified'),
+                      })}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -681,25 +768,26 @@ const SupplierQuotationsPage: React.FC = () => {
 
               {/* Quote Items */}
               <Typography variant='h6' gutterBottom>
-                Quote Items
+                {t('supplierQuotations.response.quoteItems')}
               </Typography>
               <TableContainer component={Paper} sx={{ mb: 3 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Product</TableCell>
-                      <TableCell>Qty</TableCell>
-                      <TableCell>Unit Price (R$)</TableCell>
-                      <TableCell>Total (R$)</TableCell>
-                      <TableCell>Availability</TableCell>
-                      <TableCell>Lead Time</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colProduct')}</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colQty')}</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colUnitPrice')}</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colTotal')}</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colAvailability')}</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colLeadTime')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {responseDialog.response.items.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>
-                          {responseDialog.quotation?.items?.[index]?.product?.name || 'Product'}
+                          {responseDialog.quotation?.items?.[index]?.product?.name ||
+                            t('supplierQuotations.productFallback')}
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>
@@ -720,13 +808,23 @@ const SupplierQuotationsPage: React.FC = () => {
                             value={item.availability}
                             onChange={e => updateItemAvailability(index, e.target.value)}
                           >
-                            <MenuItem value='in_stock'>In Stock</MenuItem>
-                            <MenuItem value='limited'>Limited</MenuItem>
-                            <MenuItem value='out_of_stock'>Out of Stock</MenuItem>
-                            <MenuItem value='custom_order'>Custom Order</MenuItem>
+                            <MenuItem value='in_stock'>
+                              {t('supplierQuotations.availability.in_stock')}
+                            </MenuItem>
+                            <MenuItem value='limited'>
+                              {t('supplierQuotations.availability.limited')}
+                            </MenuItem>
+                            <MenuItem value='out_of_stock'>
+                              {t('supplierQuotations.availability.out_of_stock')}
+                            </MenuItem>
+                            <MenuItem value='custom_order'>
+                              {t('supplierQuotations.availability.custom_order')}
+                            </MenuItem>
                           </Select>
                         </TableCell>
-                        <TableCell>{item.leadTime} days</TableCell>
+                        <TableCell>
+                          {t('supplierQuotations.response.days', { count: item.leadTime })}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -738,7 +836,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label='Total Amount (R$)'
+                    label={t('supplierQuotations.response.totalAmount')}
                     value={formatBRL(responseDialog.response.totalAmount)}
                     InputProps={{ readOnly: true }}
                   />
@@ -747,7 +845,7 @@ const SupplierQuotationsPage: React.FC = () => {
                   <TextField
                     fullWidth
                     type='date'
-                    label='Valid Until'
+                    label={t('supplierQuotations.response.validUntil')}
                     value={responseDialog.response.validUntil}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setResponseDialog({
@@ -761,7 +859,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <Grid item xs={12} sm={4}>
                   <TextField
                     fullWidth
-                    label='Payment Terms'
+                    label={t('supplierQuotations.response.paymentTerms')}
                     value={responseDialog.response.paymentTerms}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setResponseDialog({
@@ -774,7 +872,7 @@ const SupplierQuotationsPage: React.FC = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label='Delivery Terms'
+                    label={t('supplierQuotations.response.deliveryTerms')}
                     value={responseDialog.response.deliveryTerms}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setResponseDialog({
@@ -789,7 +887,7 @@ const SupplierQuotationsPage: React.FC = () => {
                     fullWidth
                     multiline
                     rows={2}
-                    label='Additional Notes'
+                    label={t('supplierQuotations.response.additionalNotes')}
                     value={responseDialog.response.notes}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setResponseDialog({
@@ -809,10 +907,10 @@ const SupplierQuotationsPage: React.FC = () => {
               setResponseDialog({ open: false, quotation: null, response: initialResponse })
             }
           >
-            Cancel
+            {t('supplierQuotations.response.cancel')}
           </Button>
           <Button onClick={handleSubmitResponse} variant='contained'>
-            Submit Quote
+            {t('supplierQuotations.response.submit')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -824,14 +922,16 @@ const SupplierQuotationsPage: React.FC = () => {
         maxWidth='md'
         fullWidth
       >
-        <DialogTitle>Quotation Details - #{selectedQuotation?.id}</DialogTitle>
+        <DialogTitle>
+          {t('supplierQuotations.detailsDialog.title', { id: selectedQuotation?.id ?? '' })}
+        </DialogTitle>
         <DialogContent>
           {selectedQuotation && (
             <Box>
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} md={6}>
                   <Typography variant='h6' gutterBottom>
-                    Customer Information
+                    {t('supplierQuotations.customerInfo')}
                   </Typography>
                   <Box display='flex' alignItems='center' mb={1}>
                     <Business sx={{ mr: 1 }} />
@@ -850,43 +950,50 @@ const SupplierQuotationsPage: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant='h6' gutterBottom>
-                    Request Information
+                    {t('supplierQuotations.detailsDialog.requestInfo')}
                   </Typography>
                   <Typography variant='body2' color='text.secondary'>
-                    Created: {new Date(selectedQuotation.createdAt!).toLocaleString()}
+                    {t('supplierQuotations.detailsDialog.created', {
+                      date: new Date(selectedQuotation.createdAt!).toLocaleString(),
+                    })}
                   </Typography>
                   <Typography variant='body2' color='text.secondary'>
-                    Status:{' '}
+                    {t('supplierQuotations.detailsDialog.statusLabel')}
                     <Chip
-                      label={selectedQuotation.status}
+                      label={translateStatus(t, selectedQuotation.status)}
                       color={getStatusColor(selectedQuotation.status)}
                       size='small'
                     />
                   </Typography>
                   {selectedQuotation.requestedDeliveryDate && (
                     <Typography variant='body2' color='text.secondary'>
-                      Requested Delivery:{' '}
-                      {new Date(selectedQuotation.requestedDeliveryDate).toLocaleDateString()}
+                      {t('supplierQuotations.requestedDelivery', {
+                        date: new Date(
+                          selectedQuotation.requestedDeliveryDate
+                        ).toLocaleDateString(),
+                      })}
                     </Typography>
                   )}
                   {selectedQuotation.adminNotes && (
                     <Typography variant='body2' color='text.secondary'>
-                      Notes: {selectedQuotation.adminNotes}
+                      {t('supplierQuotations.detailsDialog.notes', {
+                        notes: selectedQuotation.adminNotes,
+                      })}
                     </Typography>
                   )}
                 </Grid>
               </Grid>
 
               <Typography variant='h6' gutterBottom>
-                Requested Items
+                {t('supplierQuotations.detailsDialog.requestedItems')}
               </Typography>
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Product</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Specifications</TableCell>
+                      <TableCell>{t('supplierQuotations.response.colProduct')}</TableCell>
+                      <TableCell>{t('supplierQuotations.detailsDialog.colQuantity')}</TableCell>
+                      <TableCell>{t('supplierQuotations.detailsDialog.colSpecs')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -895,7 +1002,7 @@ const SupplierQuotationsPage: React.FC = () => {
                         <TableCell>
                           <Box>
                             <Typography variant='body2'>
-                              {item.product?.name || 'Product'}
+                              {item.product?.name || t('supplierQuotations.productFallback')}
                             </Typography>
                             <Typography variant='caption' color='text.secondary'>
                               {item.product?.category}
@@ -915,7 +1022,7 @@ const SupplierQuotationsPage: React.FC = () => {
                             </Box>
                           ) : (
                             <Typography variant='caption' color='text.secondary'>
-                              No specifications
+                              {t('supplierQuotations.detailsDialog.noSpecs')}
                             </Typography>
                           )}
                         </TableCell>
@@ -928,7 +1035,9 @@ const SupplierQuotationsPage: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
+          <Button onClick={() => setDetailsDialogOpen(false)}>
+            {t('supplierQuotations.detailsDialog.close')}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

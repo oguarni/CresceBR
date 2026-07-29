@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, AuthResponse, RegisterRequest } from '@shared/types';
 import { authService } from '../services/authService';
 import { apiService } from '../services/api';
+import { browserLogger } from '../utils/browserLogger';
 
 interface AuthState {
   user: User | null;
@@ -118,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({ type: 'AUTH_FAILURE' });
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      browserLogger.error('Failed to fetch user', { error });
       // Token is invalid or expired, clear it
       localStorage.removeItem('crescebr_token');
       delete apiService.getRawApi().defaults.headers.common['Authorization'];

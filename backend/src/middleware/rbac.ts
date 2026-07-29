@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth';
+import { logger } from '../utils/structuredLogger';
 
 // Define specific permissions for different actions
 export enum Permission {
@@ -309,7 +310,7 @@ export const addPermissionsToResponse = async (
         }
       }
     } catch (error) {
-      console.error('Error adding permissions to response:', error);
+      logger.error('Failed to add permissions to response', { error, userId: req.user?.id });
     }
   }
 

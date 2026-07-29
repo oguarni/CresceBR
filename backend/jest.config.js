@@ -17,5 +17,17 @@ export default {
     '!src/types/**',
   ],
   coverageDirectory: 'coverage',
+  // Set just below the levels actually measured (99.75 lines / 99.7 stmts /
+  // 99.31 funcs / 96.88 branches) so a regression fails the build instead of
+  // going unnoticed. Raise these when coverage rises; never lower them to make
+  // a build pass.
+  coverageThreshold: {
+    global: {
+      lines: 99,
+      statements: 99,
+      functions: 99,
+      branches: 95,
+    },
+  },
   verbose: true,
 };

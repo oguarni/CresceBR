@@ -1,6 +1,7 @@
 import { Op, Sequelize } from 'sequelize';
 import Product, { ProductAttributes } from '../models/Product';
 import User from '../models/User';
+import { logger } from '../utils/structuredLogger';
 
 // Public product listings expose only the supplier's display identity, never
 // credentials or contact internals.
@@ -147,7 +148,7 @@ function buildWhereClause(filters: ProductFilters): Record<string | symbol, unkn
         where[Op.and] = [...(where[Op.and] || []), ...specConditions];
       }
     } catch (error) {
-      console.error('Error parsing specifications filter:', error);
+      logger.error('Failed to parse specifications filter', { error, specifications });
     }
   }
 

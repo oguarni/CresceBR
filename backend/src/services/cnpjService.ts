@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/structuredLogger';
 
 interface CNPJValidationResult {
   valid: boolean;
@@ -150,7 +151,7 @@ export class CNPJService {
         return result;
       }
     } catch (error) {
-      console.error('CNPJ validation error:', error);
+      logger.error('CNPJ validation failed', { error, cnpj });
 
       if (axios.isAxiosError(error)) {
         if (error.code === 'ECONNABORTED') {
@@ -195,7 +196,7 @@ export class CNPJService {
           });
         }
       } catch (error) {
-        console.error('Error updating company with CNPJ data:', error);
+        logger.error('Failed to update company with CNPJ data', { error, userId });
       }
     }
 

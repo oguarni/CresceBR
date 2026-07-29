@@ -16,7 +16,7 @@ vi.mock('axios', () => ({
   },
 }));
 
-import { viaCepService } from '../viaCepService';
+import { viaCepService, ViaCepError } from '../viaCepService';
 
 describe('ViaCepService', () => {
   beforeEach(() => {
@@ -64,29 +64,32 @@ describe('ViaCepService', () => {
 
     it('should throw for CEP with fewer than 8 digits', async () => {
       await expect(viaCepService.getAddressByCep('1234567')).rejects.toThrow(
-        'CEP deve conter 8 dígitos'
+        expect.objectContaining({ code: 'INVALID_LENGTH' })
       );
       expect(mockGet).not.toHaveBeenCalled();
     });
 
     it('should throw for CEP with more than 8 digits', async () => {
       await expect(viaCepService.getAddressByCep('123456789')).rejects.toThrow(
-        'CEP deve conter 8 dígitos'
+        expect.objectContaining({ code: 'INVALID_LENGTH' })
       );
       expect(mockGet).not.toHaveBeenCalled();
     });
 
     it('should throw for empty CEP', async () => {
-      await expect(viaCepService.getAddressByCep('')).rejects.toThrow('CEP deve conter 8 dígitos');
+      await expect(viaCepService.getAddressByCep('')).rejects.toThrow(
+        expect.objectContaining({ code: 'INVALID_LENGTH' })
+      );
     });
 
     it('should throw when API returns erro:true', async () => {
       mockGet.mockResolvedValue({ data: { erro: true } });
 
-      // The 'CEP nao encontrado' error thrown inside try is caught by the
-      // catch block and re-thrown as the generic 'Erro ao consultar CEP'
+      // Previously the not-found error raised inside the try block was
+      // swallowed by the catch and rewritten as the generic failure, losing the
+      // reason. The catch now re-throws ViaCepError untouched.
       await expect(viaCepService.getAddressByCep('99999999')).rejects.toThrow(
-        'Erro ao consultar CEP'
+        expect.objectContaining({ code: 'NOT_FOUND' })
       );
     });
 
@@ -100,7 +103,7 @@ describe('ViaCepService', () => {
       mockIsAxiosError.mockReturnValue(true);
 
       await expect(viaCepService.getAddressByCep('01001000')).rejects.toThrow(
-        'Tempo limite excedido ao consultar CEP'
+        expect.objectContaining({ code: 'TIMEOUT' })
       );
     });
 
@@ -114,7 +117,7 @@ describe('ViaCepService', () => {
       mockIsAxiosError.mockReturnValue(true);
 
       await expect(viaCepService.getAddressByCep('01001000')).rejects.toThrow(
-        'Erro de conexão ao consultar CEP'
+        expect.objectContaining({ code: 'NETWORK' })
       );
     });
 
@@ -128,7 +131,7 @@ describe('ViaCepService', () => {
       mockIsAxiosError.mockReturnValue(true);
 
       await expect(viaCepService.getAddressByCep('01001000')).rejects.toThrow(
-        'Erro ao consultar CEP'
+        expect.objectContaining({ code: 'UNKNOWN' })
       );
     });
 
@@ -137,8 +140,13 @@ describe('ViaCepService', () => {
       mockIsAxiosError.mockReturnValue(false);
 
       await expect(viaCepService.getAddressByCep('01001000')).rejects.toThrow(
-        'Erro ao consultar CEP'
+        expect.objectContaining({ code: 'UNKNOWN' })
       );
+    });
+
+    it('throws a ViaCepError carrying a language-independent code', async () => {
+      // The UI translates the code, so the thrown message must stay English.
+      await expect(viaCepService.getAddressByCep('123')).rejects.toBeInstanceOf(ViaCepError);
     });
   });
 

@@ -41,6 +41,7 @@ import { ordersService } from '../services/ordersService';
 import { Quotation, Order } from '@shared/types';
 import BrazilFlag from '../components/BrazilFlag';
 import toast from 'react-hot-toast';
+import { browserLogger } from '../utils/browserLogger';
 
 interface DashboardMetrics {
   totalSales: number;
@@ -107,7 +108,7 @@ const SupplierDashboardPage: React.FC = () => {
         pendingQuotations: pending.length,
       });
     } catch (_error) {
-      console.error('Error loading dashboard data:', _error);
+      browserLogger.error('Failed to load dashboard data', { error: _error });
       toast.error(t('supplierDashboard.loadError'));
     } finally {
       setLoading(false);
@@ -755,7 +756,6 @@ const SupplierDashboardPage: React.FC = () => {
             })}
           </Card>
         </Box>
-
       </Box>
 
       {/* Fixed Bottom Navigation */}

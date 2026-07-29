@@ -60,7 +60,10 @@ const fillRequiredFields = async (
   // field is empty, so leaving it blank would silently skip handleSubmit.
   // viaCepService.isValidCep is mocked to false, so no address lookup fires.
   await user.type(screen.getByLabelText('CEP *'), '85501-000');
-  await user.type(screen.getByLabelText('Endereço Completo *'), 'Rua das Indústrias, 100, Curitiba - PR');
+  await user.type(
+    screen.getByLabelText('Endereço Completo *'),
+    'Rua das Indústrias, 100, Curitiba - PR'
+  );
   await user.type(screen.getByLabelText('Nome da Empresa *'), 'MetalPar');
   await user.type(screen.getByLabelText('Razão Social *'), 'MetalPar Indústria Ltda');
   await user.type(screen.getByLabelText('CNPJ *'), '12345678000190');
@@ -69,7 +72,10 @@ const fillRequiredFields = async (
   await user.click(await screen.findByRole('option', { name: 'Máquinas' }));
 };
 
-describe('RegisterPage', () => {
+// RegisterPage re-renders its whole 858-line form on each keystroke, so the
+// two form-filling tests run ~14s locally and longer under full-suite
+// contention. Raised above the 30s global default to stop them flaking in CI.
+describe('RegisterPage', { timeout: 90_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -86,7 +92,7 @@ describe('RegisterPage', () => {
   });
 
   it('shows a validation error and does not register when passwords differ', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await renderPage();
 
     await fillRequiredFields(user, { confirmPassword: 'different456' });
@@ -98,7 +104,7 @@ describe('RegisterPage', () => {
 
   it('registers the company and navigates home on success', async () => {
     mockRegister.mockResolvedValueOnce(undefined);
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await renderPage();
 
     await fillRequiredFields(user);

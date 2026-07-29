@@ -20,12 +20,14 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getOrderStep } from '../utils/orderQuantity';
 import { optimizeImageUrl } from '../utils/imageUrl';
+import { useT } from '../contexts/LanguageContext';
 
 const CartDrawer: React.FC = () => {
   const { isOpen, items, totalPrice, toggleCart, updateQuantity, removeItem, clearCart } =
     useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const t = useT();
 
   const handleQuantityChange = (itemId: number, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -69,7 +71,7 @@ const CartDrawer: React.FC = () => {
           {items.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant='body1' color='text.secondary'>
-                Seu carrinho está vazio
+                {t('cart.empty')}
               </Typography>
               <Button
                 variant='outlined'
@@ -169,7 +171,7 @@ const CartDrawer: React.FC = () => {
 
             {!isAuthenticated && (
               <Alert severity='info' sx={{ mb: 2 }}>
-                Faça login para finalizar a compra
+                {t('cart.loginToCheckout')}
               </Alert>
             )}
 

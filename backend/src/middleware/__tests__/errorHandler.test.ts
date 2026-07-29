@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { ValidationError } from 'sequelize';
 import { errorHandler, asyncHandler } from '../errorHandler';
+import { logger } from '../../utils/structuredLogger';
 
 describe('Error Handler Middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: jest.MockedFunction<NextFunction>;
-  let consoleErrorSpy: jest.SpyInstance;
+  let loggerErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -20,12 +21,13 @@ describe('Error Handler Middleware', () => {
 
     mockNext = jest.fn();
 
-    // Spy on console.error to verify logging
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    // Errors are emitted as structured JSON through the shared logger rather
+    // than raw console.error, so the spy tracks that instead.
+    loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore();
+    loggerErrorSpy.mockRestore();
   });
 
   describe('errorHandler', () => {
@@ -37,7 +39,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(genericError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(genericError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: genericError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
@@ -54,7 +59,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(customError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(customError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: customError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
@@ -99,7 +107,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(validationError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(validationError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: validationError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
@@ -158,7 +169,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(uniqueError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(uniqueError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: uniqueError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
@@ -175,7 +189,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(jwtError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(jwtError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: jwtError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
@@ -192,7 +209,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(expiredError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expiredError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: expiredError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
@@ -241,7 +261,10 @@ describe('Error Handler Middleware', () => {
       errorHandler(operationalError, mockRequest as Request, mockResponse as Response, mockNext);
 
       // Assert
-      expect(consoleErrorSpy).toHaveBeenCalledWith(operationalError);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: operationalError })
+      );
       expect(mockResponse.status).toHaveBeenCalledWith(403);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,

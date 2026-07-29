@@ -40,6 +40,7 @@ import { quotationsService } from '../services/quotationsService';
 import { Product } from '@shared/types';
 import { useProducts } from '../hooks';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
 
 interface SupplierQuote {
   supplier: {
@@ -67,6 +68,7 @@ interface SupplierQuote {
 }
 
 const QuoteComparisonPage: React.FC = () => {
+  const t = useT();
   const productFilters = useMemo(() => ({ limit: 100 }), []);
   const {
     products,
@@ -101,7 +103,11 @@ const QuoteComparisonPage: React.FC = () => {
     }
 
     if (selectedProduct.minimumOrderQuantity && quantity < selectedProduct.minimumOrderQuantity) {
-      toast.error(`Quantidade mínima é ${selectedProduct.minimumOrderQuantity} unidades`);
+      toast.error(
+        t('quoteComparison.toast.minQuantity', {
+          quantity: selectedProduct.minimumOrderQuantity,
+        })
+      );
       return;
     }
 
@@ -119,10 +125,10 @@ const QuoteComparisonPage: React.FC = () => {
       if (response.quotes.length === 0) {
         toast('Nenhum fornecedor encontrado para este produto');
       } else {
-        toast.success(`${response.quotes.length} cotações encontradas`);
+        toast.success(t('quoteComparison.toast.found', { count: response.quotes.length }));
       }
     } catch (_error) {
-      toast.error('Erro ao buscar cotações');
+      toast.error(t('quoteComparison.toast.loadError'));
     } finally {
       setLoading(false);
     }
@@ -142,11 +148,11 @@ const QuoteComparisonPage: React.FC = () => {
   const getShippingMethodLabel = (method: string) => {
     switch (method) {
       case 'standard':
-        return 'Padrão (5 dias)';
+        return t('quoteComparison.shippingStandardDays');
       case 'express':
         return 'Expressa (2 dias)';
       case 'economy':
-        return 'Econômica (10 dias)';
+        return t('quoteComparison.shippingEconomyDays');
       default:
         return method;
     }
@@ -188,10 +194,10 @@ const QuoteComparisonPage: React.FC = () => {
     <Container maxWidth='lg'>
       <Box sx={{ mb: 4 }}>
         <Typography variant='h4' gutterBottom>
-          Comparar Cotações de Fornecedores
+          {t('quoteComparison.title')}
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          Compare preços, prazos e condições de diferentes fornecedores para o mesmo produto
+          {t('quoteComparison.subtitle')}
         </Typography>
       </Box>
 
@@ -239,7 +245,9 @@ const QuoteComparisonPage: React.FC = () => {
               />
               {selectedProduct?.minimumOrderQuantity && (
                 <Typography variant='caption' color='text.secondary'>
-                  Mín: {selectedProduct.minimumOrderQuantity} unidades
+                  {t('quoteComparison.minQuantity', {
+                    quantity: selectedProduct.minimumOrderQuantity,
+                  })}
                 </Typography>
               )}
             </Grid>
@@ -247,7 +255,7 @@ const QuoteComparisonPage: React.FC = () => {
             <Grid item xs={12} md={2}>
               <TextField
                 fullWidth
-                label='Sua Localização'
+                label={t('quoteComparison.locationLabel')}
                 value={buyerLocation}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setBuyerLocation(e.target.value)
@@ -264,8 +272,8 @@ const QuoteComparisonPage: React.FC = () => {
                   label='Entrega'
                   onChange={(e: SelectChangeEvent<string>) => setShippingMethod(e.target.value)}
                 >
-                  <MenuItem value='economy'>Econômica</MenuItem>
-                  <MenuItem value='standard'>Padrão</MenuItem>
+                  <MenuItem value='economy'>{t('quoteComparison.shippingEconomy')}</MenuItem>
+                  <MenuItem value='standard'>{t('quoteComparison.shippingStandard')}</MenuItem>
                   <MenuItem value='express'>Expressa</MenuItem>
                 </Select>
               </FormControl>
@@ -319,7 +327,7 @@ const QuoteComparisonPage: React.FC = () => {
                   {formatPrice(selectedProduct.price)}
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  Preço base
+                  {t('quoteComparison.basePrice')}
                 </Typography>
               </Box>
             </Box>
@@ -334,7 +342,7 @@ const QuoteComparisonPage: React.FC = () => {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant='h6' gutterBottom>
-                Resumo da Comparação
+                {t('quoteComparison.summaryTitle')}
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={3}>
@@ -343,7 +351,7 @@ const QuoteComparisonPage: React.FC = () => {
                       {quotes.filter(q => q.quote !== null).length}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Cotações válidas
+                      {t('quoteComparison.validQuotes')}
                     </Typography>
                   </Box>
                 </Grid>
@@ -353,7 +361,7 @@ const QuoteComparisonPage: React.FC = () => {
                       {bestQuote ? formatPrice(bestQuote.quote!.total) : 'N/A'}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Melhor preço
+                      {t('quoteComparison.bestPrice')}
                     </Typography>
                   </Box>
                 </Grid>
@@ -373,7 +381,7 @@ const QuoteComparisonPage: React.FC = () => {
                       {getShippingMethodLabel(shippingMethod)}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
-                      Método de entrega
+                      {t('quoteComparison.shippingMethod')}
                     </Typography>
                   </Box>
                 </Grid>
@@ -385,20 +393,20 @@ const QuoteComparisonPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>
-                Cotações dos Fornecedores
+                {t('quoteComparison.supplierQuotes')}
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>Fornecedor</TableCell>
-                      <TableCell align='center'>Avaliação</TableCell>
-                      <TableCell align='right'>Preço Unit.</TableCell>
+                      <TableCell align='center'>{t('quoteComparison.ratingColumn')}</TableCell>
+                      <TableCell align='right'>{t('quoteComparison.unitPriceColumn')}</TableCell>
                       <TableCell align='right'>Desconto</TableCell>
                       <TableCell align='right'>Subtotal</TableCell>
                       <TableCell align='right'>Frete</TableCell>
                       <TableCell align='right'>Total</TableCell>
-                      <TableCell align='center'>Ações</TableCell>
+                      <TableCell align='center'>{t('common.actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -458,7 +466,7 @@ const QuoteComparisonPage: React.FC = () => {
                               </Box>
                             ) : (
                               <Typography variant='caption' color='text.secondary'>
-                                Sem avaliações
+                                {t('quoteComparison.noRatings')}
                               </Typography>
                             )}
                           </TableCell>
@@ -497,7 +505,7 @@ const QuoteComparisonPage: React.FC = () => {
                             <>
                               <TableCell align='center' {...{ colSpan: 5 }}>
                                 <Alert severity='error' sx={{ width: 'fit-content', mx: 'auto' }}>
-                                  {supplierQuote.error || 'Erro ao calcular cotação'}
+                                  {supplierQuote.error || t('quoteComparison.quoteError')}
                                 </Alert>
                               </TableCell>
                             </>
@@ -524,7 +532,7 @@ const QuoteComparisonPage: React.FC = () => {
                                   <Grid container spacing={2}>
                                     <Grid item xs={12} sm={6} md={3}>
                                       <Typography variant='caption' color='text.secondary'>
-                                        Preço Base
+                                        {t('quoteComparison.basePriceTitle')}
                                       </Typography>
                                       <Typography variant='body2' fontWeight='medium'>
                                         {formatPrice(supplierQuote.quote.basePrice)}
@@ -568,7 +576,7 @@ const QuoteComparisonPage: React.FC = () => {
                                       startIcon={<ShoppingCart />}
                                       size='small'
                                     >
-                                      Solicitar Cotação
+                                      {t('quoteComparison.requestQuote')}
                                     </Button>
                                     <Button
                                       variant='outlined'
@@ -599,10 +607,10 @@ const QuoteComparisonPage: React.FC = () => {
           <CardContent sx={{ textAlign: 'center', py: 8 }}>
             <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
             <Typography variant='h6' color='text.secondary' gutterBottom>
-              Nenhuma cotação encontrada
+              {t('quoteComparison.emptyTitle')}
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              Selecione um produto e clique em "Comparar" para ver as cotações dos fornecedores
+              {t('quoteComparison.emptySubtitle')}
             </Typography>
           </CardContent>
         </Card>

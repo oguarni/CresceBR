@@ -28,16 +28,12 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import {
-  Add,
-  Edit,
-  Delete,
-  Save,
-  Cancel,
-} from '@mui/icons-material';
+import { Add, Edit, Delete, Save, Cancel } from '@mui/icons-material';
 import { Product } from '@shared/types';
 import { productsService } from '../services/productsService';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
+import { browserLogger } from '../utils/browserLogger';
 
 interface ProductFormData {
   name: string;
@@ -48,11 +44,12 @@ interface ProductFormData {
 }
 
 const AdminProductsPage: React.FC = () => {
+  const t = useT();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -68,7 +65,7 @@ const AdminProductsPage: React.FC = () => {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await productsService.getAllProducts({ limit: 100 });
       setProducts(response.products);
@@ -85,7 +82,7 @@ const AdminProductsPage: React.FC = () => {
       const categoriesData = await productsService.getCategories();
       setCategories(categoriesData);
     } catch (err) {
-      console.error('Erro ao carregar categorias:', err);
+      browserLogger.error('Failed to load categories', { error: err });
     }
   }, []);
 
@@ -127,14 +124,20 @@ const AdminProductsPage: React.FC = () => {
   };
 
   const handleFormSubmit = async () => {
-    if (!formData.name || !formData.description || !formData.price || !formData.imageUrl || !formData.category) {
-      toast.error('Todos os campos são obrigatórios');
+    if (
+      !formData.name ||
+      !formData.description ||
+      !formData.price ||
+      !formData.imageUrl ||
+      !formData.category
+    ) {
+      toast.error(t('adminProducts.toast.allFieldsRequired'));
       return;
     }
 
     const price = parseFloat(formData.price);
     if (isNaN(price) || price <= 0) {
-      toast.error('Preço deve ser um número válido maior que zero');
+      toast.error(t('adminProducts.toast.invalidPrice'));
       return;
     }
 
@@ -183,7 +186,7 @@ const AdminProductsPage: React.FC = () => {
 
     try {
       await productsService.deleteProduct(product.id);
-      toast.success('Produto excluído com sucesso!');
+      toast.success(t('adminProducts.toast.deleted'));
       loadProducts();
       loadCategories();
     } catch (err) {
@@ -200,33 +203,29 @@ const AdminProductsPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth='lg'>
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1">
+          <Typography variant='h4' component='h1'>
             Gerenciar Produtos
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
+          <Button variant='contained' startIcon={<Add />} onClick={() => handleOpenDialog()}>
             Novo Produto
           </Button>
         </Box>
-        <Typography variant="body1" color="text.secondary">
-          Gerencie o catálogo de produtos do marketplace
+        <Typography variant='body1' color='text.secondary'>
+          {t('adminProducts.subtitle')}
         </Typography>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity='error' sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" py={4}>
+        <Box display='flex' justifyContent='center' py={4}>
           <CircularProgress />
         </Box>
       ) : (
@@ -239,51 +238,51 @@ const AdminProductsPage: React.FC = () => {
                     <TableCell>Imagem</TableCell>
                     <TableCell>Nome</TableCell>
                     <TableCell>Categoria</TableCell>
-                    <TableCell>Preço</TableCell>
-                    <TableCell>Ações</TableCell>
+                    <TableCell>{t('adminProducts.priceColumn')}</TableCell>
+                    <TableCell>{t('common.actions')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {products.map((product) => (
+                  {products.map(product => (
                     <TableRow key={product.id}>
                       <TableCell>
                         <Avatar
                           src={product.imageUrl}
                           alt={product.name}
-                          variant="rounded"
+                          variant='rounded'
                           sx={{ width: 50, height: 50 }}
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="subtitle2">{product.name}</Typography>
-                        <Typography variant="body2" color="text.secondary" noWrap>
+                        <Typography variant='subtitle2'>{product.name}</Typography>
+                        <Typography variant='body2' color='text.secondary' noWrap>
                           {product.description.length > 50
                             ? `${product.description.substring(0, 50)}...`
                             : product.description}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip label={product.category} size="small" />
+                        <Chip label={product.category} size='small' />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="subtitle2" color="primary">
+                        <Typography variant='subtitle2' color='primary'>
                           {formatPrice(product.price)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <IconButton
-                            size="small"
+                            size='small'
                             onClick={() => handleOpenDialog(product)}
-                            title="Editar"
+                            title='Editar'
                           >
                             <Edit />
                           </IconButton>
                           <IconButton
-                            size="small"
-                            color="error"
+                            size='small'
+                            color='error'
                             onClick={() => handleDeleteProduct(product)}
-                            title="Excluir"
+                            title='Excluir'
                           >
                             <Delete />
                           </IconButton>
@@ -296,8 +295,8 @@ const AdminProductsPage: React.FC = () => {
             </TableContainer>
 
             {products.length === 0 && (
-              <Box textAlign="center" py={4}>
-                <Typography variant="body1" color="text.secondary">
+              <Box textAlign='center' py={4}>
+                <Typography variant='body1' color='text.secondary'>
                   Nenhum produto cadastrado
                 </Typography>
               </Box>
@@ -307,43 +306,42 @@ const AdminProductsPage: React.FC = () => {
       )}
 
       {/* Product Form Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingProduct ? 'Editar Produto' : 'Novo Produto'}
-        </DialogTitle>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth='md' fullWidth>
+        <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Nome do Produto"
+                label='Nome do Produto'
                 value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Descrição"
+                label={t('adminProducts.descriptionLabel')}
                 multiline
                 rows={3}
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Preço"
-                type="number"
+                label={t('adminProducts.priceLabel')}
+                type='number'
                 inputProps={{ min: 0, step: 0.01 }}
                 value={formData.price}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, price: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -351,15 +349,15 @@ const AdminProductsPage: React.FC = () => {
                 <InputLabel>Categoria</InputLabel>
                 <Select
                   value={formData.category}
-                  label="Categoria"
-                  onChange={(e) => setFormData({ ...formData, category: String(e.target.value) })}
+                  label='Categoria'
+                  onChange={e => setFormData({ ...formData, category: String(e.target.value) })}
                 >
-                  {categories.map((category) => (
+                  {categories.map(category => (
                     <MenuItem key={category} value={category}>
                       {category}
                     </MenuItem>
                   ))}
-                  <MenuItem value="Nova Categoria">
+                  <MenuItem value='Nova Categoria'>
                     <em>+ Nova Categoria</em>
                   </MenuItem>
                 </Select>
@@ -369,19 +367,23 @@ const AdminProductsPage: React.FC = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Nome da Nova Categoria"
-                  placeholder="Digite o nome da nova categoria"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, category: e.target.value })}
+                  label='Nome da Nova Categoria'
+                  placeholder='Digite o nome da nova categoria'
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
                 />
               </Grid>
             )}
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="URL da Imagem"
+                label='URL da Imagem'
                 value={formData.imageUrl}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://exemplo.com/imagem.jpg"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, imageUrl: e.target.value })
+                }
+                placeholder='https://exemplo.com/imagem.jpg'
               />
             </Grid>
             {formData.imageUrl && (
@@ -389,14 +391,14 @@ const AdminProductsPage: React.FC = () => {
                 <Box sx={{ textAlign: 'center' }}>
                   <img
                     src={formData.imageUrl}
-                    alt="Preview"
+                    alt='Preview'
                     style={{
                       maxWidth: '200px',
                       maxHeight: '200px',
                       objectFit: 'cover',
                       borderRadius: '8px',
                     }}
-                    onError={(e) => {
+                    onError={e => {
                       e.currentTarget.style.display = 'none';
                     }}
                   />
@@ -411,7 +413,7 @@ const AdminProductsPage: React.FC = () => {
           </Button>
           <Button
             onClick={handleFormSubmit}
-            variant="contained"
+            variant='contained'
             startIcon={<Save />}
             disabled={formLoading}
           >

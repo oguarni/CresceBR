@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import SupplierQuotationsPage from '../SupplierQuotationsPage';
+import { LanguageProvider } from '../../contexts/LanguageContext';
 import { quotationsService } from '../../services/quotationsService';
 import toast from 'react-hot-toast';
 
@@ -113,13 +114,17 @@ const mockQuotations = [
   },
 ];
 
-const renderPage = async () => {
+// Assertions below are written against the English dictionary, so the locale is
+// pinned explicitly — the app itself defaults to pt.
+const renderPage = async (language: 'pt' | 'en' = 'en') => {
   let renderResult;
   await act(async () => {
     renderResult = render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <SupplierQuotationsPage />
-      </BrowserRouter>
+      <LanguageProvider initialLanguage={language}>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SupplierQuotationsPage />
+        </BrowserRouter>
+      </LanguageProvider>
     );
   });
   return renderResult!;
@@ -138,9 +143,11 @@ describe('SupplierQuotationsPage', () => {
 
     await act(async () => {
       render(
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <SupplierQuotationsPage />
-        </BrowserRouter>
+        <LanguageProvider initialLanguage='en'>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <SupplierQuotationsPage />
+          </BrowserRouter>
+        </LanguageProvider>
       );
     });
 
@@ -167,11 +174,14 @@ describe('SupplierQuotationsPage', () => {
   it('displays statistics cards with correct counts', async () => {
     await renderPage();
 
+    // Scoped to the stats grid: 'Completed' also appears as a status chip on
+    // each completed quotation card once statuses are rendered translated.
     await waitFor(() => {
-      expect(screen.getByText('Total Requests')).toBeInTheDocument();
-      expect(screen.getByText('Pending Response')).toBeInTheDocument();
-      expect(screen.getByText('Completed')).toBeInTheDocument();
-      expect(screen.getByText('Win Rate')).toBeInTheDocument();
+      const stats = within(screen.getByTestId('quotation-stats'));
+      expect(stats.getByText('Total Requests')).toBeInTheDocument();
+      expect(stats.getByText('Pending Response')).toBeInTheDocument();
+      expect(stats.getByText('Completed')).toBeInTheDocument();
+      expect(stats.getByText('Win Rate')).toBeInTheDocument();
     });
   });
 
@@ -878,6 +888,42 @@ describe('SupplierQuotationsPage', () => {
       const updatedComboboxes = screen.getAllByRole('combobox');
       const updated = updatedComboboxes.find(el => el.textContent === 'Limited');
       expect(updated).toBeDefined();
+    });
+  });
+
+  describe('localization', () => {
+    it('renders Portuguese copy when the active language is pt', async () => {
+      await renderPage('pt');
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Cotações')).toBeInTheDocument();
+      });
+
+      const stats = within(screen.getByTestId('quotation-stats'));
+      expect(stats.getByText('Total de Solicitações')).toBeInTheDocument();
+      expect(stats.getByText('Aguardando Resposta')).toBeInTheDocument();
+      expect(screen.getByText('Solicitação de Cotação nº 1')).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: 'Detalhes' }).length).toBeGreaterThan(0);
+    });
+
+    it('keeps the priority filter working in pt, where labels are translated', async () => {
+      // Regression guard: the filter compares a stable priority key. Comparing a
+      // translated label instead would match nothing outside English.
+      await renderPage('pt');
+
+      await waitFor(() => {
+        expect(screen.getByText('Solicitação de Cotação nº 1')).toBeInTheDocument();
+      });
+
+      const prioritySelect = screen.getAllByRole('combobox')[1];
+      fireEvent.mouseDown(prioritySelect);
+      fireEvent.click(await screen.findByRole('option', { name: 'Urgente' }));
+
+      // Quotation #1 is due in 5 days, so it is the only urgent one.
+      await waitFor(() => {
+        expect(screen.getByText('Solicitação de Cotação nº 1')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Solicitação de Cotação nº 2')).not.toBeInTheDocument();
     });
   });
 });

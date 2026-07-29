@@ -29,6 +29,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { viaCepService } from '../services/viaCepService';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
 
 interface ShippingInfo {
   cost: number;
@@ -36,6 +37,7 @@ interface ShippingInfo {
 }
 
 const CheckoutPage: React.FC = () => {
+  const t = useT();
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -120,7 +122,7 @@ const CheckoutPage: React.FC = () => {
 
   const validateForm = (): boolean => {
     if (!formData.cep || !formData.address) {
-      toast.error('Informações de entrega são obrigatórias');
+      toast.error(t('checkout.toast.shippingRequired'));
       return false;
     }
 
@@ -131,24 +133,24 @@ const CheckoutPage: React.FC = () => {
 
     if (formData.paymentMethod === 'credit') {
       if (!formData.cardNumber || !formData.cardName || !formData.cardExpiry || !formData.cardCvv) {
-        toast.error('Todos os campos do cartão são obrigatórios');
+        toast.error(t('checkout.toast.cardFieldsRequired'));
         return false;
       }
 
       const cleanCardNumber = formData.cardNumber.replace(/\s/g, '');
       if (cleanCardNumber.length !== 16) {
-        toast.error('Número do cartão deve ter 16 dígitos');
+        toast.error(t('checkout.toast.cardNumberLength'));
         return false;
       }
 
       if (formData.cardCvv.length !== 3) {
-        toast.error('CVV deve ter 3 dígitos');
+        toast.error(t('checkout.toast.cvvLength'));
         return false;
       }
     }
 
     if (formData.paymentMethod === 'pix' && !formData.pixEmail) {
-      toast.error('Email para PIX é obrigatório');
+      toast.error(t('checkout.toast.pixEmailRequired'));
       return false;
     }
 
@@ -162,12 +164,12 @@ const CheckoutPage: React.FC = () => {
       address: 'Av. Brasil, 456, Centro, Cascavel - PR',
       paymentMethod: 'credit',
       cardNumber: '4111 1111 1111 1111',
-      cardName: 'Comprador Demonstração',
+      cardName: t('checkout.demoCardName'),
       cardExpiry: '12/30',
       cardCvv: '123',
     }));
     setShippingInfo({ cost: totalPrice * 0.05, days: 5 });
-    toast.success('Dados de demonstração preenchidos. Agora é só finalizar o pedido.');
+    toast.success(t('checkout.toast.demoFilled'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -201,14 +203,13 @@ const CheckoutPage: React.FC = () => {
             Pedido Realizado com Sucesso!
           </Typography>
           <Typography variant='body1' color='text.secondary' sx={{ mb: 2 }}>
-            Seu pedido de demonstração #{orderId} foi registrado.
+            {t('checkout.demoOrderPlaced', { orderId: orderId ?? '' })}
           </Typography>
           <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-            Prazo de entrega: {shippingInfo?.days} dias úteis
+            {t('checkout.deliveryEstimate', { days: shippingInfo?.days ?? '' })}
           </Typography>
           <Alert severity='info' sx={{ mb: 4, textAlign: 'left' }}>
-            Esta foi uma compra simulada. Nenhum pagamento foi processado e nenhum dado de cartão
-            foi armazenado.
+            {t('checkout.simulatedNotice')}
           </Alert>
           <Button variant='contained' onClick={() => navigate('/')} size='large'>
             Continuar Comprando
@@ -231,12 +232,11 @@ const CheckoutPage: React.FC = () => {
         sx={{ mb: 3 }}
         action={
           <Button color='inherit' size='small' onClick={fillDemoData}>
-            Preencher dados de demonstração
+            {t('checkout.fillDemoData')}
           </Button>
         }
       >
-        <strong>Modo demonstração.</strong> Esta é uma compra simulada — nenhum pagamento é
-        processado. Clique no botão para preencher os campos automaticamente.
+        <strong>{t('checkout.demoModeTitle')}</strong> {t('checkout.demoModeBody')}
       </Alert>
 
       <form onSubmit={handleSubmit}>
@@ -248,7 +248,7 @@ const CheckoutPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <LocalShipping sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant='h6'>Informações de Entrega</Typography>
+                  <Typography variant='h6'>{t('checkout.shippingSection')}</Typography>
                 </Box>
 
                 <Grid container spacing={2}>
@@ -273,7 +273,7 @@ const CheckoutPage: React.FC = () => {
                   <Grid item xs={12} sm={8}>
                     <TextField
                       fullWidth
-                      label='Endereço Completo'
+                      label={t('checkout.addressLabel')}
                       value={formData.address}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setFormData(prev => ({ ...prev, address: e.target.value }))
@@ -286,8 +286,10 @@ const CheckoutPage: React.FC = () => {
 
                 {shippingInfo && (
                   <Alert severity='success' sx={{ mt: 2 }}>
-                    Frete: {formatPrice(shippingInfo.cost)} - Entrega em {shippingInfo.days} dias
-                    úteis
+                    {t('checkout.shippingLine', {
+                      cost: formatPrice(shippingInfo.cost),
+                      days: shippingInfo.days,
+                    })}
                   </Alert>
                 )}
               </CardContent>
@@ -298,11 +300,11 @@ const CheckoutPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <CreditCard sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant='h6'>Informações de Pagamento</Typography>
+                  <Typography variant='h6'>{t('checkout.paymentSection')}</Typography>
                 </Box>
 
                 <FormControl component='fieldset' sx={{ mb: 3 }}>
-                  <FormLabel component='legend'>Método de Pagamento</FormLabel>
+                  <FormLabel component='legend'>{t('checkout.paymentMethod')}</FormLabel>
                   <RadioGroup
                     value={formData.paymentMethod}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -313,7 +315,7 @@ const CheckoutPage: React.FC = () => {
                     <FormControlLabel
                       value='credit'
                       control={<Radio />}
-                      label='Cartão de Crédito'
+                      label={t('checkout.creditCard')}
                     />
                     <FormControlLabel value='pix' control={<Radio />} label='PIX' />
                   </RadioGroup>
@@ -324,7 +326,7 @@ const CheckoutPage: React.FC = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label='Número do Cartão'
+                        label={t('checkout.cardNumber')}
                         value={formData.cardNumber}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -339,12 +341,12 @@ const CheckoutPage: React.FC = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label='Nome no Cartão'
+                        label={t('checkout.cardName')}
                         value={formData.cardName}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({ ...prev, cardName: e.target.value }))
                         }
-                        placeholder='Nome como no cartão'
+                        placeholder={t('checkout.cardNamePlaceholder')}
                       />
                     </Grid>
                     <Grid item xs={6}>
@@ -393,9 +395,7 @@ const CheckoutPage: React.FC = () => {
                       />
                     </Grid>
                     <Grid item xs={12}>
-                      <Alert severity='info'>
-                        Após confirmar o pedido, você receberá o código PIX para pagamento.
-                      </Alert>
+                      <Alert severity='info'>{t('checkout.pixNotice')}</Alert>
                     </Grid>
                   </Grid>
                 )}
@@ -412,7 +412,7 @@ const CheckoutPage: React.FC = () => {
                 >
                   <Security sx={{ mr: 1, color: 'success.main' }} />
                   <Typography variant='body2' color='text.secondary'>
-                    Seus dados estão protegidos com criptografia SSL
+                    {t('checkout.sslNotice')}
                   </Typography>
                 </Box>
               </CardContent>
@@ -494,7 +494,7 @@ const CheckoutPage: React.FC = () => {
                 </Button>
 
                 <Typography variant='caption' display='block' sx={{ mt: 2, textAlign: 'center' }}>
-                  Ao finalizar, você concorda com nossos termos de uso
+                  {t('checkout.termsNotice')}
                 </Typography>
               </CardContent>
             </Card>

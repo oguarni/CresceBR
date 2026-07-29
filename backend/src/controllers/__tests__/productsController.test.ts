@@ -20,6 +20,7 @@ import { requireRole } from '../../middleware/rbac';
 import { errorHandler } from '../../middleware/errorHandler';
 import Product from '../../models/Product';
 import { CSVImporter } from '../../utils/csvImporter';
+import { logger } from '../../utils/structuredLogger';
 
 // Mock the models and utilities
 jest.mock('../../models/Product');
@@ -639,7 +640,7 @@ describe('Products Controller', () => {
     });
 
     it('should log download error and skip cleanup when file does not exist (B16 true/B17 false)', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
       MockCSVImporter.generateSampleCSV = jest.fn(); // no-op: file never created
 
       const mockRes = {
@@ -654,9 +655,12 @@ describe('Products Controller', () => {
 
       await generateSampleCSV(mockReq as any, mockRes as any, next);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Error downloading file:', expect.any(Error));
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Failed to download file',
+        expect.objectContaining({ error: expect.any(Error) })
+      );
       expect(mockRes.status).not.toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
   });
 

@@ -72,7 +72,8 @@ const QuotationDetailPage: React.FC = () => {
       toast.success(t('quotationDetail.createOrderSuccess'));
       navigate('/my-orders');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('quotationDetail.createOrderError');
+      const errorMessage =
+        err instanceof Error ? err.message : t('quotationDetail.createOrderError');
       toast.error(errorMessage);
     } finally {
       setCreatingOrder(false);

@@ -54,6 +54,7 @@ import { ordersService } from '../services/ordersService';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrders } from '../hooks';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
 
 interface OrderHistory {
   order: Order;
@@ -66,6 +67,7 @@ interface OrderHistory {
 }
 
 const MyOrdersPage: React.FC = () => {
+  const t = useT();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -100,7 +102,7 @@ const MyOrdersPage: React.FC = () => {
       const history = await ordersService.getOrderHistory(order.id);
       setOrderHistory(history);
     } catch (_error) {
-      toast.error('Erro ao carregar histórico do pedido');
+      toast.error(t('myOrders.historyError'));
     } finally {
       setTimelineLoading(false);
     }
@@ -144,7 +146,7 @@ const MyOrdersPage: React.FC = () => {
             Acesso negado. Apenas clientes podem visualizar pedidos.
           </Alert>
           <Button variant='contained' onClick={() => navigate('/')}>
-            Voltar ao Início
+            {t('common.backHome')}
           </Button>
         </Box>
       </Container>
@@ -158,7 +160,7 @@ const MyOrdersPage: React.FC = () => {
           Meus Pedidos
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          Acompanhe o status e histórico dos seus pedidos
+          {t('myOrders.subtitle')}
         </Typography>
       </Box>
 
@@ -215,8 +217,10 @@ const MyOrdersPage: React.FC = () => {
             </Typography>
             <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
               {statusFilter
-                ? `Não há pedidos com status "${ordersService.getStatusLabel(statusFilter)}"`
-                : 'Você ainda não fez nenhum pedido'}
+                ? t('myOrders.emptyFiltered', {
+                    status: ordersService.getStatusLabel(statusFilter),
+                  })
+                : t('myOrders.emptyNoOrders')}
             </Typography>
             <Button variant='contained' onClick={() => navigate('/')}>
               Explorar Produtos
@@ -237,7 +241,7 @@ const MyOrdersPage: React.FC = () => {
                       <TableCell>Data do Pedido</TableCell>
                       <TableCell>Entrega Estimada</TableCell>
                       <TableCell>Rastreamento</TableCell>
-                      <TableCell align='center'>Ações</TableCell>
+                      <TableCell align='center'>{t('common.actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -370,7 +374,7 @@ const MyOrdersPage: React.FC = () => {
                     {orderHistory.order.trackingNumber && (
                       <Grid item xs={12} sm={6}>
                         <Typography variant='body2' color='text.secondary'>
-                          Código de Rastreamento
+                          {t('myOrders.trackingCode')}
                         </Typography>
                         <Typography variant='body1' fontWeight='medium'>
                           {orderHistory.order.trackingNumber}
@@ -417,7 +421,7 @@ const MyOrdersPage: React.FC = () => {
               </Timeline>
             </>
           ) : (
-            <Alert severity='error'>Erro ao carregar histórico do pedido</Alert>
+            <Alert severity='error'>{t('myOrders.historyError')}</Alert>
           )}
         </DialogContent>
         <DialogActions>

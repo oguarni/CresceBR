@@ -57,6 +57,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProducts } from '../hooks';
 import { formatBRL } from '../utils/currency';
 import toast from 'react-hot-toast';
+import { browserLogger } from '../utils/browserLogger';
 
 interface ProductFormData {
   name: string;
@@ -138,7 +139,7 @@ const SupplierProductsPage: React.FC = () => {
       const categoriesData = await productsService.getCategories();
       setCategories(categoriesData);
     } catch (_error) {
-      console.error('Error loading categories:', _error);
+      browserLogger.error('Failed to load categories', { error: _error });
     }
   };
 

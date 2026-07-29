@@ -1,5 +1,6 @@
 import { productsService } from '../productsService';
 import Product from '../../models/Product';
+import { logger } from '../../utils/structuredLogger';
 
 // Mock models using the same pattern as other service tests
 jest.mock('../../models/Product');
@@ -193,16 +194,16 @@ describe('productsService', () => {
 
     it('should handle invalid specifications JSON gracefully', async () => {
       setupGetAllMock([], 0);
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
 
       await productsService.getAll({ specifications: 'not-valid-json' });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error parsing specifications filter:',
-        expect.any(Error)
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Failed to parse specifications filter',
+        expect.objectContaining({ error: expect.any(Error) })
       );
       expect(MockProduct.findAndCountAll).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
 
     it('should skip Op.and assignment when specifications filter produces no conditions (empty object)', async () => {

@@ -10,6 +10,7 @@ import {
   addPermissionsToResponse,
 } from '../rbac';
 import { AuthenticatedRequest } from '../auth';
+import { logger } from '../../utils/structuredLogger';
 
 // Mock the User model for dynamic import used inside async middleware.
 // The __esModule flag is required so that (await import(...)).default resolves correctly.
@@ -855,7 +856,7 @@ describe('RBAC Middleware', () => {
       };
       mockFindByPk.mockRejectedValue(new Error('DB connection lost'));
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation();
 
       await addPermissionsToResponse(
         mockRequest as AuthenticatedRequest,
@@ -868,12 +869,12 @@ describe('RBAC Middleware', () => {
       expect(mockResponse.setHeader).not.toHaveBeenCalled();
 
       // Should log the error
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error adding permissions to response:',
-        expect.any(Error)
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Failed to add permissions to response',
+        expect.objectContaining({ error: expect.any(Error) })
       );
 
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
 
     it('should resolve supplier permissions correctly with status', async () => {

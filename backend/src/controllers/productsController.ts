@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { productsService, ProductFilters } from '../services/productsService';
 import path from 'path';
+import { logger } from '../utils/structuredLogger';
 
 export const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
   const result = await productsService.getAll(req.query as unknown as ProductFilters);
@@ -159,7 +160,7 @@ export const generateSampleCSV = asyncHandler(async (req: Request, res: Response
   try {
     CSVImporter.generateSampleCSV(sampleFilePath);
     res.download(sampleFilePath, 'sample-products.csv', err => {
-      if (err) console.error('Error downloading file:', err);
+      if (err) logger.error('Failed to download file', { error: err });
       const fs = require('fs');
       if (fs.existsSync(sampleFilePath)) fs.unlinkSync(sampleFilePath);
     });

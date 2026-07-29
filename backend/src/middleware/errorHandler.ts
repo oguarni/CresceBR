@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ValidationError } from 'sequelize';
+import { logger } from '../utils/structuredLogger';
 
 interface AppError extends Error {
   statusCode?: number;
@@ -24,11 +25,11 @@ export const errorHandler = (
   error.message = err.message;
 
   // Log error
-  console.error(err);
+  logger.error('Unhandled request error', { error: err, path: req.path, method: req.method });
 
   // Sequelize validation error
   if (err instanceof ValidationError) {
-    const message = err.errors.map((val) => val.message).join(', ');
+    const message = err.errors.map(val => val.message).join(', ');
     error = {
       name: 'ValidationError',
       message,
@@ -73,4 +74,6 @@ export const errorHandler = (
 };
 
 export const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) =>
-  Promise.resolve().then(() => fn(req, res, next)).catch(next);
+  Promise.resolve()
+    .then(() => fn(req, res, next))
+    .catch(next);

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { getRedisClient } from '../config/redis';
 import { AuthenticatedRequest } from './auth';
+import { logger } from '../utils/structuredLogger';
 
 interface RateLimitOptions {
   windowMs: number; // Time window in milliseconds
@@ -74,7 +75,7 @@ class RateLimiter {
           next();
         } catch (err) {
           // Fail open: log and continue on Redis errors (availability > strict limiting)
-          console.error('Rate limit Redis error:', (err as Error).message);
+          logger.error('Rate limit Redis error', { error: err as Error });
           next();
         }
       })();

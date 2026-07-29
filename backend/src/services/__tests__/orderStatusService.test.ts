@@ -2,6 +2,7 @@ import { OrderStatusService } from '../orderStatusService';
 import Order from '../../models/Order';
 import User from '../../models/User';
 import Quotation from '../../models/Quotation';
+import { logger } from '../../utils/structuredLogger';
 
 // Mock the models
 jest.mock('../../models/Order');
@@ -483,7 +484,7 @@ describe('OrderStatusService', () => {
         .mockResolvedValueOnce(mockOrder as any)
         .mockResolvedValueOnce(mockOrder as any);
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
 
       const result = await OrderStatusService.bulkUpdateOrderStatus(
         ['order-1', 'order-2'],
@@ -493,9 +494,12 @@ describe('OrderStatusService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('order-2');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to update order order-1:', expect.any(Error));
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Failed to update order status',
+        expect.objectContaining({ orderId: 'order-1', error: expect.any(Error) })
+      );
 
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
   });
 

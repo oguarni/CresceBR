@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
 
 interface Company {
   id: number;
@@ -77,7 +78,33 @@ interface VerificationQueue {
   totalPages: number;
 }
 
+const INDUSTRY_SECTORS = [
+  'machinery',
+  'raw_materials',
+  'components',
+  'electronics',
+  'textiles',
+  'chemicals',
+  'automotive',
+  'food_beverage',
+  'construction',
+  'pharmaceutical',
+  'other',
+] as const;
+
+const COMPANY_TYPES = ['buyer', 'supplier', 'both'] as const;
+
+type IndustrySector = (typeof INDUSTRY_SECTORS)[number];
+type CompanyType = (typeof COMPANY_TYPES)[number];
+
+const isIndustrySector = (value: string): value is IndustrySector =>
+  (INDUSTRY_SECTORS as readonly string[]).includes(value);
+
+const isCompanyType = (value: string): value is CompanyType =>
+  (COMPANY_TYPES as readonly string[]).includes(value);
+
 const AdminCompanyVerificationPage: React.FC = () => {
+  const t = useT();
   const [verificationQueue, setVerificationQueue] = useState<VerificationQueue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -107,12 +134,12 @@ const AdminCompanyVerificationPage: React.FC = () => {
       setVerificationQueue(response.data as Parameters<typeof setVerificationQueue>[0]);
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erro ao carregar a fila de verificação';
+        err instanceof Error ? err.message : t('companyVerification.toast.loadError');
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [page, filter]);
+  }, [page, filter, t]);
 
   useEffect(() => {
     loadVerificationQueue();
@@ -135,7 +162,8 @@ const AdminCompanyVerificationPage: React.FC = () => {
       setSelectedCompany(null);
       loadVerificationQueue();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao verificar empresa';
+      const errorMessage =
+        err instanceof Error ? err.message : t('companyVerification.toast.verifyError');
       toast.error(errorMessage);
     }
   };
@@ -150,7 +178,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
         }
       )) as { data: { user: Parameters<typeof setSelectedCompany>[0] } };
 
-      toast.success('CNPJ validado com sucesso');
+      toast.success(t('companyVerification.toast.cnpjValidated'));
 
       // Update the selected company data
       if (selectedCompany?.id === companyId) {
@@ -159,38 +187,21 @@ const AdminCompanyVerificationPage: React.FC = () => {
 
       loadVerificationQueue();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao validar CNPJ';
+      const errorMessage =
+        err instanceof Error ? err.message : t('companyVerification.toast.cnpjError');
       toast.error(errorMessage);
     } finally {
       setCnpjValidating(false);
     }
   };
 
-  const getSectorLabel = (sector: string) => {
-    const sectorMap: Record<string, string> = {
-      machinery: 'Máquinas',
-      raw_materials: 'Matérias-primas',
-      components: 'Componentes',
-      electronics: 'Eletrônicos',
-      textiles: 'Têxteis',
-      chemicals: 'Químicos',
-      automotive: 'Automotivo',
-      food_beverage: 'Alimentos e Bebidas',
-      construction: 'Construção',
-      pharmaceutical: 'Farmacêutico',
-      other: 'Outros',
-    };
-    return sectorMap[sector] || sector;
-  };
+  // Sector and company-type labels live in the register.* dictionary sections;
+  // resolving through t() keeps a single source of truth for both screens.
+  const getSectorLabel = (sector: string) =>
+    isIndustrySector(sector) ? t(`register.industry.${sector}`) : sector;
 
-  const getCompanyTypeLabel = (type: string) => {
-    const typeMap: Record<string, string> = {
-      buyer: 'Comprador',
-      supplier: 'Fornecedor',
-      both: 'Ambos',
-    };
-    return typeMap[type] || type;
-  };
+  const getCompanyTypeLabel = (type: string) =>
+    isCompanyType(type) ? t(`register.companyType.${type}`) : type;
 
   // Client-side filter over the loaded page: matches the company name
   // (case-insensitive) or the CNPJ ignoring punctuation.
@@ -229,7 +240,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant='h4' component='h1'>
-            Verificação de Empresas
+            {t('companyVerification.title')}
           </Typography>
           <Button
             variant='outlined'
@@ -237,11 +248,11 @@ const AdminCompanyVerificationPage: React.FC = () => {
             onClick={() => loadVerificationQueue()}
             disabled={loading}
           >
-            Atualizar
+            {t('companyVerification.refresh')}
           </Button>
         </Box>
         <Typography variant='body1' color='text.secondary'>
-          Gerencie as solicitações de cadastro de empresas fornecedoras
+          {t('companyVerification.subtitle')}
         </Typography>
       </Box>
 
@@ -259,10 +270,10 @@ const AdminCompanyVerificationPage: React.FC = () => {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Pending sx={{ fontSize: 40, color: 'warning.main' }} />
                 <Typography variant='h6' sx={{ mt: 1 }}>
-                  Total na Fila
+                  {t('companyVerification.stats.queueTotal')}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  Empresas aguardando verificação
+                  {t('companyVerification.stats.queueTotalCaption')}
                 </Typography>
               </CardContent>
             </Card>
@@ -272,10 +283,10 @@ const AdminCompanyVerificationPage: React.FC = () => {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Verified sx={{ fontSize: 40, color: 'success.main' }} />
                 <Typography variant='h6' sx={{ mt: 1 }}>
-                  Verificadas
+                  {t('companyVerification.stats.verified')}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  Empresas aprovadas hoje
+                  {t('companyVerification.stats.verifiedCaption')}
                 </Typography>
               </CardContent>
             </Card>
@@ -285,10 +296,10 @@ const AdminCompanyVerificationPage: React.FC = () => {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Warning sx={{ fontSize: 40, color: 'error.main' }} />
                 <Typography variant='h6' sx={{ mt: 1 }}>
-                  Pendências
+                  {t('companyVerification.stats.issues')}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  CNPJs não validados
+                  {t('companyVerification.stats.issuesCaption')}
                 </Typography>
               </CardContent>
             </Card>
@@ -303,7 +314,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
             variant='h6'
             sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}
           >
-            Fila de Verificação
+            {t('companyVerification.queueTitle')}
             <Chip
               label={`${verificationQueue?.totalCount || 0} empresa(s)`}
               size='small'
@@ -333,9 +344,9 @@ const AdminCompanyVerificationPage: React.FC = () => {
               setPage(1);
             }}
           >
-            <Tab label='Pendentes' />
-            <Tab label='Todas' />
-            <Tab label='CNPJ Inválidos' />
+            <Tab label={t('companyVerification.tabs.pending')} />
+            <Tab label={t('companyVerification.tabs.all')} />
+            <Tab label={t('companyVerification.tabs.invalidCnpj')} />
           </Tabs>
         </Box>
 
@@ -343,7 +354,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
           <TextField
             fullWidth
             size='small'
-            placeholder='Buscar por CNPJ ou nome'
+            placeholder={t('companyVerification.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             slotProps={{
@@ -366,7 +377,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
             </Box>
           ) : visibleCompanies.length === 0 ? (
             <Typography sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-              Nenhuma empresa encontrada.
+              {t('companyVerification.emptyQueue')}
             </Typography>
           ) : (
             visibleCompanies.map((company, _idx) => (
@@ -462,7 +473,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
                         color: 'text.secondary',
                       }}
                     >
-                      Localização
+                      {t('companyVerification.location')}
                     </Typography>
                     <Typography variant='caption' sx={{ fontWeight: 'medium' }}>
                       {company.city || 'N/A'}, {company.state || 'N/A'}
@@ -473,7 +484,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
                       <>
                         <IconButton
                           size='small'
-                          aria-label={`Rejeitar ${company.companyName}`}
+                          aria-label={`${t('companyVerification.reject')} ${company.companyName}`}
                           sx={{
                             bgcolor: 'error.light',
                             color: 'error.main',
@@ -491,7 +502,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
                         </IconButton>
                         <IconButton
                           size='small'
-                          aria-label={`Aprovar ${company.companyName}`}
+                          aria-label={`${t('companyVerification.approve')} ${company.companyName}`}
                           sx={{
                             bgcolor: 'success.light',
                             color: 'success.main',
@@ -550,7 +561,10 @@ const AdminCompanyVerificationPage: React.FC = () => {
       {verificationQueue && verificationQueue.totalPages > 1 && (
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
           <Typography variant='body2' color='text.secondary'>
-            Página {verificationQueue.currentPage} de {verificationQueue.totalPages}
+            {t('companyVerification.pagination', {
+              current: verificationQueue.currentPage,
+              total: verificationQueue.totalPages,
+            })}
           </Typography>
         </Box>
       )}
@@ -559,14 +573,16 @@ const AdminCompanyVerificationPage: React.FC = () => {
       <Dialog open={detailsDialog} onClose={() => setDetailsDialog(false)} maxWidth='md' fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Business />
-          Detalhes da Empresa
+          {t('companyVerification.detailsTitle')}
         </DialogTitle>
         <DialogContent>
           {selectedCompany && (
             <Box sx={{ mt: 1 }}>
               <Accordion defaultExpanded>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant='h6'>Informações Básicas</Typography>
+                  <Typography variant='h6'>
+                    {t('companyVerification.sections.basicInfo')}
+                  </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
@@ -574,7 +590,9 @@ const AdminCompanyVerificationPage: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <Business color='primary' />
                         <Box>
-                          <Typography variant='subtitle2'>Nome Fantasia</Typography>
+                          <Typography variant='subtitle2'>
+                            {t('companyVerification.fields.tradeName')}
+                          </Typography>
                           <Typography variant='body2'>{selectedCompany.companyName}</Typography>
                         </Box>
                       </Box>
@@ -583,7 +601,9 @@ const AdminCompanyVerificationPage: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <Business color='primary' />
                         <Box>
-                          <Typography variant='subtitle2'>Razão Social</Typography>
+                          <Typography variant='subtitle2'>
+                            {t('companyVerification.fields.corporateName')}
+                          </Typography>
                           <Typography variant='body2'>{selectedCompany.corporateName}</Typography>
                         </Box>
                       </Box>
@@ -601,9 +621,11 @@ const AdminCompanyVerificationPage: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <Phone color='primary' />
                         <Box>
-                          <Typography variant='subtitle2'>Telefone</Typography>
+                          <Typography variant='subtitle2'>
+                            {t('companyVerification.fields.phone')}
+                          </Typography>
                           <Typography variant='body2'>
-                            {selectedCompany.phone || 'Não informado'}
+                            {selectedCompany.phone || t('companyVerification.notInformed')}
                           </Typography>
                         </Box>
                       </Box>
@@ -614,12 +636,16 @@ const AdminCompanyVerificationPage: React.FC = () => {
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant='h6'>Documentação</Typography>
+                  <Typography variant='h6'>
+                    {t('companyVerification.sections.documentation')}
+                  </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant='subtitle2'>CPF do Responsável</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.responsibleCpf')}
+                      </Typography>
                       <Typography variant='body2' sx={{ mb: 2 }}>
                         {selectedCompany.cpf}
                       </Typography>
@@ -646,7 +672,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
                             cnpjValidating ? <CircularProgress size={16} /> : <CheckCircle />
                           }
                         >
-                          Validar CNPJ
+                          {t('companyVerification.validateCnpj')}
                         </Button>
                       )}
                     </Grid>
@@ -656,7 +682,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant='h6'>Endereço</Typography>
+                  <Typography variant='h6'>{t('companyVerification.sections.address')}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -678,7 +704,9 @@ const AdminCompanyVerificationPage: React.FC = () => {
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant='h6'>Informações Comerciais</Typography>
+                  <Typography variant='h6'>
+                    {t('companyVerification.sections.commercialInfo')}
+                  </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
@@ -686,7 +714,9 @@ const AdminCompanyVerificationPage: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <Category color='primary' />
                         <Box>
-                          <Typography variant='subtitle2'>Setor</Typography>
+                          <Typography variant='subtitle2'>
+                            {t('companyVerification.fields.sector')}
+                          </Typography>
                           <Typography variant='body2'>
                             {getSectorLabel(selectedCompany.industrySector)}
                           </Typography>
@@ -694,27 +724,35 @@ const AdminCompanyVerificationPage: React.FC = () => {
                       </Box>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant='subtitle2'>Tipo de Empresa</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.companyType')}
+                      </Typography>
                       <Typography variant='body2'>
                         {getCompanyTypeLabel(selectedCompany.companyType)}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant='subtitle2'>Porte</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.companySize')}
+                      </Typography>
                       <Typography variant='body2'>
-                        {selectedCompany.companySize || 'Não informado'}
+                        {selectedCompany.companySize || t('companyVerification.notInformed')}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant='subtitle2'>Faturamento</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.revenue')}
+                      </Typography>
                       <Typography variant='body2'>
-                        {selectedCompany.annualRevenue || 'Não informado'}
+                        {selectedCompany.annualRevenue || t('companyVerification.notInformed')}
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant='subtitle2'>Website</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.website')}
+                      </Typography>
                       <Typography variant='body2'>
-                        {selectedCompany.website || 'Não informado'}
+                        {selectedCompany.website || t('companyVerification.notInformed')}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -723,20 +761,24 @@ const AdminCompanyVerificationPage: React.FC = () => {
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant='h6'>Contato</Typography>
+                  <Typography variant='h6'>{t('companyVerification.sections.contact')}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant='subtitle2'>Pessoa de Contato</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.contactPerson')}
+                      </Typography>
                       <Typography variant='body2'>
-                        {selectedCompany.contactPerson || 'Não informado'}
+                        {selectedCompany.contactPerson || t('companyVerification.notInformed')}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant='subtitle2'>Cargo</Typography>
+                      <Typography variant='subtitle2'>
+                        {t('companyVerification.fields.contactTitle')}
+                      </Typography>
                       <Typography variant='body2'>
-                        {selectedCompany.contactTitle || 'Não informado'}
+                        {selectedCompany.contactTitle || t('companyVerification.notInformed')}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -746,7 +788,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailsDialog(false)}>Fechar</Button>
+          <Button onClick={() => setDetailsDialog(false)}>{t('companyVerification.close')}</Button>
           {selectedCompany?.status === 'pending' && (
             <Button
               variant='contained'
@@ -755,7 +797,7 @@ const AdminCompanyVerificationPage: React.FC = () => {
                 setVerificationDialog(true);
               }}
             >
-              Verificar Empresa
+              {t('companyVerification.verifyCompany')}
             </Button>
           )}
         </DialogActions>
@@ -768,51 +810,54 @@ const AdminCompanyVerificationPage: React.FC = () => {
         maxWidth='sm'
         fullWidth
       >
-        <DialogTitle>Verificar Empresa: {selectedCompany?.companyName}</DialogTitle>
+        <DialogTitle>
+          {t('companyVerification.verifyCompany')}: {selectedCompany?.companyName}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 1 }}>
             <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-              Escolha a ação para esta empresa. Se aprovada, a empresa poderá acessar o marketplace.
+              {t('companyVerification.verifyPrompt')}
             </Typography>
 
             <TextField
               fullWidth
-              label='Motivo (opcional)'
+              label={t('companyVerification.reasonLabel')}
               multiline
               rows={3}
               value={verificationReason}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setVerificationReason(e.target.value)
               }
-              placeholder='Adicione uma observação sobre a verificação...'
+              placeholder={t('companyVerification.reasonPlaceholder')}
               sx={{ mb: 2 }}
             />
 
             {selectedCompany && !selectedCompany.cnpjValidated && (
               <Alert severity='warning' sx={{ mb: 2 }}>
                 <Typography variant='body2'>
-                  O CNPJ desta empresa ainda não foi validado. Recomenda-se validar antes de
-                  aprovar.
+                  {t('companyVerification.unvalidatedWarning')}
                 </Typography>
               </Alert>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setVerificationDialog(false)}>Cancelar</Button>
+          <Button onClick={() => setVerificationDialog(false)}>
+            {t('companyVerification.cancel')}
+          </Button>
           <Button
             variant='outlined'
             color='error'
             onClick={() => selectedCompany && handleVerifyCompany(selectedCompany.id, 'rejected')}
           >
-            Rejeitar
+            {t('companyVerification.reject')}
           </Button>
           <Button
             variant='contained'
             color='success'
             onClick={() => selectedCompany && handleVerifyCompany(selectedCompany.id, 'approved')}
           >
-            Aprovar
+            {t('companyVerification.approve')}
           </Button>
         </DialogActions>
       </Dialog>

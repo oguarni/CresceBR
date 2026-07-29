@@ -2,6 +2,8 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Product } from '@shared/types';
 import toast from 'react-hot-toast';
 import { getOrderStep } from '../utils/orderQuantity';
+import { useT } from './LanguageContext';
+import { browserLogger } from '../utils/browserLogger';
 
 interface QuotationRequestItem {
   id: number;
@@ -156,6 +158,7 @@ const QuotationRequestContext = createContext<QuotationRequestContextType | unde
 
 export const QuotationRequestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(quotationRequestReducer, initialState);
+  const t = useT();
 
   // Load quotation request from localStorage on mount
   useEffect(() => {
@@ -165,7 +168,7 @@ export const QuotationRequestProvider: React.FC<{ children: React.ReactNode }> =
         const requestItems = JSON.parse(savedRequest) as QuotationRequestItem[];
         dispatch({ type: 'LOAD_REQUEST', payload: requestItems });
       } catch (error) {
-        console.error('Error loading quotation request from localStorage:', error);
+        browserLogger.error('Failed to load quotation request from localStorage', { error });
       }
     }
   }, []);
@@ -179,12 +182,12 @@ export const QuotationRequestProvider: React.FC<{ children: React.ReactNode }> =
     for (let i = 0; i < quantity; i++) {
       dispatch({ type: 'ADD_ITEM', payload: product });
     }
-    toast.success(`${product.name} adicionado à solicitação de cotação!`);
+    toast.success(t('quotationRequestToast.added', { product: product.name }));
   };
 
   const removeItem = (itemId: number): void => {
     dispatch({ type: 'REMOVE_ITEM', payload: itemId });
-    toast.success('Item removido da solicitação de cotação!');
+    toast.success(t('quotationRequestToast.removed'));
   };
 
   const updateQuantity = (itemId: number, quantity: number): void => {
@@ -197,7 +200,7 @@ export const QuotationRequestProvider: React.FC<{ children: React.ReactNode }> =
 
   const clearRequest = (): void => {
     dispatch({ type: 'CLEAR_REQUEST' });
-    toast.success('Solicitação de cotação limpa!');
+    toast.success(t('quotationRequestToast.cleared'));
   };
 
   const toggleDrawer = (): void => {

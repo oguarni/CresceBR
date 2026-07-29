@@ -41,6 +41,14 @@ import { Quotation } from '@shared/types';
 import { quotationsService } from '../services/quotationsService';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
+
+const QUOTATION_STATUSES = ['pending', 'processed', 'completed', 'rejected'] as const;
+
+type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
+
+const isQuotationStatus = (status: string): status is QuotationStatus =>
+  (QUOTATION_STATUSES as readonly string[]).includes(status);
 
 const AdminQuotationsPage: React.FC = () => {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -51,6 +59,7 @@ const AdminQuotationsPage: React.FC = () => {
   const [updateNotes, setUpdateNotes] = useState<string>('');
   const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
+  const t = useT();
 
   useEffect(() => {
     const fetchQuotations = async () => {
@@ -58,7 +67,8 @@ const AdminQuotationsPage: React.FC = () => {
         const data = await quotationsService.getAllQuotations();
         setQuotations(data);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar cotações';
+        const errorMessage =
+          error instanceof Error ? error.message : t('adminQuotations.toast.loadError');
         toast.error(errorMessage);
       } finally {
         setLoading(false);
@@ -70,7 +80,7 @@ const AdminQuotationsPage: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, t]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,20 +97,10 @@ const AdminQuotationsPage: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'Pendente';
-      case 'processed':
-        return 'Processada';
-      case 'completed':
-        return 'Concluída';
-      case 'rejected':
-        return 'Rejeitada';
-      default:
-        return status;
-    }
-  };
+  // Status labels are shared with the supplier-facing screen; resolving through
+  // t() avoids a second copy that can drift out of sync.
+  const getStatusLabel = (status: string) =>
+    isQuotationStatus(status) ? t(`supplierQuotations.status.${status}`) : status;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -148,10 +148,11 @@ const AdminQuotationsPage: React.FC = () => {
       // Update the quotation in the list
       setQuotations(prev => prev.map(q => (q.id === selectedQuotation.id ? updatedQuotation : q)));
 
-      toast.success('Cotação atualizada com sucesso!');
+      toast.success(t('adminQuotations.toast.updateSuccess'));
       setUpdateDialogOpen(false);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar cotação';
+      const errorMessage =
+        error instanceof Error ? error.message : t('adminQuotations.toast.updateError');
       toast.error(errorMessage);
     } finally {
       setUpdating(false);
@@ -166,7 +167,7 @@ const AdminQuotationsPage: React.FC = () => {
   };
 
   const handleAcceptQuotation = async (quotation: Quotation) => {
-    if (!window.confirm('Tem certeza que deseja aceitar esta cotação?')) {
+    if (!window.confirm(t('adminQuotations.confirmAccept'))) {
       return;
     }
 
@@ -178,15 +179,16 @@ const AdminQuotationsPage: React.FC = () => {
 
       setQuotations(prev => prev.map(q => (q.id === quotation.id ? updatedQuotation : q)));
 
-      toast.success('Cotação aceita com sucesso!');
+      toast.success(t('adminQuotations.toast.acceptSuccess'));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao aceitar cotação';
+      const errorMessage =
+        error instanceof Error ? error.message : t('adminQuotations.toast.acceptError');
       toast.error(errorMessage);
     }
   };
 
   const handleRejectQuotation = async (quotation: Quotation) => {
-    if (!window.confirm('Tem certeza que deseja recusar esta cotação?')) {
+    if (!window.confirm(t('adminQuotations.confirmReject'))) {
       return;
     }
 
@@ -198,9 +200,10 @@ const AdminQuotationsPage: React.FC = () => {
 
       setQuotations(prev => prev.map(q => (q.id === quotation.id ? updatedQuotation : q)));
 
-      toast.success('Cotação recusada com sucesso!');
+      toast.success(t('adminQuotations.toast.rejectSuccess'));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao recusar cotação';
+      const errorMessage =
+        error instanceof Error ? error.message : t('adminQuotations.toast.rejectError');
       toast.error(errorMessage);
     }
   };
@@ -210,10 +213,10 @@ const AdminQuotationsPage: React.FC = () => {
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Alert severity='error' sx={{ mb: 4 }}>
-            Acesso negado. Apenas administradores podem gerenciar cotações.
+            {t('access.adminOnlyQuotations')}
           </Alert>
           <Button variant='contained' component={Link} to='/' startIcon={<ArrowBack />}>
-            Voltar ao Início
+            {t('common.backHome')}
           </Button>
         </Box>
       </Container>
@@ -234,21 +237,20 @@ const AdminQuotationsPage: React.FC = () => {
     <Container maxWidth='xl'>
       <Box sx={{ mb: 4 }}>
         <Typography variant='h4' gutterBottom>
-          Gerenciar Cotações
+          {t('adminQuotations.title')}
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          {quotations.length} cotação{quotations.length !== 1 ? 'ões' : ''} encontrada
-          {quotations.length !== 1 ? 's' : ''}
+          {t('adminQuotations.countFound', { count: quotations.length })}
         </Typography>
       </Box>
 
       {quotations.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant='h6' color='text.secondary' gutterBottom>
-            Nenhuma cotação encontrada
+            {t('adminQuotations.emptyTitle')}
           </Typography>
           <Typography variant='body2' color='text.secondary'>
-            Aguardando solicitações de cotação dos clientes
+            {t('adminQuotations.emptySubtitle')}
           </Typography>
         </Box>
       ) : (
@@ -257,11 +259,11 @@ const AdminQuotationsPage: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>Cliente</TableCell>
+                <TableCell>{t('adminQuotations.columns.customer')}</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Itens</TableCell>
-                <TableCell>Data</TableCell>
-                <TableCell align='center'>Ações</TableCell>
+                <TableCell>{t('adminQuotations.columns.items')}</TableCell>
+                <TableCell>{t('adminQuotations.columns.date')}</TableCell>
+                <TableCell align='center'>{t('adminQuotations.columns.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -282,7 +284,16 @@ const AdminQuotationsPage: React.FC = () => {
                     <Chip
                       icon={getStatusIcon(quotation.status)}
                       label={getStatusLabel(quotation.status)}
-                      color={getStatusColor(quotation.status) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+                      color={
+                        getStatusColor(quotation.status) as
+                          | 'default'
+                          | 'primary'
+                          | 'secondary'
+                          | 'error'
+                          | 'info'
+                          | 'success'
+                          | 'warning'
+                      }
                       size='small'
                     />
                   </TableCell>
@@ -369,7 +380,9 @@ const AdminQuotationsPage: React.FC = () => {
 
       {/* Update Quotation Dialog */}
       <Dialog open={updateDialogOpen} onClose={handleCloseDialog} maxWidth='sm' fullWidth>
-        <DialogTitle>Atualizar Cotação #{selectedQuotation?.id}</DialogTitle>
+        <DialogTitle>
+          {t('adminQuotations.updateTitle', { id: selectedQuotation?.id ?? '' })}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <FormControl fullWidth sx={{ mb: 3 }}>
@@ -379,20 +392,20 @@ const AdminQuotationsPage: React.FC = () => {
                 label='Status'
                 onChange={e => setUpdateStatus(e.target.value)}
               >
-                <MenuItem value='pending'>Pendente</MenuItem>
-                <MenuItem value='processed'>Processada</MenuItem>
-                <MenuItem value='completed'>Concluída</MenuItem>
-                <MenuItem value='rejected'>Rejeitada</MenuItem>
+                <MenuItem value='pending'>{t('supplierQuotations.status.pending')}</MenuItem>
+                <MenuItem value='processed'>{t('supplierQuotations.status.processed')}</MenuItem>
+                <MenuItem value='completed'>{t('supplierQuotations.status.completed')}</MenuItem>
+                <MenuItem value='rejected'>{t('supplierQuotations.status.rejected')}</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label='Observações do Administrador'
+              label={t('adminQuotations.adminNotesLabel')}
               multiline
               rows={4}
               fullWidth
               value={updateNotes}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUpdateNotes(e.target.value)}
-              placeholder='Adicione observações sobre esta cotação...'
+              placeholder={t('adminQuotations.adminNotesPlaceholder')}
             />
           </Box>
         </DialogContent>

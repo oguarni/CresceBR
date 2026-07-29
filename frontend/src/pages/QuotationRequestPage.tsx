@@ -30,6 +30,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { quotationsService } from '../services/quotationsService';
 import { getOrderStep } from '../utils/orderQuantity';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
+import { browserLogger } from '../utils/browserLogger';
 
 interface QuoteCalculation {
   productId: number;
@@ -54,6 +56,7 @@ interface QuoteComparisonResult {
 }
 
 const QuotationRequestPage: React.FC = () => {
+  const t = useT();
   const { items, totalItems, updateQuantity, removeItem, clearRequest } = useQuotationRequest();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -77,7 +80,7 @@ const QuotationRequestPage: React.FC = () => {
       const response = await quotationsService.calculateQuote(calculationItems);
       setPriceCalculations(response.calculations);
     } catch (error) {
-      console.error('Failed to calculate pricing:', error);
+      browserLogger.error('Failed to calculate pricing', { error });
     } finally {
       setIsCalculating(false);
     }
@@ -106,12 +109,12 @@ const QuotationRequestPage: React.FC = () => {
     }
 
     if (user?.role !== 'customer') {
-      toast.error('Apenas clientes podem solicitar cotações');
+      toast.error(t('quotationRequest.toast.customersOnly'));
       return;
     }
 
     if (items.length === 0) {
-      toast.error('Adicione pelo menos um item à solicitação de cotação');
+      toast.error(t('quotationRequest.toast.addAtLeastOne'));
       return;
     }
 
@@ -125,12 +128,12 @@ const QuotationRequestPage: React.FC = () => {
       };
 
       await quotationsService.createQuotation(quotationData);
-      toast.success('Solicitação de cotação enviada com sucesso!');
+      toast.success(t('quotationRequest.toast.success'));
       clearRequest();
       navigate('/my-quotations');
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Erro ao enviar solicitação de cotação';
+        error instanceof Error ? error.message : t('quotationRequest.toast.error');
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -142,10 +145,10 @@ const QuotationRequestPage: React.FC = () => {
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant='h4' gutterBottom>
-            Sua solicitação de cotação está vazia
+            {t('quotationRequest.emptyTitle')}
           </Typography>
           <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
-            Adicione alguns produtos à sua solicitação de cotação para continuar
+            {t('quotationRequest.emptySubtitle')}
           </Typography>
           <Button variant='contained' component={Link} to='/' startIcon={<ArrowBack />}>
             Navegar Produtos
@@ -159,10 +162,12 @@ const QuotationRequestPage: React.FC = () => {
     <Container maxWidth='lg'>
       <Box sx={{ mb: 4 }}>
         <Typography variant='h4' gutterBottom>
-          Solicitação de Cotação
+          {t('quotationRequest.title')}
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          {totalItems} {totalItems === 1 ? 'item' : 'itens'} na sua solicitação
+          {totalItems === 1
+            ? t('quotationRequest.itemCountOne', { count: totalItems })
+            : t('quotationRequest.itemCountOther', { count: totalItems })}
         </Typography>
       </Box>
 
@@ -179,7 +184,7 @@ const QuotationRequestPage: React.FC = () => {
                   mb: 2,
                 }}
               >
-                <Typography variant='h6'>Itens da Cotação</Typography>
+                <Typography variant='h6'>{t('quotationRequest.itemsTitle')}</Typography>
                 {priceCalculations && priceCalculations.totalSavings > 0 && (
                   <Tooltip title='Economia total com descontos por volume'>
                     <Chip
@@ -230,7 +235,7 @@ const QuotationRequestPage: React.FC = () => {
                           return (
                             <Box sx={{ mt: 1 }}>
                               <Typography variant='body2' color='text.secondary'>
-                                Preço base:{' '}
+                                {t('quotationRequest.basePrice')}{' '}
                                 {new Intl.NumberFormat('pt-BR', {
                                   style: 'currency',
                                   currency: 'BRL',
@@ -263,7 +268,7 @@ const QuotationRequestPage: React.FC = () => {
                                     color='primary'
                                     sx={{ fontWeight: 'bold', mt: 0.5 }}
                                   >
-                                    Preço unitário:{' '}
+                                    {t('quotationRequest.unitPrice')}{' '}
                                     {new Intl.NumberFormat('pt-BR', {
                                       style: 'currency',
                                       currency: 'BRL',
@@ -296,7 +301,9 @@ const QuotationRequestPage: React.FC = () => {
                                   sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}
                                 >
                                   <CircularProgress size={16} />
-                                  <Typography variant='caption'>Calculando preços...</Typography>
+                                  <Typography variant='caption'>
+                                    {t('quotationRequest.calculating')}
+                                  </Typography>
                                 </Box>
                               )}
                             </Box>
@@ -348,7 +355,7 @@ const QuotationRequestPage: React.FC = () => {
                         </Typography>
                         {step > 1 && (
                           <Typography variant='caption' color='text.secondary' sx={{ mb: 2 }}>
-                            Pedido mínimo: {step} unidades
+                            {t('quotationRequest.minimumOrder', { step })}
                           </Typography>
                         )}
 
@@ -373,7 +380,7 @@ const QuotationRequestPage: React.FC = () => {
               Continuar Navegando
             </Button>
             <Button variant='outlined' color='error' onClick={clearRequest} startIcon={<Delete />}>
-              Limpar Solicitação
+              {t('quotationRequest.clearRequest')}
             </Button>
           </Box>
         </Grid>
@@ -383,7 +390,7 @@ const QuotationRequestPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>
-                Resumo da Solicitação
+                {t('quotationRequest.summaryTitle')}
               </Typography>
 
               {priceCalculations && (
@@ -393,7 +400,9 @@ const QuotationRequestPage: React.FC = () => {
                       <TableHead>
                         <TableRow>
                           <TableCell>
-                            <Typography variant='caption'>Métricas</Typography>
+                            <Typography variant='caption'>
+                              {t('quotationRequest.metrics')}
+                            </Typography>
                           </TableCell>
                           <TableCell align='right'>
                             <Typography variant='caption'>Valores</Typography>
@@ -453,9 +462,9 @@ const QuotationRequestPage: React.FC = () => {
 
                   <Alert severity='info' icon={<Info />} sx={{ mb: 2 }}>
                     <Typography variant='body2'>
-                      <strong>Preços com desconto por volume aplicado!</strong>
+                      <strong>{t('quotationRequest.volumeDiscountTitle')}</strong>
                       <br />
-                      Os valores incluem descontos automáticos baseados na quantidade solicitada.
+                      {t('quotationRequest.volumeDiscountBody')}
                     </Typography>
                   </Alert>
                 </Box>
@@ -468,7 +477,7 @@ const QuotationRequestPage: React.FC = () => {
                     <Typography fontWeight='medium'>{totalItems}</Typography>
                   </Box>
                   <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                    * Calculando preços com descontos por volume...
+                    * {t('quotationRequest.calculatingVolume')}
                   </Typography>
                 </Box>
               )}
@@ -477,13 +486,13 @@ const QuotationRequestPage: React.FC = () => {
 
               {!isAuthenticated && (
                 <Alert severity='info' sx={{ mb: 2 }}>
-                  Faça login para enviar a solicitação de cotação
+                  {t('quotationRequest.loginToSubmit')}
                 </Alert>
               )}
 
               {isAuthenticated && user?.role !== 'customer' && (
                 <Alert severity='warning' sx={{ mb: 2 }}>
-                  Apenas clientes podem solicitar cotações
+                  {t('quotationRequest.customersOnly')}
                 </Alert>
               )}
 
@@ -495,7 +504,7 @@ const QuotationRequestPage: React.FC = () => {
                 onClick={handleSubmitQuotationRequest}
                 disabled={isSubmitting || !isAuthenticated || user?.role !== 'customer'}
               >
-                {isSubmitting ? 'Enviando...' : 'Solicitar Cotação'}
+                {isSubmitting ? t('quotationRequest.submitting') : t('quotationRequest.submit')}
               </Button>
             </CardContent>
           </Card>

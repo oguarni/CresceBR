@@ -35,7 +35,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../contexts/LanguageContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import BrazilFlag from '../components/BrazilFlag';
-import { viaCepService } from '../services/viaCepService';
+import { ViaCepError, viaCepService } from '../services/viaCepService';
 import { INPUT_LIMITS } from '../utils/inputLimits';
 import toast from 'react-hot-toast';
 
@@ -156,7 +156,11 @@ const RegisterPage: React.FC = () => {
           }));
           toast.success(t('register.toast.cepSuccess'));
         } catch (error: unknown) {
-          toast.error(error instanceof Error ? error.message : t('register.toast.cepError'));
+          toast.error(
+            error instanceof ViaCepError
+              ? t(`register.cepErrors.${error.code}`)
+              : t('register.toast.cepError')
+          );
         } finally {
           setIsLoadingCep(false);
         }

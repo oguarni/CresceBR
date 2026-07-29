@@ -6,6 +6,7 @@ import QuotationItem from './QuotationItem';
 import Order from './Order';
 import OrderStatusHistory from './OrderStatusHistory';
 import Rating from './Rating';
+import { logger } from '../utils/structuredLogger';
 
 // Set up associations
 
@@ -58,7 +59,7 @@ export const syncDatabase = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
+    logger.error('Unable to connect to the database', { error });
     throw error;
   }
 };

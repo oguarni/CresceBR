@@ -57,6 +57,7 @@ import { ordersService } from '../services/ordersService';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { formatBRL } from '../utils/currency';
+import { browserLogger } from '../utils/browserLogger';
 
 interface StatusUpdateDialog {
   open: boolean;
@@ -72,6 +73,155 @@ const statusSteps = [
   { value: 'shipped', label: 'Shipped', icon: <LocalShipping />, color: 'primary' },
   { value: 'delivered', label: 'Delivered', icon: <CheckCircle />, color: 'success' },
 ];
+
+const getStatusColor = (
+  status: string
+): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  switch (status) {
+    case 'pending':
+      return 'warning';
+    case 'processing':
+      return 'info';
+    case 'shipped':
+      return 'primary';
+    case 'delivered':
+      return 'success';
+    case 'cancelled':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return <Schedule />;
+    case 'processing':
+      return <PlayArrow />;
+    case 'shipped':
+      return <LocalShipping />;
+    case 'delivered':
+      return <CheckCircle />;
+    case 'cancelled':
+      return <Cancel />;
+    default:
+      return <Info />;
+  }
+};
+
+const getNextStatus = (currentStatus: string): string => {
+  switch (currentStatus) {
+    case 'pending':
+      return 'processing';
+    case 'processing':
+      return 'shipped';
+    case 'shipped':
+      return 'delivered';
+    default:
+      return currentStatus;
+  }
+};
+
+const canUpdateStatus = (status: string): boolean => {
+  return ['pending', 'processing', 'shipped'].includes(status);
+};
+
+interface OrderCardProps {
+  order: Order;
+  onViewDetails: (order: Order) => void;
+  onOpenStatusDialog: (order: Order, newStatus: string) => void;
+}
+
+/**
+ * Summary card for a single order in the supplier queue.
+ *
+ * Declared at module scope on purpose: defining it inside SupplierOrdersPage
+ * gave React a new component type on every render, remounting each card and
+ * discarding its DOM state (and focus) on any parent state change.
+ *
+ * @example
+ * <OrderCard
+ *   order={order}
+ *   onViewDetails={handleViewDetails}
+ *   onOpenStatusDialog={handleOpenStatusDialog}
+ * />
+ */
+const OrderCard: React.FC<OrderCardProps> = ({ order, onViewDetails, onOpenStatusDialog }) => (
+  <Card sx={{ mb: 2 }}>
+    <CardContent>
+      <Box display='flex' justifyContent='space-between' alignItems='start' mb={2}>
+        <Box>
+          <Typography variant='h6'>Order #{order.id}</Typography>
+          <Typography variant='body2' color='text.secondary'>
+            {order.company?.companyName}
+          </Typography>
+          <Typography variant='body2' color='text.secondary'>
+            {new Date(order.createdAt!).toLocaleDateString()}
+          </Typography>
+        </Box>
+        <Chip
+          label={order.status}
+          color={getStatusColor(order.status)}
+          icon={getStatusIcon(order.status)}
+        />
+      </Box>
+
+      <Box mb={2}>
+        <Typography variant='body2' color='text.secondary'>
+          Items: {order.items?.length || 0} | Total: {formatBRL(order.totalAmount)}
+        </Typography>
+        {order.trackingNumber && (
+          <Typography variant='body2' color='text.secondary'>
+            Tracking: {order.trackingNumber}
+          </Typography>
+        )}
+        {order.estimatedDeliveryDate && (
+          <Typography variant='body2' color='text.secondary'>
+            Est. Delivery: {new Date(order.estimatedDeliveryDate).toLocaleDateString()}
+          </Typography>
+        )}
+      </Box>
+
+      <Box display='flex' alignItems='center' gap={1}>
+        {order.items?.slice(0, 3).map((item, index) => (
+          <Chip
+            key={index}
+            label={`${item.quantity}x ${item.product?.name || 'Product'}`}
+            size='small'
+            variant='outlined'
+          />
+        ))}
+        {(order.items?.length || 0) > 3 && (
+          <Chip label={`+${(order.items?.length || 0) - 3} more`} size='small' variant='outlined' />
+        )}
+      </Box>
+    </CardContent>
+
+    <CardActions>
+      <Button size='small' startIcon={<Visibility />} onClick={() => onViewDetails(order)}>
+        Details
+      </Button>
+      {canUpdateStatus(order.status) && (
+        <Button
+          size='small'
+          variant='contained'
+          startIcon={getStatusIcon(getNextStatus(order.status))}
+          onClick={() => onOpenStatusDialog(order, getNextStatus(order.status))}
+        >
+          Mark as {getNextStatus(order.status)}
+        </Button>
+      )}
+      <Button
+        size='small'
+        startIcon={<Edit />}
+        onClick={() => onOpenStatusDialog(order, order.status)}
+      >
+        Update
+      </Button>
+    </CardActions>
+  </Card>
+);
 
 const SupplierOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -105,7 +255,7 @@ const SupplierOrdersPage: React.FC = () => {
       );
       setOrders(supplierOrders);
     } catch (_error) {
-      console.error('Error loading orders:', _error);
+      browserLogger.error('Failed to load orders', { error: _error });
       toast.error('Error loading orders');
     } finally {
       setLoading(false);
@@ -121,7 +271,7 @@ const SupplierOrdersPage: React.FC = () => {
       const result = await ordersService.getOrderHistory(orderId);
       setOrderHistory(result.timeline as unknown as OrderStatusHistory[]);
     } catch (_error) {
-      console.error('Error loading order history:', _error);
+      browserLogger.error('Failed to load order history', { error: _error });
     }
   };
 
@@ -165,57 +315,14 @@ const SupplierOrdersPage: React.FC = () => {
     setDetailsDialogOpen(true);
   };
 
-  const getStatusColor = (
-    status: string
-  ): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (status) {
-      case 'pending':
-        return 'warning';
-      case 'processing':
-        return 'info';
-      case 'shipped':
-        return 'primary';
-      case 'delivered':
-        return 'success';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Schedule />;
-      case 'processing':
-        return <PlayArrow />;
-      case 'shipped':
-        return <LocalShipping />;
-      case 'delivered':
-        return <CheckCircle />;
-      case 'cancelled':
-        return <Cancel />;
-      default:
-        return <Info />;
-    }
-  };
-
-  const getNextStatus = (currentStatus: string): string => {
-    switch (currentStatus) {
-      case 'pending':
-        return 'processing';
-      case 'processing':
-        return 'shipped';
-      case 'shipped':
-        return 'delivered';
-      default:
-        return currentStatus;
-    }
-  };
-
-  const canUpdateStatus = (status: string): boolean => {
-    return ['pending', 'processing', 'shipped'].includes(status);
+  const handleOpenStatusDialog = (order: Order, newStatus: string) => {
+    setStatusUpdateDialog({
+      open: true,
+      order,
+      newStatus,
+      trackingNumber: order.trackingNumber || '',
+      notes: '',
+    });
   };
 
   const filteredOrders = orders.filter(order => {
@@ -253,102 +360,6 @@ const SupplierOrdersPage: React.FC = () => {
     delivered: filteredOrders.filter(o => o.status === 'delivered'),
     all: filteredOrders,
   };
-
-  const OrderCard: React.FC<{ order: Order }> = ({ order }) => (
-    <Card sx={{ mb: 2 }}>
-      <CardContent>
-        <Box display='flex' justifyContent='space-between' alignItems='start' mb={2}>
-          <Box>
-            <Typography variant='h6'>Order #{order.id}</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {order.company?.companyName}
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {new Date(order.createdAt!).toLocaleDateString()}
-            </Typography>
-          </Box>
-          <Chip
-            label={order.status}
-            color={getStatusColor(order.status)}
-            icon={getStatusIcon(order.status)}
-          />
-        </Box>
-
-        <Box mb={2}>
-          <Typography variant='body2' color='text.secondary'>
-            Items: {order.items?.length || 0} | Total: {formatBRL(order.totalAmount)}
-          </Typography>
-          {order.trackingNumber && (
-            <Typography variant='body2' color='text.secondary'>
-              Tracking: {order.trackingNumber}
-            </Typography>
-          )}
-          {order.estimatedDeliveryDate && (
-            <Typography variant='body2' color='text.secondary'>
-              Est. Delivery: {new Date(order.estimatedDeliveryDate).toLocaleDateString()}
-            </Typography>
-          )}
-        </Box>
-
-        <Box display='flex' alignItems='center' gap={1}>
-          {order.items?.slice(0, 3).map((item, index) => (
-            <Chip
-              key={index}
-              label={`${item.quantity}x ${item.product?.name || 'Product'}`}
-              size='small'
-              variant='outlined'
-            />
-          ))}
-          {(order.items?.length || 0) > 3 && (
-            <Chip
-              label={`+${(order.items?.length || 0) - 3} more`}
-              size='small'
-              variant='outlined'
-            />
-          )}
-        </Box>
-      </CardContent>
-
-      <CardActions>
-        <Button size='small' startIcon={<Visibility />} onClick={() => handleViewDetails(order)}>
-          Details
-        </Button>
-        {canUpdateStatus(order.status) && (
-          <Button
-            size='small'
-            variant='contained'
-            startIcon={getStatusIcon(getNextStatus(order.status))}
-            onClick={() =>
-              setStatusUpdateDialog({
-                open: true,
-                order,
-                newStatus: getNextStatus(order.status),
-                trackingNumber: order.trackingNumber || '',
-                notes: '',
-              })
-            }
-          >
-            Mark as {getNextStatus(order.status)}
-          </Button>
-        )}
-        <Button
-          size='small'
-          startIcon={<Edit />}
-          onClick={() =>
-            setStatusUpdateDialog({
-              open: true,
-              order,
-              newStatus: order.status,
-              trackingNumber: order.trackingNumber || '',
-              notes: '',
-            })
-          }
-        >
-          Update
-        </Button>
-      </CardActions>
-    </Card>
-  );
 
   if (loading) {
     return (
@@ -526,7 +537,14 @@ const SupplierOrdersPage: React.FC = () => {
           );
         }
 
-        return displayOrders.map(order => <OrderCard key={order.id} order={order} />);
+        return displayOrders.map(order => (
+          <OrderCard
+            key={order.id}
+            order={order}
+            onViewDetails={handleViewDetails}
+            onOpenStatusDialog={handleOpenStatusDialog}
+          />
+        ));
       })()}
 
       {/* Status Update Dialog */}

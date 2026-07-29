@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { CircularProgress, Box, Alert, Container } from '@mui/material';
+import { useT } from '../contexts/LanguageContext';
 
 type UserRole = 'customer' | 'admin' | 'supplier';
 
@@ -22,6 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
+  const t = useT();
 
   if (isLoading) {
     return (
@@ -45,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Alert severity='error' sx={{ mb: 4 }}>
-            Acesso negado. Você precisa de permissões de administrador para acessar esta página.
+            {t('access.adminOnly')}
           </Alert>
         </Box>
       </Container>
@@ -61,8 +63,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Alert severity='error' sx={{ mb: 4 }}>
-            Acesso negado. Você não tem permissão para acessar esta página. Roles permitidos:{' '}
-            {allowedRoles.join(', ')}
+            {t('access.deniedWithRoles')} {allowedRoles.join(', ')}
           </Alert>
         </Box>
       </Container>
@@ -78,8 +79,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Alert severity='warning' sx={{ mb: 4 }}>
-            Sua conta de fornecedor está pendente de aprovação. Entre em contato com o administrador
-            para mais informações.
+            {t('access.supplierPending')}
           </Alert>
         </Box>
       </Container>

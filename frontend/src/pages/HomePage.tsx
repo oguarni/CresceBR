@@ -43,6 +43,7 @@ import { useQuotationRequest } from '../contexts/QuotationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../contexts/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import { browserLogger } from '../utils/browserLogger';
 
 const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -128,7 +129,7 @@ const HomePage: React.FC = () => {
       const categoriesData = await productsService.getCategories();
       setCategories(['All Products', ...categoriesData]);
     } catch (err) {
-      console.error('Erro ao carregar categorias:', err);
+      browserLogger.error('Failed to load categories', { error: err });
     }
   }, []);
 
@@ -148,7 +149,7 @@ const HomePage: React.FC = () => {
       const specsData = await productsService.getAvailableSpecifications();
       setAllSpecs(specsData);
     } catch (err) {
-      console.error('Erro ao carregar especificações:', err);
+      browserLogger.error('Failed to load specifications', { error: err });
     }
   }, []);
 

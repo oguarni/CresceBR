@@ -4,6 +4,7 @@ import User from '../models/User';
 import Quotation from '../models/Quotation';
 import QuotationItem from '../models/QuotationItem';
 import Product from '../models/Product';
+import { logger } from '../utils/structuredLogger';
 
 export interface NfeUpdateData {
   nfeAccessKey?: string;
@@ -240,7 +241,7 @@ export class OrderStatusService {
         const updatedOrder = await this.updateOrderStatus(orderId, updateData, companyId);
         updatedOrders.push(updatedOrder);
       } catch (error) {
-        console.error(`Failed to update order ${orderId}:`, error);
+        logger.error('Failed to update order status', { error, orderId });
       }
     }
 

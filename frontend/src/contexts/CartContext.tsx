@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Product, CartItem } from '@shared/types';
 import toast from 'react-hot-toast';
 import { getOrderStep } from '../utils/orderQuantity';
+import { browserLogger } from '../utils/browserLogger';
 
 interface CartState {
   items: CartItem[];
@@ -154,7 +155,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const cartItems = JSON.parse(savedCart) as CartItem[];
         dispatch({ type: 'LOAD_CART', payload: cartItems });
       } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
+        browserLogger.error('Failed to load cart from localStorage', { error });
       }
     }
   }, []);

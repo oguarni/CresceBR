@@ -27,8 +27,10 @@ import { ordersService } from '../services/ordersService';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuotations } from '../hooks';
 import toast from 'react-hot-toast';
+import { useT } from '../contexts/LanguageContext';
 
 const MyQuotationsPage: React.FC = () => {
+  const t = useT();
   const [creatingOrder, setCreatingOrder] = useState<number | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +64,7 @@ const MyQuotationsPage: React.FC = () => {
       case 'processed':
         return 'Processada';
       case 'completed':
-        return 'Concluída';
+        return t('supplierQuotations.status.completed');
       case 'rejected':
         return 'Rejeitada';
       default:
@@ -113,10 +115,10 @@ const MyQuotationsPage: React.FC = () => {
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Alert severity='error' sx={{ mb: 4 }}>
-            Acesso negado. Apenas clientes podem visualizar cotações.
+            {t('access.customerOnlyQuotations')}
           </Alert>
           <Button variant='contained' component={Link} to='/' startIcon={<ArrowBack />}>
-            Voltar ao Início
+            {t('common.backHome')}
           </Button>
         </Box>
       </Container>
@@ -138,10 +140,10 @@ const MyQuotationsPage: React.FC = () => {
       <Container maxWidth='md'>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant='h4' gutterBottom>
-            Nenhuma cotação encontrada
+            {t('myQuotations.emptyTitle')}
           </Typography>
           <Typography variant='body1' color='text.secondary' sx={{ mb: 4 }}>
-            Você ainda não possui cotações solicitadas
+            {t('myQuotations.emptySubtitle')}
           </Typography>
           <Button variant='contained' component={Link} to='/' startIcon={<ArrowBack />}>
             Navegar Produtos
@@ -155,11 +157,10 @@ const MyQuotationsPage: React.FC = () => {
     <Container maxWidth='lg'>
       <Box sx={{ mb: 4 }}>
         <Typography variant='h4' gutterBottom>
-          Minhas Cotações
+          {t('myQuotations.title')}
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          {quotations.length} cotação{quotations.length !== 1 ? 'ões' : ''} encontrada
-          {quotations.length !== 1 ? 's' : ''}
+          {t('myQuotations.countFound', { count: quotations.length })}
         </Typography>
       </Box>
 
@@ -178,7 +179,7 @@ const MyQuotationsPage: React.FC = () => {
                 >
                   <Box>
                     <Typography variant='h6' gutterBottom>
-                      Cotação #{quotation.id}
+                      {t('myQuotations.quotationLabel', { id: quotation.id })}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
                       Solicitada em: {formatDate(quotation.createdAt)}
@@ -194,7 +195,7 @@ const MyQuotationsPage: React.FC = () => {
                 <Divider sx={{ my: 2 }} />
 
                 <Typography variant='subtitle2' gutterBottom>
-                  Itens da cotação:
+                  {t('myQuotations.itemsLabel')}
                 </Typography>
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   {quotation.items.slice(0, 3).map((item, index) => (
@@ -237,7 +238,7 @@ const MyQuotationsPage: React.FC = () => {
                 {quotation.adminNotes && (
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                     <Typography variant='subtitle2' gutterBottom>
-                      Observações do administrador:
+                      {t('myQuotations.adminNotesLabel')}
                     </Typography>
                     <Typography variant='body2' color='text.secondary'>
                       {quotation.adminNotes}
