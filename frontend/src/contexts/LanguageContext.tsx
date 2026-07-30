@@ -9,6 +9,17 @@ interface LanguageContextType {
   t: (key: TranslationKey, vars?: TranslationVars) => string;
 }
 
+/**
+ * The translator function returned by `useT()`.
+ *
+ * Exported so helpers outside a component can accept `t` as a parameter — a
+ * pure function that formats a label cannot call the hook itself.
+ *
+ * @example
+ * const translateStatus = (t: Translate, status: string) => t(`order.status.${status}`);
+ */
+export type Translate = LanguageContextType['t'];
+
 const STORAGE_KEY = 'crescebr_language';
 
 const resolveKey = (dict: unknown, key: string): unknown =>
