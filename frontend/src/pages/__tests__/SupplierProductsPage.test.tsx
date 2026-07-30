@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import SupplierProductsPage from '../SupplierProductsPage';
+import { LanguageProvider } from '../../contexts/LanguageContext';
 import { productsService } from '../../services/productsService';
 import toast from 'react-hot-toast';
 
@@ -94,13 +95,17 @@ const mockProducts = [
 
 const mockCategories = ['Industrial Equipment', 'Safety Equipment', 'Construction Materials'];
 
-const renderPage = async () => {
+// Defaults to English so the assertions below can stay in the source language of
+// the screen's copy; the localization test at the bottom passes 'pt' explicitly.
+const renderPage = async (language: 'pt' | 'en' = 'en') => {
   let renderResult;
   await act(async () => {
     renderResult = render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <SupplierProductsPage />
-      </BrowserRouter>
+      <LanguageProvider initialLanguage={language}>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SupplierProductsPage />
+        </BrowserRouter>
+      </LanguageProvider>
     );
   });
   return renderResult!;
@@ -126,11 +131,14 @@ describe('SupplierProductsPage', () => {
       ).toBeInTheDocument();
     });
 
+    // Scoped to the stats block: the availability chips on the cards below now
+    // render the same translated labels, so an unscoped query matches twice.
     await waitFor(() => {
-      expect(screen.getByText('Total Products')).toBeInTheDocument();
-      expect(screen.getByText('In Stock')).toBeInTheDocument();
-      expect(screen.getByText('Limited Stock')).toBeInTheDocument();
-      expect(screen.getByText('Out of Stock')).toBeInTheDocument();
+      const stats = within(screen.getByTestId('product-stats'));
+      expect(stats.getByText('Total Products')).toBeInTheDocument();
+      expect(stats.getByText('In Stock')).toBeInTheDocument();
+      expect(stats.getByText('Limited Stock')).toBeInTheDocument();
+      expect(stats.getByText('Out of Stock')).toBeInTheDocument();
     });
   });
 
@@ -578,5 +586,25 @@ describe('SupplierProductsPage', () => {
       expect(screen.queryByText('Industrial Pump')).not.toBeInTheDocument();
       expect(screen.queryByText('Concrete Mix')).not.toBeInTheDocument();
     });
+  });
+
+  // This screen rendered hardcoded English regardless of the selected language
+  // until its copy was moved into the dictionary. Guards against that returning.
+  it('renders in Portuguese when the language is pt', async () => {
+    await renderPage('pt');
+
+    await waitFor(() => {
+      expect(screen.getByText('Gestão de Produtos')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Adicionar Produto/ })).toBeInTheDocument();
+    });
+
+    const stats = within(screen.getByTestId('product-stats'));
+    expect(stats.getByText('Total de Produtos')).toBeInTheDocument();
+    expect(stats.getByText('Estoque Limitado')).toBeInTheDocument();
+
+    // The stock badge used to render the raw database value ("limited"). Asserted
+    // on the limited product because its chip label differs from the stats label
+    // beside it ("Limitado" vs "Estoque Limitado"), unlike the other statuses.
+    expect(screen.getByText('Limitado')).toBeInTheDocument();
   });
 });
