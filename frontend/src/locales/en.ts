@@ -394,6 +394,9 @@ export const en: typeof pt = {
     searchPlaceholder: 'Search by CNPJ or name',
     emptyQueue: 'No companies found.',
     location: 'Location',
+    statusApproved: 'Approved',
+    statusRejected: 'Rejected',
+    viewDetailsFor: 'View details for {{name}}',
     detailsTitle: 'Company Details',
     sections: {
       basicInfo: 'Basic Information',

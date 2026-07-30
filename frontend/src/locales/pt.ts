@@ -397,6 +397,9 @@ export const pt = {
     searchPlaceholder: 'Buscar por CNPJ ou nome',
     emptyQueue: 'Nenhuma empresa encontrada.',
     location: 'Localização',
+    statusApproved: 'Aprovada',
+    statusRejected: 'Rejeitada',
+    viewDetailsFor: 'Ver detalhes de {{name}}',
     detailsTitle: 'Detalhes da Empresa',
     sections: {
       basicInfo: 'Informações Básicas',
