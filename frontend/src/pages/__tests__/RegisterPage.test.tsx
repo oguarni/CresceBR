@@ -72,10 +72,13 @@ const fillRequiredFields = async (
   await user.click(await screen.findByRole('option', { name: 'Máquinas' }));
 };
 
-// RegisterPage re-renders its whole 858-line form on each keystroke, so the
-// two form-filling tests run ~14s locally and longer under full-suite
-// contention. Raised above the 30s global default to stop them flaking in CI.
-describe('RegisterPage', { timeout: 90_000 }, () => {
+// The two form-filling tests type ~150 characters through userEvent across 24
+// controlled MUI inputs, which costs ~10s in isolation and ~25s under
+// full-suite contention. That is the cost of the test design, not of a render
+// bug: memoising the fields cut these two from ~20s to ~8-10s in isolation and
+// the override came down from 90s with them. Still above the 30s global
+// default, since 25s locally leaves no margin on slower CI hardware.
+describe('RegisterPage', { timeout: 60_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

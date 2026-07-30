@@ -1,43 +1,24 @@
-import React, { useState, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useCallback } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Container,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Box,
   Alert,
-  InputAdornment,
-  IconButton,
+  Box,
+  Button,
   CircularProgress,
+  Container,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
+  Paper,
+  Typography,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Email,
-  Lock,
-  Person,
-  Home,
-  Business,
-  Category,
-  ArrowBack,
-  Construction,
-} from '@mui/icons-material';
-import { SelectChangeEvent } from '@mui/material/Select';
-import { useAuth } from '../contexts/AuthContext';
+import { ArrowBack, Construction } from '@mui/icons-material';
 import { useT } from '../contexts/LanguageContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import BrazilFlag from '../components/BrazilFlag';
-import { ViaCepError, viaCepService } from '../services/viaCepService';
-import { INPUT_LIMITS } from '../utils/inputLimits';
-import toast from 'react-hot-toast';
+import { useRegisterForm } from '../hooks/useRegisterForm';
+import { RegisterAccountSection } from '../components/register/RegisterAccountSection';
+import { RegisterAddressSection } from '../components/register/RegisterAddressSection';
+import { RegisterCompanySection } from '../components/register/RegisterCompanySection';
+import type { AnnualRevenue, CompanySize, CompanyType } from '../utils/registerForm';
 
 // Self-service account creation. Flip to `false` to swap the form for an
 // "under construction" notice (used while the onboarding / company-verification
@@ -45,50 +26,35 @@ import toast from 'react-hot-toast';
 // reachable for the type checker and linter.
 const REGISTRATION_ENABLED: boolean = true;
 
-const RegisterPage: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    cpf: '',
-    cep: '',
-    address: '',
-    street: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    phone: '',
-    contactPerson: '',
-    contactTitle: '',
-    companySize: '' as 'micro' | 'small' | 'medium' | 'large' | 'enterprise' | '',
-    annualRevenue: '' as
-      | 'under_500k'
-      | '500k_2m'
-      | '2m_10m'
-      | '10m_50m'
-      | '50m_200m'
-      | 'over_200m'
-      | '',
-    website: '',
-    companyName: '',
-    corporateName: '',
-    cnpj: '',
-    industrySector: '',
-    companyType: 'buyer' as 'buyer' | 'supplier' | 'both',
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingCep, setIsLoadingCep] = useState(false);
+const PAPER_SX = {
+  padding: 4,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+} as const;
 
-  const { register } = useAuth();
+const HEADER_SX = {
+  width: '100%',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+} as const;
+
+/**
+ * B2B account creation.
+ *
+ * The form is split into three memoised sections driven by `useRegisterForm`.
+ * That structure is load-bearing, not cosmetic: with all twenty-four inputs in
+ * one component every keystroke re-rendered the whole form, which made typing
+ * visibly laggy and pushed the two form-filling tests to ~20s each.
+ */
+const RegisterPage: React.FC = () => {
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
+  const { formData, setField, error, isLoading, isLoadingCep, handleCepChange, handleSubmit } =
+    useRegisterForm();
 
   const handleBack = () => {
     // Return to the previous in-app page when history exists; otherwise the user
@@ -100,167 +66,39 @@ const RegisterPage: React.FC = () => {
     }
   };
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value,
-    }));
-  };
-
-  const formatCpf = (value: string): string => {
-    const cleanValue = value.replace(/\D/g, '');
-    if (cleanValue.length <= 11) {
-      return cleanValue.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    }
-    return value;
-  };
-
-  const formatCnpj = (value: string): string => {
-    const cleanValue = value.replace(/\D/g, '');
-    if (cleanValue.length <= 14) {
-      return cleanValue.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
-    return value;
-  };
-
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCpf(e.target.value);
-    setFormData(prev => ({ ...prev, cpf: formatted }));
-  };
-
-  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCnpj(e.target.value);
-    setFormData(prev => ({ ...prev, cnpj: formatted }));
-  };
-
-  const handleCepChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const cep = e.target.value.replace(/\D/g, '');
-      const formattedCep = viaCepService.formatCep(cep);
-
-      setFormData(prev => ({ ...prev, cep: formattedCep }));
-
-      if (viaCepService.isValidCep(cep)) {
-        setIsLoadingCep(true);
-        try {
-          const addressData = await viaCepService.getAddressByCep(cep);
-          const fullAddress = `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`;
-          setFormData(prev => ({
-            ...prev,
-            address: fullAddress,
-            street: addressData.logradouro || '',
-            neighborhood: addressData.bairro || '',
-            city: addressData.localidade || '',
-            state: addressData.uf || '',
-            zipCode: viaCepService.formatCep(cep),
-          }));
-          toast.success(t('register.toast.cepSuccess'));
-        } catch (error: unknown) {
-          toast.error(
-            error instanceof ViaCepError
-              ? t(`register.cepErrors.${error.code}`)
-              : t('register.toast.cepError')
-          );
-        } finally {
-          setIsLoadingCep(false);
-        }
-      }
-    },
-    [t]
+  // Each select narrows the incoming string to its own union. Defined with
+  // useCallback so the memoised RegisterSelectField sees a stable handler.
+  const handleCompanySizeChange = useCallback(
+    (value: string) => setField('companySize', value as CompanySize | ''),
+    [setField]
+  );
+  const handleAnnualRevenueChange = useCallback(
+    (value: string) => setField('annualRevenue', value as AnnualRevenue | ''),
+    [setField]
+  );
+  const handleIndustrySectorChange = useCallback(
+    (value: string) => setField('industrySector', value),
+    [setField]
+  );
+  const handleCompanyTypeChange = useCallback(
+    (value: string) => setField('companyType', value as CompanyType),
+    [setField]
   );
 
-  const validateForm = (): boolean => {
-    if (formData.password !== formData.confirmPassword) {
-      setError(t('register.validation.passwordsDontMatch'));
-      return false;
-    }
-
-    if (formData.password.length < 6) {
-      setError(t('register.validation.passwordTooShort'));
-      return false;
-    }
-
-    const cleanCpf = formData.cpf.replace(/\D/g, '');
-    if (cleanCpf.length !== 11) {
-      setError(t('register.validation.cpfInvalid'));
-      return false;
-    }
-
-    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
-    if (cleanCnpj.length !== 14) {
-      setError(t('register.validation.cnpjInvalid'));
-      return false;
-    }
-
-    if (!formData.address.trim()) {
-      setError(t('register.validation.addressRequired'));
-      return false;
-    }
-
-    if (!formData.companyName.trim()) {
-      setError(t('register.validation.companyNameRequired'));
-      return false;
-    }
-
-    if (!formData.corporateName.trim()) {
-      setError(t('register.validation.corporateNameRequired'));
-      return false;
-    }
-
-    if (!formData.industrySector.trim()) {
-      setError(t('register.validation.industrySectorRequired'));
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      await register({
-        email: formData.email,
-        password: formData.password,
-        cpf: formData.cpf,
-        address: formData.address,
-        street: formData.street,
-        number: formData.number,
-        complement: formData.complement,
-        neighborhood: formData.neighborhood,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        phone: formData.phone,
-        contactPerson: formData.contactPerson,
-        contactTitle: formData.contactTitle,
-        companySize: formData.companySize || undefined,
-        annualRevenue: formData.annualRevenue || undefined,
-        website: formData.website,
-        companyName: formData.companyName,
-        corporateName: formData.corporateName,
-        cnpj: formData.cnpj,
-        industrySector: formData.industrySector,
-        companyType: formData.companyType,
-      });
-      toast.success(t('register.toast.success'));
-      navigate('/');
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } }; message?: string };
-      const errorMessage =
-        axiosErr.response?.data?.error || axiosErr.message || t('register.toast.error');
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const header = (
+    <>
+      <Box sx={HEADER_SX}>
+        <Button onClick={handleBack} startIcon={<ArrowBack />} color='inherit' size='small'>
+          {t('common.back')}
+        </Button>
+        <LanguageSwitcher />
+      </Box>
+      <Typography component='h1' variant='h4' gutterBottom>
+        Cresce
+        <BrazilFlag size='0.7em' />
+      </Typography>
+    </>
+  );
 
   // Registration is under construction: show a notice instead of the form so
   // visitors cannot attempt to create an account. Demo companies on the login
@@ -277,34 +115,8 @@ const RegisterPage: React.FC = () => {
             alignItems: 'center',
           }}
         >
-          <Paper
-            elevation={3}
-            sx={{
-              padding: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              width: '100%',
-            }}
-          >
-            <Box
-              sx={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <Button onClick={handleBack} startIcon={<ArrowBack />} color='inherit' size='small'>
-                {t('common.back')}
-              </Button>
-              <LanguageSwitcher />
-            </Box>
-
-            <Typography component='h1' variant='h4' gutterBottom>
-              Cresce
-              <BrazilFlag size='0.7em' />
-            </Typography>
+          <Paper elevation={3} sx={PAPER_SX}>
+            {header}
 
             <Construction sx={{ fontSize: 72, color: 'primary.main', mt: 1, mb: 1 }} />
 
@@ -327,41 +139,9 @@ const RegisterPage: React.FC = () => {
 
   return (
     <Container component='main' maxWidth='md'>
-      <Box
-        sx={{
-          marginTop: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper
-          elevation={3}
-          sx={{
-            padding: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
-          <Box
-            sx={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Button onClick={handleBack} startIcon={<ArrowBack />} color='inherit' size='small'>
-              {t('common.back')}
-            </Button>
-            <LanguageSwitcher />
-          </Box>
-          <Typography component='h1' variant='h4' gutterBottom>
-            Cresce
-            <BrazilFlag size='0.7em' />
-          </Typography>
+      <Box sx={{ marginTop: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Paper elevation={3} sx={PAPER_SX}>
+          {header}
           <Typography component='h2' variant='h6' color='text.secondary' gutterBottom>
             {t('register.subtitle')}
           </Typography>
@@ -374,464 +154,21 @@ const RegisterPage: React.FC = () => {
 
           <Box component='form' onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='email'
-                  label={t('register.email')}
-                  name='email'
-                  autoComplete='email'
-                  value={formData.email}
-                  onChange={handleChange('email')}
-                  inputProps={{ maxLength: INPUT_LIMITS.email }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Email />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  name='password'
-                  label={t('register.password')}
-                  type={showPassword ? 'text' : 'password'}
-                  id='password'
-                  autoComplete='new-password'
-                  value={formData.password}
-                  onChange={handleChange('password')}
-                  inputProps={{ maxLength: INPUT_LIMITS.password }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Lock />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge='end'>
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  name='confirmPassword'
-                  label={t('register.confirmPassword')}
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id='confirmPassword'
-                  value={formData.confirmPassword}
-                  onChange={handleChange('confirmPassword')}
-                  inputProps={{ maxLength: INPUT_LIMITS.password }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Lock />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <IconButton
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge='end'
-                        >
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='cpf'
-                  label={t('register.cpf')}
-                  name='cpf'
-                  value={formData.cpf}
-                  onChange={handleCpfChange}
-                  inputProps={{ maxLength: INPUT_LIMITS.cpf }}
-                  placeholder='000.000.000-00'
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Person />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='cep'
-                  label={t('register.cep')}
-                  name='cep'
-                  value={formData.cep}
-                  onChange={handleCepChange}
-                  inputProps={{ maxLength: INPUT_LIMITS.cep }}
-                  placeholder='00000-000'
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Home />
-                      </InputAdornment>
-                    ),
-                    endAdornment: isLoadingCep && (
-                      <InputAdornment position='end'>
-                        <CircularProgress size={20} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='address'
-                  label={t('register.addressFull')}
-                  name='address'
-                  multiline
-                  rows={2}
-                  value={formData.address}
-                  onChange={handleChange('address')}
-                  inputProps={{ maxLength: INPUT_LIMITS.address }}
-                  placeholder={t('register.addressPlaceholder')}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Home />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 8 }}>
-                <TextField
-                  fullWidth
-                  id='street'
-                  label={t('register.street')}
-                  name='street'
-                  value={formData.street}
-                  onChange={handleChange('street')}
-                  inputProps={{ maxLength: INPUT_LIMITS.street }}
-                  placeholder={t('register.streetPlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField
-                  fullWidth
-                  id='number'
-                  label={t('register.number')}
-                  name='number'
-                  value={formData.number}
-                  onChange={handleChange('number')}
-                  inputProps={{ maxLength: INPUT_LIMITS.number }}
-                  placeholder={t('register.numberPlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='complement'
-                  label={t('register.complement')}
-                  name='complement'
-                  value={formData.complement}
-                  onChange={handleChange('complement')}
-                  inputProps={{ maxLength: INPUT_LIMITS.complement }}
-                  placeholder={t('register.complementPlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='neighborhood'
-                  label={t('register.neighborhood')}
-                  name='neighborhood'
-                  value={formData.neighborhood}
-                  onChange={handleChange('neighborhood')}
-                  inputProps={{ maxLength: INPUT_LIMITS.neighborhood }}
-                  placeholder={t('register.neighborhoodPlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='city'
-                  label={t('register.city')}
-                  name='city'
-                  value={formData.city}
-                  onChange={handleChange('city')}
-                  inputProps={{ maxLength: INPUT_LIMITS.city }}
-                  placeholder={t('register.cityPlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='state'
-                  label={t('register.state')}
-                  name='state'
-                  value={formData.state}
-                  onChange={handleChange('state')}
-                  inputProps={{ maxLength: INPUT_LIMITS.state }}
-                  placeholder={t('register.statePlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='phone'
-                  label={t('register.phone')}
-                  name='phone'
-                  value={formData.phone}
-                  onChange={handleChange('phone')}
-                  inputProps={{ maxLength: INPUT_LIMITS.phone }}
-                  placeholder={t('register.phonePlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='website'
-                  label={t('register.website')}
-                  name='website'
-                  value={formData.website}
-                  onChange={handleChange('website')}
-                  inputProps={{ maxLength: INPUT_LIMITS.website }}
-                  placeholder={t('register.websitePlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='companyName'
-                  label={t('register.companyName')}
-                  name='companyName'
-                  value={formData.companyName}
-                  onChange={handleChange('companyName')}
-                  inputProps={{ maxLength: INPUT_LIMITS.companyName }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Business />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='corporateName'
-                  label={t('register.corporateName')}
-                  name='corporateName'
-                  value={formData.corporateName}
-                  onChange={handleChange('corporateName')}
-                  inputProps={{ maxLength: INPUT_LIMITS.corporateName }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Business />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  required
-                  fullWidth
-                  id='cnpj'
-                  label={t('register.cnpj')}
-                  name='cnpj'
-                  value={formData.cnpj}
-                  onChange={handleCnpjChange}
-                  inputProps={{ maxLength: INPUT_LIMITS.cnpj }}
-                  placeholder='00.000.000/0000-00'
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Business />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='contactPerson'
-                  label={t('register.contactPerson')}
-                  name='contactPerson'
-                  value={formData.contactPerson}
-                  onChange={handleChange('contactPerson')}
-                  inputProps={{ maxLength: INPUT_LIMITS.contactPerson }}
-                  placeholder={t('register.contactPersonPlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  id='contactTitle'
-                  label={t('register.contactTitle')}
-                  name='contactTitle'
-                  value={formData.contactTitle}
-                  onChange={handleChange('contactTitle')}
-                  inputProps={{ maxLength: INPUT_LIMITS.contactTitle }}
-                  placeholder={t('register.contactTitlePlaceholder')}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel id='companySize-label'>{t('register.companySize.label')}</InputLabel>
-                  <Select
-                    labelId='companySize-label'
-                    id='companySize'
-                    value={formData.companySize}
-                    label={t('register.companySize.label')}
-                    onChange={(e: SelectChangeEvent<string>) =>
-                      setFormData(prev => ({
-                        ...prev,
-                        companySize: e.target.value as typeof prev.companySize,
-                      }))
-                    }
-                  >
-                    <MenuItem value='micro'>{t('register.companySize.micro')}</MenuItem>
-                    <MenuItem value='small'>{t('register.companySize.small')}</MenuItem>
-                    <MenuItem value='medium'>{t('register.companySize.medium')}</MenuItem>
-                    <MenuItem value='large'>{t('register.companySize.large')}</MenuItem>
-                    <MenuItem value='enterprise'>{t('register.companySize.enterprise')}</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <FormControl fullWidth>
-                  <InputLabel id='annualRevenue-label'>
-                    {t('register.annualRevenue.label')}
-                  </InputLabel>
-                  <Select
-                    labelId='annualRevenue-label'
-                    id='annualRevenue'
-                    value={formData.annualRevenue}
-                    label={t('register.annualRevenue.label')}
-                    onChange={(e: SelectChangeEvent<string>) =>
-                      setFormData(prev => ({
-                        ...prev,
-                        annualRevenue: e.target.value as typeof prev.annualRevenue,
-                      }))
-                    }
-                  >
-                    <MenuItem value='under_500k'>{t('register.annualRevenue.under_500k')}</MenuItem>
-                    <MenuItem value='500k_2m'>{t('register.annualRevenue.500k_2m')}</MenuItem>
-                    <MenuItem value='2m_10m'>{t('register.annualRevenue.2m_10m')}</MenuItem>
-                    <MenuItem value='10m_50m'>{t('register.annualRevenue.10m_50m')}</MenuItem>
-                    <MenuItem value='50m_200m'>{t('register.annualRevenue.50m_200m')}</MenuItem>
-                    <MenuItem value='over_200m'>{t('register.annualRevenue.over_200m')}</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <FormControl fullWidth required>
-                  <InputLabel id='industrySector-label'>{t('register.industry.label')}</InputLabel>
-                  <Select
-                    labelId='industrySector-label'
-                    id='industrySector'
-                    value={formData.industrySector}
-                    label={t('register.industry.label')}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, industrySector: e.target.value }))
-                    }
-                    startAdornment={
-                      <InputAdornment position='start'>
-                        <Category />
-                      </InputAdornment>
-                    }
-                  >
-                    <MenuItem value='machinery'>{t('register.industry.machinery')}</MenuItem>
-                    <MenuItem value='raw_materials'>
-                      {t('register.industry.raw_materials')}
-                    </MenuItem>
-                    <MenuItem value='components'>{t('register.industry.components')}</MenuItem>
-                    <MenuItem value='electronics'>{t('register.industry.electronics')}</MenuItem>
-                    <MenuItem value='textiles'>{t('register.industry.textiles')}</MenuItem>
-                    <MenuItem value='chemicals'>{t('register.industry.chemicals')}</MenuItem>
-                    <MenuItem value='automotive'>{t('register.industry.automotive')}</MenuItem>
-                    <MenuItem value='food_beverage'>
-                      {t('register.industry.food_beverage')}
-                    </MenuItem>
-                    <MenuItem value='construction'>{t('register.industry.construction')}</MenuItem>
-                    <MenuItem value='pharmaceutical'>
-                      {t('register.industry.pharmaceutical')}
-                    </MenuItem>
-                    <MenuItem value='other'>{t('register.industry.other')}</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <FormControl fullWidth required>
-                  <InputLabel id='companyType-label'>{t('register.companyType.label')}</InputLabel>
-                  <Select
-                    labelId='companyType-label'
-                    id='companyType'
-                    value={formData.companyType}
-                    label={t('register.companyType.label')}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        companyType: e.target.value as 'buyer' | 'supplier' | 'both',
-                      }))
-                    }
-                    startAdornment={
-                      <InputAdornment position='start'>
-                        <Business />
-                      </InputAdornment>
-                    }
-                  >
-                    <MenuItem value='buyer'>{t('register.companyType.buyer')}</MenuItem>
-                    <MenuItem value='supplier'>{t('register.companyType.supplier')}</MenuItem>
-                    <MenuItem value='both'>{t('register.companyType.both')}</MenuItem>
-                  </Select>
-                  <FormHelperText>{t('register.companyType.help')}</FormHelperText>
-                </FormControl>
-              </Grid>
+              <RegisterAccountSection formData={formData} onFieldChange={setField} />
+              <RegisterAddressSection
+                formData={formData}
+                onFieldChange={setField}
+                onCepChange={handleCepChange}
+                isLoadingCep={isLoadingCep}
+              />
+              <RegisterCompanySection
+                formData={formData}
+                onFieldChange={setField}
+                onCompanySizeChange={handleCompanySizeChange}
+                onAnnualRevenueChange={handleAnnualRevenueChange}
+                onIndustrySectorChange={handleIndustrySectorChange}
+                onCompanyTypeChange={handleCompanyTypeChange}
+              />
             </Grid>
 
             <Button
