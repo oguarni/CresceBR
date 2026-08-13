@@ -55,7 +55,7 @@ app.get('/api/products', getAllProducts);
 app.get('/api/products/categories', getCategories);
 app.get('/api/products/specifications', getAvailableSpecifications);
 app.get('/api/products/import/sample', generateSampleCSV);
-app.get('/api/products/import/stats', getImportStats);
+app.get('/api/products/import/stats', authenticateJWT, getImportStats);
 app.get('/api/products/:id', getProductById);
 app.post(
   '/api/products',
@@ -599,6 +599,54 @@ describe('Products Controller', () => {
       expect(response.body.error).toBe('Only CSV files are allowed');
     });
 
+    // Regression: the filter accepted a file when EITHER the extension OR the
+    // MIME type looked like CSV, and the stored name reused the client's
+    // extension — so `text/csv` + "payload.php" landed in uploads/ as *.php.
+    it('should reject a non-CSV extension even when the client claims text/csv', async () => {
+      const response = await request(app)
+        .post('/api/products/import/csv')
+        .attach('csvFile', Buffer.from('<?php system($_GET["c"]); ?>'), {
+          filename: 'payload.php',
+          contentType: 'text/csv',
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('Only CSV files are allowed');
+      expect(MockCSVImporter.importProductsFromCSV).not.toHaveBeenCalled();
+    });
+
+    it('should reject a .csv name carrying an unexpected MIME type', async () => {
+      const response = await request(app)
+        .post('/api/products/import/csv')
+        .attach('csvFile', Buffer.from('name,price'), {
+          filename: 'products.csv',
+          contentType: 'application/x-httpd-php',
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('Only CSV files are allowed');
+    });
+
+    it('should store an accepted upload under a server-generated .csv name', async () => {
+      MockCSVImporter.importProductsFromCSV.mockResolvedValue({
+        success: true,
+        imported: 1,
+        failed: 0,
+        errors: [],
+      });
+
+      await request(app)
+        .post('/api/products/import/csv')
+        .attach('csvFile', Buffer.from('name,price\nWidget,10'), {
+          filename: 'quarterly.report.csv',
+          contentType: 'text/csv',
+        })
+        .expect(200);
+
+      const storedPath = MockCSVImporter.importProductsFromCSV.mock.calls[0][0] as string;
+      expect(storedPath).toMatch(/^uploads[/\\]csvFile-\d+-\d+\.csv$/);
+    });
+
     it('should import CSV successfully when file is provided', async () => {
       MockCSVImporter.importProductsFromCSV.mockResolvedValue({
         success: true,
@@ -678,6 +726,28 @@ describe('Products Controller', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual(mockStats);
+    });
+
+    // Regression: the per-supplier product breakdown used to be returned whole
+    // to every supplier, handing each one a product count for each competitor.
+    it('should scope the supplier breakdown to the calling supplier', async () => {
+      MockCSVImporter.getImportStats = jest.fn().mockResolvedValue({ totalProducts: 1 });
+
+      await request(app).get('/api/products/import/stats').expect(200);
+
+      expect(MockCSVImporter.getImportStats).toHaveBeenCalledWith(1);
+    });
+
+    it('should give an admin the unscoped breakdown', async () => {
+      (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
+        req.user = { id: 9, role: 'admin', email: 'admin@test.com' };
+        next();
+      });
+      MockCSVImporter.getImportStats = jest.fn().mockResolvedValue({ totalProducts: 1 });
+
+      await request(app).get('/api/products/import/stats').expect(200);
+
+      expect(MockCSVImporter.getImportStats).toHaveBeenCalledWith(undefined);
     });
 
     it('should return 500 when getImportStats throws', async () => {

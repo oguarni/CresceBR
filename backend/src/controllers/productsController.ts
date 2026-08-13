@@ -5,6 +5,17 @@ import { productsService, ProductFilters } from '../services/productsService';
 import path from 'path';
 import { logger } from '../utils/structuredLogger';
 
+// Browsers and spreadsheet tools disagree on the CSV media type, so the
+// allowlist covers the values legitimate clients actually send. It stays an
+// allowlist: anything outside it is rejected rather than sniffed.
+const ALLOWED_CSV_MIME_TYPES = [
+  'text/csv',
+  'application/csv',
+  'text/plain',
+  'application/vnd.ms-excel',
+  'text/comma-separated-values',
+];
+
 export const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
   const result = await productsService.getAll(req.query as unknown as ProductFilters);
 
@@ -81,8 +92,11 @@ export const importProductsFromCSV = asyncHandler(
         file: { fieldname: string; originalname: string; mimetype: string },
         cb: (error: Error | null, filename: string) => void
       ) => {
+        // The stored name is generated entirely server-side and always ends in
+        // `.csv`. Deriving the extension from `file.originalname` let a caller
+        // plant an arbitrary extension (.html, .js, .php) inside uploads/.
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        cb(null, `${file.fieldname}-${uniqueSuffix}.csv`);
       },
     });
 
@@ -93,10 +107,13 @@ export const importProductsFromCSV = asyncHandler(
         file: { fieldname: string; originalname: string; mimetype: string },
         cb: (error: Error | null, acceptFile: boolean) => void
       ) => {
-        if (
-          file.mimetype === 'text/csv' ||
-          path.extname(file.originalname).toLowerCase() === '.csv'
-        ) {
+        // Both signals must agree. Either one alone is client-supplied and
+        // trivially spoofed; the file's own content is still re-validated
+        // row-by-row by CSVImporter before anything is persisted.
+        const hasCsvExtension = path.extname(file.originalname).toLowerCase() === '.csv';
+        const hasCsvMimeType = ALLOWED_CSV_MIME_TYPES.includes(file.mimetype);
+
+        if (hasCsvExtension && hasCsvMimeType) {
           cb(null, true);
         } else {
           cb(new Error('Only CSV files are allowed'), false);
@@ -172,10 +189,12 @@ export const generateSampleCSV = asyncHandler(async (req: Request, res: Response
   }
 });
 
-export const getImportStats = asyncHandler(async (req: Request, res: Response) => {
+export const getImportStats = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { CSVImporter } = require('../utils/csvImporter');
   try {
-    const stats = await CSVImporter.getImportStats();
+    // Admins see the whole marketplace; a supplier only ever sees its own row.
+    const scopeToSupplierId = req.user!.role === 'admin' ? undefined : req.user!.id;
+    const stats = await CSVImporter.getImportStats(scopeToSupplierId);
     res.status(200).json({ success: true, data: stats });
   } catch (error) {
     res.status(500).json({

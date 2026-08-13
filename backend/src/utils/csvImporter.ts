@@ -295,7 +295,18 @@ export class CSVImporter {
     fs.writeFileSync(filePath, csvHeaders + csvContent);
   }
 
-  static async getImportStats(): Promise<{
+  /**
+   * Catalogue import statistics.
+   *
+   * @param scopeToSupplierId When set, `productsBySupplier` is reduced to that
+   *   supplier's own bucket. Suppliers are peers, not tenants of each other:
+   *   returning the whole map handed every supplier a per-competitor product
+   *   count. Omit (admin) to get the full breakdown.
+   *
+   * @example
+   * await CSVImporter.getImportStats(req.user.role === 'admin' ? undefined : req.user.id);
+   */
+  static async getImportStats(scopeToSupplierId?: number): Promise<{
     totalProducts: number;
     productsByCategory: { [category: string]: number };
     productsWithTierPricing: number;
@@ -309,10 +320,13 @@ export class CSVImporter {
       raw: true,
     })) as unknown as Array<{ category: string; count: string }>;
 
-    const categoryStats = productsByCategory.reduce((acc: Record<string, number>, item: { category: string; count: string }) => {
-      acc[item.category] = parseInt(item.count);
-      return acc;
-    }, {} as Record<string, number>);
+    const categoryStats = productsByCategory.reduce(
+      (acc: Record<string, number>, item: { category: string; count: string }) => {
+        acc[item.category] = parseInt(item.count);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const productsWithTierPricing = await Product.count({
       where: sequelize.where(sequelize.col('tierPricing'), { [Op.not]: null }),
@@ -324,10 +338,16 @@ export class CSVImporter {
       raw: true,
     })) as unknown as Array<{ supplierId: number; count: string }>;
 
-    const supplierStats = productsBySupplier.reduce((acc: Record<string, number>, item: { supplierId: number; count: string }) => {
-      acc[item.supplierId] = parseInt(item.count);
-      return acc;
-    }, {} as Record<string, number>);
+    const supplierStats = productsBySupplier.reduce(
+      (acc: Record<string, number>, item: { supplierId: number; count: string }) => {
+        if (scopeToSupplierId !== undefined && Number(item.supplierId) !== scopeToSupplierId) {
+          return acc;
+        }
+        acc[item.supplierId] = parseInt(item.count);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return {
       totalProducts,

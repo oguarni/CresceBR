@@ -13,7 +13,7 @@ import {
 } from '../controllers/productsController';
 import { productValidation } from '../validators/product.validators';
 import { handleValidationErrors } from '../middleware/handleValidationErrors';
-import { authenticateJWT, canModifyProduct } from '../middleware/auth';
+import { authenticateJWT, canModifyProduct, isApprovedSupplier } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { searchRateLimit, generalRateLimit, uploadRateLimit } from '../middleware/rateLimiting';
 
@@ -39,11 +39,16 @@ router.get(
 );
 router.get('/:id', searchRateLimit, getProductById);
 
-// Supplier-only routes (protected)
+// Supplier-only routes (protected).
+// `isApprovedSupplier` is required in addition to the role: the RBAC model
+// grants MANAGE_OWN_PRODUCTS only to suppliers with `status: 'approved'`, and
+// `requireRole` never reads status — so a pending or rejected supplier could
+// publish and bulk-import catalogue entries while awaiting verification.
 router.post(
   '/',
   authenticateJWT,
   requireRole('supplier'),
+  isApprovedSupplier,
   generalRateLimit,
   productValidation,
   handleValidationErrors,
@@ -53,6 +58,7 @@ router.put(
   '/:id',
   authenticateJWT,
   requireRole('supplier'),
+  isApprovedSupplier,
   canModifyProduct,
   generalRateLimit,
   productValidation,
@@ -63,6 +69,7 @@ router.post(
   '/import/csv',
   authenticateJWT,
   requireRole('supplier'),
+  isApprovedSupplier,
   uploadRateLimit,
   importProductsFromCSV
 );
