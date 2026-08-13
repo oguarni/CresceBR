@@ -46,8 +46,28 @@ describe('Error Handler Middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        error: 'Something went wrong',
+        error: 'Server Error',
       });
+    });
+
+    // Regression: an unmapped 500 used to echo the raw internal message back to
+    // the caller, handing out SQL text, driver output and absolute paths.
+    it('should not leak internal error detail on a 500, but still log it', () => {
+      const internalError = new Error(
+        'SequelizeDatabaseError: relation "users" does not exist at /usr/src/app/dist/db.js:42'
+      );
+
+      errorHandler(internalError, mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Server Error',
+      });
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        'Unhandled request error',
+        expect.objectContaining({ error: internalError })
+      );
     });
 
     it('should handle errors with custom status code', () => {
@@ -528,7 +548,7 @@ describe('Error Handler Middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        error: 'Circular reference',
+        error: 'Server Error',
       });
     });
 
@@ -560,7 +580,7 @@ describe('Error Handler Middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        error: longMessage,
+        error: 'Server Error',
       });
     });
   });

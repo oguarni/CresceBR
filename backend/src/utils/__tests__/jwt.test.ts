@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import jwt from 'jsonwebtoken';
 import { generateToken, verifyToken, extractTokenFromHeader, tokenManager } from '../jwt';
 import { AuthTokenPayload } from '../../types';
@@ -248,6 +250,59 @@ describe('JWT Utilities', () => {
       // Assert
       expect(result).toEqual(expectedPayload);
       expect(mockJwt.verify).toHaveBeenCalledWith(token, 'test-secret', { algorithms: ['HS256'] });
+    });
+
+    // Regression: a signing key that is public knowledge (leaked to a public
+    // branch, or copied verbatim out of the committed .env.example) let anyone
+    // forge a token with role: 'admin'. It must be refused, not merely rotated.
+    describe('compromised and weak signing keys', () => {
+      const basePayload: AuthTokenPayload = {
+        id: 1,
+        email: 'guard@example.com',
+        cnpj: '12.345.678/0001-90',
+        role: 'customer',
+        companyType: 'buyer',
+      };
+
+      // Read from the committed example rather than restating it: this keeps the
+      // invariant self-maintaining. Change the placeholder without adding its
+      // digest to the denylist and this test fails, which is the point.
+      const PUBLIC_PLACEHOLDER = readFileSync(resolve(__dirname, '../../../.env.example'), 'utf8')
+        .split('\n')
+        .find(line => line.startsWith('JWT_SECRET='))!
+        .slice('JWT_SECRET='.length)
+        .trim();
+
+      it.each(['production', 'development', 'test'])(
+        'refuses the committed .env.example placeholder in %s',
+        env => {
+          process.env.NODE_ENV = env;
+          process.env.JWT_SECRET = PUBLIC_PLACEHOLDER;
+
+          expect(() => generateToken(basePayload)).toThrow(/publicly known value/);
+        }
+      );
+
+      it('refuses a short signing key in production', () => {
+        process.env.NODE_ENV = 'production';
+        process.env.JWT_SECRET = 'short-key';
+
+        expect(() => generateToken(basePayload)).toThrow(/at least 32 characters in production/);
+      });
+
+      it('allows a short throwaway key outside production', () => {
+        process.env.NODE_ENV = 'test';
+        process.env.JWT_SECRET = 'short-key';
+
+        expect(() => generateToken(basePayload)).not.toThrow();
+      });
+
+      it('accepts a freshly generated 64-byte key', () => {
+        process.env.NODE_ENV = 'production';
+        process.env.JWT_SECRET = require('crypto').randomBytes(64).toString('base64');
+
+        expect(() => generateToken(basePayload)).not.toThrow();
+      });
     });
 
     it('should use fallback secret when JWT_SECRET is not set', () => {

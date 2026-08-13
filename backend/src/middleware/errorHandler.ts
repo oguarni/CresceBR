@@ -67,9 +67,21 @@ export const errorHandler = (
   }
 
   const statusCode = error.statusCode || 500;
+
+  // 5xx bodies are generic outside development: an unmapped error carries the
+  // raw internal message (SQL text, driver output, absolute paths), and echoing
+  // it back hands an attacker a free schema/infrastructure oracle. The full
+  // error is still logged above.
+  const isServerFault = statusCode >= 500;
+  const exposeInternals = process.env.NODE_ENV === 'development';
+  const body =
+    isServerFault && !exposeInternals
+      ? 'Server Error'
+      : error.message || (isServerFault ? 'Server Error' : '');
+
   res.status(statusCode).json({
     success: false,
-    error: error.message || (statusCode === 500 ? 'Server Error' : ''),
+    error: body,
   });
 };
 

@@ -3,6 +3,29 @@ import crypto from 'crypto';
 import { AuthTokenPayload } from '../types';
 import { getRedisClient } from '../config/redis';
 
+// SHA-256 digests of signing keys that are public knowledge and must never sign
+// a token again. Digests rather than the literals: writing the values here would
+// republish the very secret this list exists to retire.
+//   d650eacc… — committed to docker-compose.yml at efac3470 and still readable on
+//               the public `feat` branch; treat as compromised, never reinstate.
+//   103ab5dd… — the `your-super-secret…` placeholder shipped in .env.example.
+//               Copying .env.example to .env verbatim used to leave the whole
+//               deployment signing with a value anyone could read off GitHub.
+const COMPROMISED_SECRET_DIGESTS = new Set([
+  'd650eacc038c1e002e5a76752ea3ead067f214cbe12d7f3b6fcec5c5c07a7d89',
+  '103ab5dd9769664c34bb4dcecdbe1aa52a55f75a4a62243238c9abb3bc3d9e02',
+]);
+
+// HS256 keys shorter than this are brute-forcible offline from a single captured
+// token. Enforced outside development so local throwaway values still work.
+const MIN_PRODUCTION_SECRET_LENGTH = 32;
+
+/**
+ * Resolve the JWT signing key, refusing values that cannot be trusted.
+ *
+ * @throws Error when the secret is missing outside development, is publicly
+ *   known, or is too short to resist offline cracking in production.
+ */
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -11,6 +34,24 @@ const getJwtSecret = () => {
     }
     return 'dev-only-insecure-secret-do-not-use-in-production';
   }
+
+  // Enforced in every environment: a published key is worthless everywhere, and
+  // failing loudly in development is what stops it reaching production.
+  const digest = crypto.createHash('sha256').update(secret).digest('hex');
+  if (COMPROMISED_SECRET_DIGESTS.has(digest)) {
+    throw new Error(
+      'JWT_SECRET is a publicly known value (leaked in git history or copied ' +
+        'verbatim from .env.example). Generate a fresh one: openssl rand -base64 64'
+    );
+  }
+
+  if (process.env.NODE_ENV === 'production' && secret.length < MIN_PRODUCTION_SECRET_LENGTH) {
+    throw new Error(
+      `JWT_SECRET must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters in production ` +
+        `(got ${secret.length}). Generate one: openssl rand -base64 64`
+    );
+  }
+
   return secret;
 };
 

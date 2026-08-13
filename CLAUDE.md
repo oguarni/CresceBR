@@ -274,3 +274,20 @@ once. Record the existing run instead of dropping data:
 ```sql
 INSERT INTO "SequelizeSeeders" (name) VALUES ('20240101000001-initial-data.cjs') ON CONFLICT DO NOTHING;
 ```
+
+### `DB_PASSWORD` is required, with no fallback (2026-08-13)
+
+`backend/config/config.cjs` now loads `backend/.env` itself and throws when `DB_PASSWORD` is unset.
+Both halves matter:
+
+- sequelize-cli does **not** load `.env`. Every value in `config.cjs` previously fell back to a
+  hardcoded literal, so `npm run db:migrate` authenticated with the password published in
+  `.env.example` instead of the one in `.env`. The CLI and the server were reading different
+  credentials and agreed only by coincidence — rotating the database password broke migrations
+  while the server kept working.
+- `dotenv.config()` never overwrites an already-set variable, so the `DB_HOST=db` that Docker
+  Compose injects still wins inside the container, and host-side runs still get `DB_HOST=localhost`.
+
+The `test` entry deliberately reads `TEST_DB_NAME`, not `DB_NAME`: now that `.env` is loaded,
+inheriting `DB_NAME` would aim `NODE_ENV=test` migrations — including `db:migrate:undo:all` — at the
+development database.
