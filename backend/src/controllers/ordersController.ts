@@ -27,7 +27,8 @@ export const createOrderFromQuotation = asyncHandler(
 export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const orderId = req.params.orderId as string;
   const { status, trackingNumber, estimatedDeliveryDate, notes, nfeAccessKey, nfeUrl } = req.body;
-  const companyId = req.user!.id;
+  const requesterId = req.user!.id;
+  const requesterRole = req.user!.role;
 
   try {
     const updatedOrder = await OrderStatusService.updateOrderStatus(
@@ -40,7 +41,8 @@ export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, 
         nfeAccessKey,
         nfeUrl,
       },
-      companyId
+      requesterId,
+      requesterRole
     );
 
     res.status(200).json({
@@ -49,10 +51,13 @@ export const updateOrderStatus = asyncHandler(async (req: AuthenticatedRequest, 
       data: updatedOrder,
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update order status',
-    });
+    const message = error instanceof Error ? error.message : 'Failed to update order status';
+    const status = message.includes('Access denied')
+      ? 403
+      : message.includes('not found')
+        ? 404
+        : 400;
+    res.status(status).json({ success: false, error: message });
   }
 });
 

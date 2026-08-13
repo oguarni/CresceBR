@@ -2,16 +2,25 @@ import { OrderStatusService } from '../orderStatusService';
 import Order from '../../models/Order';
 import User from '../../models/User';
 import Quotation from '../../models/Quotation';
+import QuotationItem from '../../models/QuotationItem';
 import { logger } from '../../utils/structuredLogger';
 
 // Mock the models
 jest.mock('../../models/Order');
 jest.mock('../../models/User');
 jest.mock('../../models/Quotation');
+jest.mock('../../models/QuotationItem');
+jest.mock('../../models/Product');
 
 const MockOrder = Order as jest.Mocked<typeof Order>;
 const MockUser = User as jest.Mocked<typeof User>;
 const MockQuotation = Quotation as jest.Mocked<typeof Quotation>;
+const MockQuotationItem = QuotationItem as jest.Mocked<typeof QuotationItem>;
+
+// Supplier identities used by the order-ownership tests. A supplier is "related"
+// to an order only through the products it sells inside the quotation.
+const RELATED_SUPPLIER_ID = 55;
+const UNRELATED_SUPPLIER_ID = 66;
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -184,7 +193,8 @@ describe('OrderStatusService', () => {
       const result = await OrderStatusService.updateOrderStatus(
         'order-123',
         { status: 'processing' },
-        1
+        1,
+        'admin'
       );
 
       expect(result.status).toBe('processing');
@@ -195,8 +205,56 @@ describe('OrderStatusService', () => {
       MockOrder.findByPk.mockResolvedValue(null);
 
       await expect(
-        OrderStatusService.updateOrderStatus('order-999', { status: 'processing' }, 1)
+        OrderStatusService.updateOrderStatus('order-999', { status: 'processing' }, 1, 'admin')
       ).rejects.toThrow('Order not found');
+    });
+
+    // Regression: the requester used to be ignored entirely, so the route's
+    // requireRole('admin','supplier') allowed ANY supplier to drive ANY order's
+    // status and write arbitrary tracking / NF-e values onto it.
+    it('should deny a supplier with no product in the order quotation', async () => {
+      const mockOrder = createMockOrder({ status: 'pending', companyId: 1, quotationId: 7 });
+      MockOrder.findByPk.mockResolvedValue(mockOrder as any);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        OrderStatusService.updateOrderStatus(
+          'order-123',
+          { status: 'cancelled' },
+          UNRELATED_SUPPLIER_ID,
+          'supplier'
+        )
+      ).rejects.toThrow('Access denied');
+
+      expect(mockOrder.update).not.toHaveBeenCalled();
+    });
+
+    it('should allow a supplier whose product is in the order quotation', async () => {
+      const mockOrder = createMockOrder({ status: 'pending', companyId: 1, quotationId: 7 });
+      MockOrder.findByPk
+        .mockResolvedValueOnce(mockOrder as any)
+        .mockResolvedValueOnce({ ...mockOrder, status: 'processing' } as any);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue({ id: 3 });
+
+      const result = await OrderStatusService.updateOrderStatus(
+        'order-123',
+        { status: 'processing' },
+        RELATED_SUPPLIER_ID,
+        'supplier'
+      );
+
+      expect(result.status).toBe('processing');
+    });
+
+    it('should deny a customer that did not place the order', async () => {
+      const mockOrder = createMockOrder({ status: 'pending', companyId: 1, quotationId: 7 });
+      MockOrder.findByPk.mockResolvedValue(mockOrder as any);
+
+      await expect(
+        OrderStatusService.updateOrderStatus('order-123', { status: 'cancelled' }, 42, 'customer')
+      ).rejects.toThrow('Access denied');
+
+      expect(mockOrder.update).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid status transition', async () => {
@@ -209,7 +267,7 @@ describe('OrderStatusService', () => {
       MockOrder.findByPk.mockResolvedValue(mockOrder as any);
 
       await expect(
-        OrderStatusService.updateOrderStatus('order-123', { status: 'processing' }, 1)
+        OrderStatusService.updateOrderStatus('order-123', { status: 'processing' }, 1, 'admin')
       ).rejects.toThrow('Invalid status transition from delivered to processing');
     });
 
@@ -223,7 +281,7 @@ describe('OrderStatusService', () => {
       MockOrder.findByPk.mockResolvedValue(mockOrder as any);
 
       await expect(
-        OrderStatusService.updateOrderStatus('order-123', { status: 'shipped' }, 1)
+        OrderStatusService.updateOrderStatus('order-123', { status: 'shipped' }, 1, 'admin')
       ).rejects.toThrow('trackingNumber is required for this status transition');
     });
 
@@ -241,7 +299,8 @@ describe('OrderStatusService', () => {
         OrderStatusService.updateOrderStatus(
           'order-123',
           { status: 'shipped', trackingNumber: 'TRACK123' },
-          1
+          1,
+          'admin'
         )
       ).rejects.toThrow('nfeAccessKey is required for this status transition');
     });
@@ -266,7 +325,8 @@ describe('OrderStatusService', () => {
       const result = await OrderStatusService.updateOrderStatus(
         'order-123',
         { status: 'shipped', trackingNumber: 'TRACK123', nfeAccessKey: NFE_KEY, nfeUrl: NFE_URL },
-        1
+        1,
+        'admin'
       );
 
       // Both NF-e fields must be forwarded to order.update()
@@ -303,7 +363,8 @@ describe('OrderStatusService', () => {
       await OrderStatusService.updateOrderStatus(
         'order-123',
         { status: 'shipped', trackingNumber: 'TRACK123', nfeAccessKey: NFE_KEY },
-        1
+        1,
+        'admin'
       );
 
       expect(mockOrder.update).toHaveBeenCalledWith({
@@ -329,7 +390,8 @@ describe('OrderStatusService', () => {
       await OrderStatusService.updateOrderStatus(
         'order-123',
         { status: 'shipped', trackingNumber: 'TRACK123', nfeAccessKey: NFE_KEY },
-        1
+        1,
+        'admin'
       );
 
       const updateCall = mockOrder.update.mock.calls[0][0];
@@ -358,7 +420,8 @@ describe('OrderStatusService', () => {
           nfeAccessKey: NFE_KEY,
           estimatedDeliveryDate: customDate,
         },
-        1
+        1,
+        'admin'
       );
 
       expect(mockOrder.update).toHaveBeenCalledWith(
@@ -387,7 +450,7 @@ describe('OrderStatusService', () => {
         .mockResolvedValueOnce(mockOrder as any)
         .mockResolvedValueOnce({ ...mockOrder, status: 'processing' } as any);
 
-      await OrderStatusService.updateOrderStatus('order-biz', { status: 'processing' }, 1);
+      await OrderStatusService.updateOrderStatus('order-biz', { status: 'processing' }, 1, 'admin');
 
       expect(businessLogicFn).toHaveBeenCalledWith(mockOrder, { status: 'processing' });
 
@@ -464,7 +527,8 @@ describe('OrderStatusService', () => {
       const result = await OrderStatusService.bulkUpdateOrderStatus(
         ['order-1', 'order-2'],
         { status: 'processing' },
-        1
+        1,
+        'admin'
       );
 
       expect(result).toHaveLength(2);
@@ -489,7 +553,8 @@ describe('OrderStatusService', () => {
       const result = await OrderStatusService.bulkUpdateOrderStatus(
         ['order-1', 'order-2'],
         { status: 'processing' },
-        1
+        1,
+        'admin'
       );
 
       expect(result).toHaveLength(1);
@@ -672,6 +737,7 @@ describe('OrderStatusService', () => {
       MockOrder.findByPk
         .mockResolvedValueOnce(mockOrder as any)
         .mockResolvedValueOnce({ ...mockOrder, nfeAccessKey: VALID_NFE_KEY } as any);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue({ id: 3 });
 
       const result = await OrderStatusService.updateOrderNfe(
         'order-123',
@@ -696,6 +762,7 @@ describe('OrderStatusService', () => {
         nfeAccessKey: VALID_NFE_KEY,
         nfeUrl: VALID_NFE_URL,
       } as any);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue({ id: 3 });
 
       const result = await OrderStatusService.updateOrderNfe(
         'order-456',
@@ -739,9 +806,10 @@ describe('OrderStatusService', () => {
       ).rejects.toThrow('Order not found');
     });
 
-    it('should throw for a supplier who does not own the order', async () => {
+    it('should throw for a supplier that supplies nothing in the order', async () => {
       const mockOrder = createMockOrder({ id: 'order-123', status: 'shipped', companyId: 999 });
       MockOrder.findByPk.mockResolvedValueOnce(mockOrder as any);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue(null);
 
       await expect(
         OrderStatusService.updateOrderNfe(
@@ -760,6 +828,7 @@ describe('OrderStatusService', () => {
         companyId: REQUESTER_ID,
       });
       MockOrder.findByPk.mockResolvedValueOnce(mockOrder as any);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue({ id: 3 });
 
       await expect(
         OrderStatusService.updateOrderNfe(

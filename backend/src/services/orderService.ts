@@ -3,6 +3,7 @@ import Quotation from '../models/Quotation';
 import User from '../models/User';
 import { QuoteService } from './quoteService';
 import { OrderStatusService } from './orderStatusService';
+import { assertOrderAccess } from './orderAuthorization';
 
 export const orderService = {
   async createFromQuotation(quotationId: number, companyId: number): Promise<Order> {
@@ -53,9 +54,10 @@ export const orderService = {
   ): Promise<ReturnType<typeof OrderStatusService.getOrderHistory>> {
     const result = await OrderStatusService.getOrderHistory(orderId);
 
-    if (userRole === 'customer' && result.order.companyId !== companyId) {
-      throw new Error('Access denied');
-    }
+    // Every non-admin role is scoped here. Checking only `customer` used to let
+    // any authenticated supplier read any order's history — including the
+    // buyer's email and company details on unrelated orders.
+    await assertOrderAccess(result.order, companyId, userRole);
 
     return result;
   },

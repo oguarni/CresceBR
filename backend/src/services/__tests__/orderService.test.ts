@@ -3,14 +3,18 @@ import Order from '../../models/Order';
 import Quotation from '../../models/Quotation';
 import { QuoteService } from '../quoteService';
 import { OrderStatusService } from '../orderStatusService';
+import QuotationItem from '../../models/QuotationItem';
 
 jest.mock('../../models/Order');
 jest.mock('../../models/Quotation');
+jest.mock('../../models/QuotationItem');
+jest.mock('../../models/Product');
 jest.mock('../../models/User');
 jest.mock('../quoteService');
 jest.mock('../orderStatusService');
 
 const MockOrder = Order as jest.Mocked<typeof Order>;
+const MockQuotationItem = QuotationItem as jest.Mocked<typeof QuotationItem>;
 const MockQuotation = Quotation as jest.Mocked<typeof Quotation>;
 const MockQuoteService = QuoteService as jest.Mocked<typeof QuoteService>;
 const MockOrderStatusService = OrderStatusService as jest.Mocked<typeof OrderStatusService>;
@@ -170,15 +174,32 @@ describe('orderService', () => {
       );
     });
 
-    it('should allow supplier to view order history', async () => {
+    it('should allow a supplier whose product is in the order quotation', async () => {
       const mockHistory = {
-        order: { id: 'order-1', companyId: 5 },
+        order: { id: 'order-1', companyId: 5, quotationId: 10 },
         history: [],
       };
       (MockOrderStatusService.getOrderHistory as jest.Mock).mockResolvedValue(mockHistory);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue({ id: 3 });
 
       const result = await orderService.getHistory('order-1', 5, 'supplier');
       expect(result).toEqual(mockHistory);
+    });
+
+    // Regression: ownership used to be checked only for `customer`, so any
+    // authenticated supplier could read any order's history — including the
+    // buyer's email and company details on wholly unrelated orders.
+    it('should deny a supplier with no product in the order quotation', async () => {
+      const mockHistory = {
+        order: { id: 'order-1', companyId: 5, quotationId: 10 },
+        history: [],
+      };
+      (MockOrderStatusService.getOrderHistory as jest.Mock).mockResolvedValue(mockHistory);
+      (MockQuotationItem.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(orderService.getHistory('order-1', 404, 'supplier')).rejects.toThrow(
+        'Access denied'
+      );
     });
   });
 });

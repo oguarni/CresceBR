@@ -5,6 +5,7 @@ import Quotation from '../models/Quotation';
 import QuotationItem from '../models/QuotationItem';
 import Product from '../models/Product';
 import { logger } from '../utils/structuredLogger';
+import { assertOrderAccess } from './orderAuthorization';
 
 export interface NfeUpdateData {
   nfeAccessKey?: string;
@@ -89,10 +90,20 @@ export class OrderStatusService {
     return estimatedDate;
   }
 
+  /**
+   * Advance an order along the status machine.
+   *
+   * @param orderId        Order UUID.
+   * @param updateData     Target status plus the fields that transition requires.
+   * @param requesterId    `id` of the authenticated principal.
+   * @param requesterRole  Role of the authenticated principal ('admin' | 'supplier' | …).
+   * @throws Error('Access denied') when the principal is unrelated to the order.
+   */
   static async updateOrderStatus(
     orderId: string,
     updateData: OrderStatusUpdate,
-    _companyId: number
+    requesterId: number,
+    requesterRole: string
   ): Promise<Order> {
     const order = await Order.findByPk(orderId, {
       include: [
@@ -111,6 +122,11 @@ export class OrderStatusService {
     if (!order) {
       throw new Error('Order not found');
     }
+
+    // The requester used to be ignored entirely (`_companyId`), so the route's
+    // `requireRole('admin','supplier')` let ANY supplier drive ANY order's
+    // status and write arbitrary tracking / NF-e values onto it.
+    await assertOrderAccess(order, requesterId, requesterRole);
 
     const currentStatus = order.status;
     const newStatus = updateData.status;
@@ -232,13 +248,19 @@ export class OrderStatusService {
   static async bulkUpdateOrderStatus(
     orderIds: string[],
     updateData: OrderStatusUpdate,
-    companyId: number
+    requesterId: number,
+    requesterRole: string
   ): Promise<Order[]> {
     const updatedOrders: Order[] = [];
 
     for (const orderId of orderIds) {
       try {
-        const updatedOrder = await this.updateOrderStatus(orderId, updateData, companyId);
+        const updatedOrder = await this.updateOrderStatus(
+          orderId,
+          updateData,
+          requesterId,
+          requesterRole
+        );
         updatedOrders.push(updatedOrder);
       } catch (error) {
         logger.error('Failed to update order status', { error, orderId });
@@ -383,7 +405,7 @@ export class OrderStatusService {
    *
    * @param orderId   UUID of the target order.
    * @param data      Fields to update — at least one must be present.
-   * @param requesterId  companyId of the authenticated user making the request.
+   * @param requesterId  `id` of the authenticated user making the request.
    * @param requesterRole  Role of the authenticated user ('admin' | 'supplier' | …).
    */
   static async updateOrderNfe(
@@ -403,10 +425,11 @@ export class OrderStatusService {
       throw new Error('Order not found');
     }
 
-    // Only the order's own supplier or an admin may correct NF-e data
-    if (requesterRole !== 'admin' && order.companyId !== requesterId) {
-      throw new Error('Access denied: you do not own this order');
-    }
+    // Only an admin or a supplier that actually supplies this order may correct
+    // NF-e data. The previous check compared the supplier's id against
+    // `order.companyId`, which is the *buyer* — so it denied every supplier
+    // while saying it authorized "the order's own supplier".
+    await assertOrderAccess(order, requesterId, requesterRole);
 
     // NF-e corrections only make sense after the order has been shipped
     const allowedStatuses: string[] = ['shipped', 'delivered'];

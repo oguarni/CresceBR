@@ -89,7 +89,7 @@ describe('Orders Controller', () => {
 
     // Mock authentication middleware to pass
     (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-      req.user = { id: 1, role: 'buyer', email: 'buyer@test.com' };
+      req.user = { id: 1, role: 'customer', email: 'buyer@test.com' };
       next();
     });
   });
@@ -223,7 +223,8 @@ describe('Orders Controller', () => {
           estimatedDeliveryDate: new Date('2023-12-31'),
           notes: undefined,
         },
-        2
+        2,
+        'supplier'
       );
     });
 
@@ -246,7 +247,7 @@ describe('Orders Controller', () => {
 
     it('should return 403 when user is not admin or supplier', async () => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 3, role: 'buyer', email: 'buyer@test.com' };
+        req.user = { id: 3, role: 'customer', email: 'buyer@test.com' };
         next();
       });
 
@@ -436,7 +437,7 @@ describe('Orders Controller', () => {
 
     it('should return 403 for non-admin', async () => {
       (authenticateJWT as jest.Mock).mockImplementation((req, res, next) => {
-        req.user = { id: 1, role: 'buyer', email: 'buyer@test.com' };
+        req.user = { id: 1, role: 'customer', email: 'buyer@test.com' };
         next();
       });
 

@@ -1134,6 +1134,11 @@ describe('Quotations Controller', () => {
         };
         next();
       });
+      (MockQuotation.findByPk as jest.Mock).mockResolvedValue({
+        id: 1,
+        companyId: 1,
+        items: [],
+      });
       mockQuoteService.getQuotationWithCalculations.mockResolvedValue(mockResult);
       mockQuoteService.formatQuoteResponse.mockReturnValue(mockFormattedResponse);
 
@@ -1178,6 +1183,11 @@ describe('Quotations Controller', () => {
         };
         next();
       });
+      (MockQuotation.findByPk as jest.Mock).mockResolvedValue({
+        id: 1,
+        companyId: 2,
+        items: [],
+      });
       mockQuoteService.getQuotationWithCalculations.mockResolvedValue(mockResult);
 
       // Act
@@ -1200,16 +1210,40 @@ describe('Quotations Controller', () => {
         };
         next();
       });
-      mockQuoteService.getQuotationWithCalculations.mockRejectedValue(
-        new Error('Quotation not found')
-      );
+      (MockQuotation.findByPk as jest.Mock).mockResolvedValue(null);
 
       // Act
-      const response = await request(app).get('/api/quotations/1/calculations').expect(400);
+      const response = await request(app).get('/api/quotations/1/calculations').expect(404);
 
       // Assert
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Quotation not found');
+    });
+
+    // Regression: the ownership check used to run only for `customer`, so any
+    // authenticated supplier could read any quotation's items and full pricing
+    // breakdown here — including quotations belonging to competitors.
+    it('should return 403 for a supplier with no product in the quotation', async () => {
+      mockAuthenticateJWT.mockImplementation((req: Request, res: Response, next: NextFunction) => {
+        req.user = {
+          id: 42,
+          email: 'supplier@example.com',
+          role: 'supplier',
+          cnpj: '12.345.678/0001-90',
+          companyType: 'supplier',
+        };
+        next();
+      });
+      (MockQuotation.findByPk as jest.Mock).mockResolvedValue({
+        id: 1,
+        companyId: 7,
+        items: [{ product: { supplierId: 99 } }],
+      });
+
+      const response = await request(app).get('/api/quotations/1/calculations').expect(403);
+
+      expect(response.body.error).toBe('Access denied');
+      expect(mockQuoteService.getQuotationWithCalculations).not.toHaveBeenCalled();
     });
   });
 

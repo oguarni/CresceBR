@@ -149,15 +149,12 @@ export const getQuotationCalculations = asyncHandler(
     const userRole = req.user!.role;
 
     try {
+      // Authorize before computing or returning anything. Scoping only
+      // `customer` let any authenticated supplier read any quotation's items and
+      // full pricing breakdown, including competitors' quotations.
+      await quotationService.getById(parseInt(id), companyId, userRole);
+
       const result = await QuoteService.getQuotationWithCalculations(parseInt(id));
-
-      if (userRole === 'customer' && result.quotation.companyId !== companyId) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied',
-        });
-      }
-
       const formattedResponse = QuoteService.formatQuoteResponse(result.calculations);
 
       res.status(200).json({
@@ -169,10 +166,12 @@ export const getQuotationCalculations = asyncHandler(
         },
       });
     } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get quotation calculations',
-      });
+      const message =
+        error instanceof Error ? error.message : 'Failed to get quotation calculations';
+      const status =
+        message === 'Quotation not found' ? 404 : message === 'Access denied' ? 403 : 400;
+
+      res.status(status).json({ success: false, error: message });
     }
   }
 );
