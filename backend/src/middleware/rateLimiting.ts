@@ -11,18 +11,49 @@ interface RateLimitOptions {
   keyGenerator?: (req: Request) => string; // Custom key generator
 }
 
-// Resolve the originating client IP for rate-limit keys. Behind the Cloud Run
-// nginx proxy chain `req.ip` collapses to the proxy address (trust proxy = 1),
-// which would make per-IP limits apply to every visitor collectively. The real
-// client is the left-most entry of X-Forwarded-For, so prefer it when present.
+// Number of proxy hops in front of this process that are ours and therefore
+// trustworthy (Firebase Hosting -> Cloud Run is 1). Must match the value passed
+// to `app.set('trust proxy', …)` in server.ts.
+export const trustedProxyHops = (): number => {
+  const configured = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? '', 10);
+  return Number.isInteger(configured) && configured >= 0 ? configured : 1;
+};
+
+/**
+ * Resolve the originating client IP used to key rate limits.
+ *
+ * X-Forwarded-For is read from the RIGHT, skipping our own trusted hops. GCP's
+ * front end *appends* to a client-supplied header rather than replacing it, so
+ * the left-most entry is fully attacker-controlled: keying on it let any client
+ * mint a fresh rate-limit bucket per request by rotating one header value,
+ * which silently disabled the login/register/CNPJ limiters.
+ *
+ * `req.ip` is preferred because Express already implements this hop-counting
+ * against `trust proxy`; the manual walk is the fallback for requests that did
+ * not pass through Express's own parsing (e.g. unit tests, raw handlers).
+ *
+ * @example
+ * // trust proxy = 1, header "1.1.1.1, 203.0.113.7, 10.0.0.1" => "203.0.113.7"
+ * getClientIp(req);
+ */
 export const getClientIp = (req: Request): string => {
+  if (req.ip) {
+    return req.ip;
+  }
+
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
-    const value = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-    const first = value.split(',')[0].trim();
-    if (first) return first;
+    const value = Array.isArray(forwarded) ? forwarded.join(',') : forwarded;
+    const hops = value
+      .split(',')
+      .map(entry => entry.trim())
+      .filter(Boolean);
+    const clientIndex = hops.length - 1 - trustedProxyHops();
+    const candidate = hops[clientIndex >= 0 ? clientIndex : 0];
+    if (candidate) return candidate;
   }
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+
+  return req.socket?.remoteAddress || 'unknown';
 };
 
 class RateLimiter {

@@ -109,23 +109,48 @@ describe('Rate Limiting Middleware', () => {
   // getClientIp — resolves the originating client IP for rate-limit keys
   // ---------------------------------------------------------------
   describe('getClientIp', () => {
-    it('prefers the left-most X-Forwarded-For entry over req.ip', () => {
+    // Regression: keying on the left-most X-Forwarded-For entry let any client
+    // mint a fresh rate-limit bucket per request by rotating one header value,
+    // because GCP appends to a client-supplied XFF instead of replacing it.
+    it('ignores a client-forged left-most X-Forwarded-For entry', () => {
       const req = createMockReq({
-        ip: '10.0.0.1',
-        headers: { 'x-forwarded-for': '203.0.113.7, 70.41.3.18, 150.172.238.178' },
+        ip: '203.0.113.7',
+        headers: { 'x-forwarded-for': '198.18.0.1, 203.0.113.7, 10.0.0.1' },
       });
+      expect(getClientIp(req)).toBe('203.0.113.7');
+    });
+
+    it('yields the same key no matter what the client puts in X-Forwarded-For', () => {
+      const attacker = (spoofed: string) =>
+        getClientIp(
+          createMockReq({
+            ip: '203.0.113.7',
+            headers: { 'x-forwarded-for': `${spoofed}, 203.0.113.7, 10.0.0.1` },
+          })
+        );
+
+      expect(attacker('198.18.0.1')).toBe(attacker('198.18.0.2'));
+      expect(attacker('198.18.0.1')).toBe('203.0.113.7');
+    });
+
+    it('counts trusted hops from the right when Express has not resolved req.ip', () => {
+      const req = createMockReq({
+        ip: undefined,
+        headers: { 'x-forwarded-for': '198.18.0.1, 203.0.113.7, 10.0.0.1' },
+      });
+      // One trusted hop (10.0.0.1) is dropped; the entry it reported is the client.
       expect(getClientIp(req)).toBe('203.0.113.7');
     });
 
     it('handles X-Forwarded-For provided as an array', () => {
       const req = createMockReq({
-        ip: '10.0.0.1',
-        headers: { 'x-forwarded-for': ['203.0.113.9', '70.41.3.18'] },
+        ip: undefined,
+        headers: { 'x-forwarded-for': ['203.0.113.9', '10.0.0.1'] },
       });
       expect(getClientIp(req)).toBe('203.0.113.9');
     });
 
-    it('falls back to req.ip when no X-Forwarded-For header is present', () => {
+    it('prefers req.ip, which Express derives from the trust-proxy setting', () => {
       expect(getClientIp(createMockReq({ ip: '198.51.100.5' }))).toBe('198.51.100.5');
     });
 

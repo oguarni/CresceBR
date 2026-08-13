@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
+import { trustedProxyHops } from './middleware/rateLimiting';
 import { syncDatabase } from './models';
 
 // Load environment variables
@@ -14,10 +15,13 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const API_PREFIX = process.env.API_PREFIX || '/api/v1';
 
-// Trust the first proxy hop in production (so req.ip reflects X-Forwarded-For
-// for accurate rate limiting and logging behind load balancers)
+// Trust exactly the proxy hops that are ours (Firebase Hosting -> Cloud Run is
+// 1), so `req.ip` is the right-most entry X-Forwarded-For that a client could
+// not have forged. Never widen this to `true`: that would trust the whole chain
+// and hand the rate-limit key back to the caller. Keep in sync with
+// `trustedProxyHops()` in middleware/rateLimiting.ts.
 if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+  app.set('trust proxy', trustedProxyHops());
 }
 
 // Middleware
