@@ -34,7 +34,11 @@
     "backend:clean": "cd backend && rm -rf node_modules dist",
     "shared:clean": "cd shared && rm -rf node_modules dist",
     "postinstall": "echo '🚀 CresceBR B2B Marketplace setup complete! Run \"npm run dev\" to start development.'",
-    "prepare": "husky"
+    "prepare": "husky",
+    "e2e": "npm run e2e:services && playwright test",
+    "e2e:services": "docker compose up -d db redis && node e2e/wait-for-services.mjs",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report"
   },
   "keywords": [
     "crescebr",
@@ -59,6 +63,7 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "concurrently": "^9.2.0",
     "eslint-config-prettier": "^10.1.5",
     "husky": "^9.1.7",

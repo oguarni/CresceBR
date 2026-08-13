@@ -227,3 +227,50 @@ After completing any refactoring task:
 ### Open
 1. **Backend tests OOM**: `jest --runInBand` hits heap limit without `--max-old-space-size=4096` in `backend/package.json` test script (CI has it via `NODE_OPTIONS`)
 2. **Architecture (intentional)**: Services use direct Sequelize model access — this is the accepted pattern (KISS/YAGNI). `quotation.service.ts` uses repositories as an example, not a mandate. `order.repository.ts` exists but no service uses it — document and leave as-is.
+
+## End-to-End Tests (Playwright, added 2026-08-07)
+
+`e2e/` covers the seam the existing suites cannot reach. vitest tests the React app against mocked
+services; jest tests the Express API against mocked boundaries. Neither can see a defect that lives
+*between* them — auth token handling, the vite proxy, role gating on a real response, a migration the
+frontend does not expect. That seam is the whole scope. It is not a second unit-test runner.
+
+```bash
+npm run e2e            # services + full suite
+npm run e2e:services   # postgres + redis up and waited on; idempotent
+npm run e2e:ui         # Playwright UI mode
+```
+
+Conventions that are load-bearing:
+
+- **`API_PREFIX` is `/api/v1`, not `/api`** (`backend/src/server.ts:15`). A health probe pointed at
+  `/api/health` fails as a bare 120s `webServer` timeout that says nothing about the URL.
+- **Locate by `id`, never by label.** Every form label on this app comes from i18n, so a
+  `getByLabel(/email/i)` locator breaks the moment the interface language changes. `LoginPage` also
+  opens on the **CNPJ tab** — `#email` is not rendered until the Email tab is selected, which is why
+  `openEmailTab()` exists.
+- **`ProtectedRoute` does not redirect on a role mismatch.** It redirects only when there is no
+  session; a signed-in user with the wrong role keeps the URL and gets an MUI `<Alert>`. Asserting a
+  URL change there asserts the opposite of the design — assert `getByRole('alert')`.
+- **Seed credentials are fixtures, not secrets** — the same values are committed in
+  `backend/seeders/`. They stay overridable via `E2E_*` env vars so a differently seeded CI database
+  does not require editing specs.
+- **globalSetup probes TCP ports, not the API.** Playwright has changed the ordering of `webServer`
+  against `globalSetup` between releases, so a hook that asks the backend whether it is up reports
+  the wrong thing on half of them.
+
+### `seederStorage` (fixed 2026-08-07)
+
+`backend/config/config.cjs` now sets `seederStorage: 'sequelize'`. sequelize-cli defaults it to
+`'none'`, meaning seeders are never recorded and `db:seed:all` re-runs them every time. Because
+`backend`'s `dev` script chains `db:migrate && db:seed:all && nodemon`, the **second** `npm run dev`
+against a persistent postgres volume died on
+`Validation error: Key (email)=(admin@crescebr.com) already exists` before the server started.
+Tracking executed seeders makes that chain idempotent, which is what it always assumed.
+
+A database seeded *before* this change has an empty `SequelizeSeeders` table and will try to re-seed
+once. Record the existing run instead of dropping data:
+
+```sql
+INSERT INTO "SequelizeSeeders" (name) VALUES ('20240101000001-initial-data.cjs') ON CONFLICT DO NOTHING;
+```
