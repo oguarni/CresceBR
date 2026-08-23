@@ -625,7 +625,7 @@ const HomePage: React.FC = () => {
       </Collapse>
 
       {/* Main Content Area */}
-      <Box component='main' sx={{ p: 2, flex: 1 }}>
+      <Box component='main' sx={{ p: { xs: 1.5, sm: 2 }, flex: 1 }}>
         {loading ? (
           <Box display='flex' justifyContent='center' py={4}>
             <CircularProgress />
@@ -646,14 +646,21 @@ const HomePage: React.FC = () => {
         ) : (
           <>
             {/* Responsive product grid: 2 columns on mobile, scaling up on larger
-                screens. CSS Grid keeps every card in a row at an equal height. */}
+                screens. CSS Grid keeps every card in a row at an equal height.
+
+                The tracks are minmax(0, 1fr), not 1fr: a bare 1fr resolves to
+                minmax(auto, 1fr), and that auto floor is the widest card's
+                min-content width. On a phone that floor exceeds half the
+                viewport, so the grid — and with it the document — grew wider
+                than the screen, which is what let the page scroll sideways past
+                the end of the header. */}
             <Box
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
-                  xs: 'repeat(2, 1fr)',
-                  md: 'repeat(3, 1fr)',
-                  lg: 'repeat(4, 1fr)',
+                  xs: 'repeat(2, minmax(0, 1fr))',
+                  md: 'repeat(3, minmax(0, 1fr))',
+                  lg: 'repeat(4, minmax(0, 1fr))',
                 },
                 gap: { xs: 1.5, sm: 2 },
                 alignItems: 'stretch',

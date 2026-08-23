@@ -222,6 +222,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
+                  // Model codes like "XYZ-500" are unbreakable words wider than
+                  // a narrow column, and the card clips its overflow — without
+                  // this they are cut mid-word instead of wrapping.
+                  overflowWrap: 'anywhere',
                   minHeight: '2.4em',
                   fontSize: { xs: '0.8125rem', sm: '0.875rem' },
                 }}
@@ -265,11 +269,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
               borderColor: 'divider',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1,
+              // A price is never worth truncating: where the column is too
+              // narrow to hold the amount and the action side by side, the
+              // action drops to its own line instead of eliding "R$ 15.000,00".
+              flexWrap: 'wrap',
+              columnGap: 1,
+              rowGap: 0.75,
             }}
           >
-            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: '1 1 auto' }}>
               <Typography variant='caption' sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
                 {t('home.unitPrice')}
               </Typography>
@@ -281,7 +289,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   fontWeight: 700,
                   color: 'text.primary',
                   lineHeight: 1,
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  fontSize: { xs: '0.8125rem', sm: '1rem' },
                 }}
               >
                 {formatBRL(product.price)}
@@ -298,10 +306,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 color='primary'
                 sx={{
                   flexShrink: 0,
+                  ml: 'auto',
                   bgcolor: 'primary.main',
                   color: 'primary.contrastText',
                   borderRadius: 2,
-                  p: 1,
+                  p: { xs: 0.75, sm: 1 },
                   boxShadow: 1,
                   '&:hover': { bgcolor: 'primary.dark' },
                 }}
