@@ -249,12 +249,12 @@ const HomePage: React.FC = () => {
             {t('home.adminWelcome')}
           </Typography>
           <Grid container spacing={2} justifyContent='center'>
-            <Grid item>
+            <Grid>
               <Button variant='contained' size='large' onClick={() => navigate('/admin/products')}>
                 {t('home.manageProducts')}
               </Button>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button variant='outlined' size='large' onClick={() => navigate('/admin/quotations')}>
                 {t('home.manageQuotations')}
               </Button>
@@ -463,7 +463,7 @@ const HomePage: React.FC = () => {
 
           <Grid container spacing={3}>
             {/* Price Range */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography
                 variant='caption'
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, mb: 1 }}
@@ -488,7 +488,7 @@ const HomePage: React.FC = () => {
             </Grid>
 
             {/* MOQ Range */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography
                 variant='caption'
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, mb: 1 }}
@@ -517,7 +517,7 @@ const HomePage: React.FC = () => {
             </Grid>
 
             {/* Lead Time */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography
                 variant='caption'
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, mb: 1 }}
@@ -541,7 +541,7 @@ const HomePage: React.FC = () => {
             </Grid>
 
             {/* Availability Status */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant='caption' sx={{ fontWeight: 500, mb: 1, display: 'block' }}>
                 {t('home.availabilityStatus')}
               </Typography>
@@ -571,7 +571,7 @@ const HomePage: React.FC = () => {
             </Grid>
 
             {/* Technical Specifications */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography
                 variant='caption'
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, mb: 1 }}
@@ -580,7 +580,7 @@ const HomePage: React.FC = () => {
               </Typography>
               <Grid container spacing={2}>
                 {Object.entries(allSpecs).map(([specKey, values]) => (
-                  <Grid item xs={12} sm={6} md={4} key={specKey}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={specKey}>
                     <Autocomplete
                       size='small'
                       options={values}
