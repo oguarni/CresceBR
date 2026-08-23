@@ -80,7 +80,7 @@ const CartPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Cart Items */}
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card>
             <CardContent>
               {items.map((item, index) => {
@@ -183,7 +183,7 @@ const CartPage: React.FC = () => {
         </Grid>
 
         {/* Order Summary */}
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>

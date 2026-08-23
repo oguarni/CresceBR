@@ -242,7 +242,7 @@ const CheckoutPage: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Left Column - Shipping & Payment */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             {/* Shipping Information */}
             <Card sx={{ mb: 3 }}>
               <CardContent>
@@ -252,7 +252,7 @@ const CheckoutPage: React.FC = () => {
                 </Box>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <TextField
                       fullWidth
                       label='CEP'
@@ -270,7 +270,7 @@ const CheckoutPage: React.FC = () => {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={8}>
+                  <Grid size={{ xs: 12, sm: 8 }}>
                     <TextField
                       fullWidth
                       label={t('checkout.addressLabel')}
@@ -323,7 +323,7 @@ const CheckoutPage: React.FC = () => {
 
                 {formData.paymentMethod === 'credit' && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         label={t('checkout.cardNumber')}
@@ -338,7 +338,7 @@ const CheckoutPage: React.FC = () => {
                         inputProps={{ maxLength: 19 }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         label={t('checkout.cardName')}
@@ -349,7 +349,7 @@ const CheckoutPage: React.FC = () => {
                         placeholder={t('checkout.cardNamePlaceholder')}
                       />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 6 }}>
                       <TextField
                         fullWidth
                         label='Validade'
@@ -364,7 +364,7 @@ const CheckoutPage: React.FC = () => {
                         inputProps={{ maxLength: 5 }}
                       />
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid size={{ xs: 6 }}>
                       <TextField
                         fullWidth
                         label='CVV'
@@ -382,7 +382,7 @@ const CheckoutPage: React.FC = () => {
 
                 {formData.paymentMethod === 'pix' && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth
                         label='Email para PIX'
@@ -394,7 +394,7 @@ const CheckoutPage: React.FC = () => {
                         type='email'
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Alert severity='info'>{t('checkout.pixNotice')}</Alert>
                     </Grid>
                   </Grid>
@@ -420,7 +420,7 @@ const CheckoutPage: React.FC = () => {
           </Grid>
 
           {/* Right Column - Order Summary */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card sx={{ position: 'sticky', top: 20 }}>
               <CardContent>
                 <Typography variant='h6' gutterBottom>

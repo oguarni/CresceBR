@@ -571,7 +571,7 @@ const HomePage: React.FC = () => {
             </Grid>
 
             {/* Technical Specifications */}
-            <Grid size={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography
                 variant='caption'
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500, mb: 1 }}

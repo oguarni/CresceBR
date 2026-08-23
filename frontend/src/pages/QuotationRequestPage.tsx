@@ -173,7 +173,7 @@ const QuotationRequestPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Quotation Items */}
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card>
             <CardContent>
               <Box
@@ -386,7 +386,7 @@ const QuotationRequestPage: React.FC = () => {
         </Grid>
 
         {/* Quotation Summary */}
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>

@@ -205,7 +205,7 @@ const QuoteComparisonPage: React.FC = () => {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>Produto</InputLabel>
                 <Select
@@ -229,7 +229,7 @@ const QuoteComparisonPage: React.FC = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 label='Quantidade'
@@ -252,7 +252,7 @@ const QuoteComparisonPage: React.FC = () => {
               )}
             </Grid>
 
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 label={t('quoteComparison.locationLabel')}
@@ -264,7 +264,7 @@ const QuoteComparisonPage: React.FC = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth>
                 <InputLabel>Entrega</InputLabel>
                 <Select
@@ -279,7 +279,7 @@ const QuoteComparisonPage: React.FC = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <Button
                 fullWidth
                 variant='contained'
@@ -345,7 +345,7 @@ const QuoteComparisonPage: React.FC = () => {
                 {t('quoteComparison.summaryTitle')}
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant='h4' color='primary'>
                       {quotes.filter(q => q.quote !== null).length}
@@ -355,7 +355,7 @@ const QuoteComparisonPage: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant='h4' color='success.main'>
                       {bestQuote ? formatPrice(bestQuote.quote!.total) : 'N/A'}
@@ -365,7 +365,7 @@ const QuoteComparisonPage: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant='h4' color='info.main'>
                       {bestQuote ? formatPrice(bestQuote.quote!.savings) : 'N/A'}
@@ -375,7 +375,7 @@ const QuoteComparisonPage: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant='h4' color='warning.main'>
                       {getShippingMethodLabel(shippingMethod)}
@@ -530,7 +530,7 @@ const QuoteComparisonPage: React.FC = () => {
                               {supplierQuote.quote && (
                                 <Box sx={{ p: 2, backgroundColor: 'grey.50' }}>
                                   <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6} md={3}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                       <Typography variant='caption' color='text.secondary'>
                                         {t('quoteComparison.basePriceTitle')}
                                       </Typography>
@@ -538,7 +538,7 @@ const QuoteComparisonPage: React.FC = () => {
                                         {formatPrice(supplierQuote.quote.basePrice)}
                                       </Typography>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} md={3}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                       <Typography variant='caption' color='text.secondary'>
                                         Economia Total
                                       </Typography>
@@ -550,7 +550,7 @@ const QuoteComparisonPage: React.FC = () => {
                                         {formatPrice(supplierQuote.quote.savings)}
                                       </Typography>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} md={3}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                       <Typography variant='caption' color='text.secondary'>
                                         Impostos
                                       </Typography>
@@ -558,7 +558,7 @@ const QuoteComparisonPage: React.FC = () => {
                                         {formatPrice(supplierQuote.quote.tax)}
                                       </Typography>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} md={3}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                       <Typography variant='caption' color='text.secondary'>
                                         Faixa de Desconto
                                       </Typography>

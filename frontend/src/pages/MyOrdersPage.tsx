@@ -168,7 +168,7 @@ const MyOrdersPage: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems='center'>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -188,7 +188,7 @@ const MyOrdersPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Button
                 variant='outlined'
                 onClick={() => {
@@ -353,7 +353,7 @@ const MyOrdersPage: React.FC = () => {
               <Card sx={{ mb: 3 }}>
                 <CardContent>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant='body2' color='text.secondary'>
                         Status Atual
                       </Typography>
@@ -363,7 +363,7 @@ const MyOrdersPage: React.FC = () => {
                         color={ordersService.getStatusColor(orderHistory.order.status)}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant='body2' color='text.secondary'>
                         Total do Pedido
                       </Typography>
@@ -372,7 +372,7 @@ const MyOrdersPage: React.FC = () => {
                       </Typography>
                     </Grid>
                     {orderHistory.order.trackingNumber && (
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography variant='body2' color='text.secondary'>
                           {t('myOrders.trackingCode')}
                         </Typography>
@@ -382,7 +382,7 @@ const MyOrdersPage: React.FC = () => {
                       </Grid>
                     )}
                     {orderHistory.order.estimatedDeliveryDate && (
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography variant='body2' color='text.secondary'>
                           Entrega Estimada
                         </Typography>

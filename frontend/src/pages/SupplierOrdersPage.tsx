@@ -634,7 +634,7 @@ const SupplierOrdersPage: React.FC = () => {
             <Box>
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 {/* Customer Information */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant='h6' gutterBottom>
                     Customer Information
                   </Typography>
@@ -659,7 +659,7 @@ const SupplierOrdersPage: React.FC = () => {
                 </Grid>
 
                 {/* Order Information */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant='h6' gutterBottom>
                     Order Information
                   </Typography>

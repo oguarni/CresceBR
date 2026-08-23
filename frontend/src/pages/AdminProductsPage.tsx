@@ -310,7 +310,7 @@ const AdminProductsPage: React.FC = () => {
         <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label='Nome do Produto'
@@ -320,7 +320,7 @@ const AdminProductsPage: React.FC = () => {
                 }
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label={t('adminProducts.descriptionLabel')}
@@ -332,7 +332,7 @@ const AdminProductsPage: React.FC = () => {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label={t('adminProducts.priceLabel')}
@@ -344,7 +344,7 @@ const AdminProductsPage: React.FC = () => {
                 }
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Categoria</InputLabel>
                 <Select
@@ -364,7 +364,7 @@ const AdminProductsPage: React.FC = () => {
               </FormControl>
             </Grid>
             {formData.category === 'Nova Categoria' && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label='Nome da Nova Categoria'
@@ -375,7 +375,7 @@ const AdminProductsPage: React.FC = () => {
                 />
               </Grid>
             )}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label='URL da Imagem'
@@ -387,7 +387,7 @@ const AdminProductsPage: React.FC = () => {
               />
             </Grid>
             {formData.imageUrl && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ textAlign: 'center' }}>
                   <img
                     src={formData.imageUrl}

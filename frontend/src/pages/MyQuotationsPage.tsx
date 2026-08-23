@@ -166,7 +166,7 @@ const MyQuotationsPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {quotations.map(quotation => (
-          <Grid item xs={12} key={quotation.id}>
+          <Grid size={{ xs: 12 }} key={quotation.id}>
             <Card>
               <CardContent>
                 <Box
@@ -199,7 +199,7 @@ const MyQuotationsPage: React.FC = () => {
                 </Typography>
                 <Grid container spacing={2} sx={{ mb: 2 }}>
                   {quotation.items.slice(0, 3).map((item, index) => (
-                    <Grid item xs={12} sm={4} key={index}>
+                    <Grid size={{ xs: 12, sm: 4 }} key={index}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Avatar
                           src={item.product.imageUrl}
@@ -225,7 +225,7 @@ const MyQuotationsPage: React.FC = () => {
                     </Grid>
                   ))}
                   {quotation.items.length > 3 && (
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <Typography variant='body2' color='text.secondary'>
                         +{quotation.items.length - 3} item
                         {quotation.items.length - 3 !== 1 ? 's' : ''} adicionai

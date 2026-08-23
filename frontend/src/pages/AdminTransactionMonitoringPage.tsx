@@ -291,11 +291,22 @@ const AdminTransactionMonitoringPage: React.FC = () => {
   return (
     <Container maxWidth='lg'>
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        {/* Wraps rather than overflowing: the title and the two actions do not
+            fit one line on a phone, and neither of them shrinks. */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 1,
+            mb: 2,
+          }}
+        >
           <Typography variant='h4' component='h1'>
             {t('transactionMonitoring.title')}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant='outlined'
               startIcon={<Refresh />}
@@ -336,7 +347,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
             <FilterList /> Filtros
           </Typography>
           <Grid container spacing={3} alignItems='center'>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <TextField
                 fullWidth
                 label='Data Inicial'
@@ -348,7 +359,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <TextField
                 fullWidth
                 label='Data Final'
@@ -360,7 +371,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -377,7 +388,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <Button
                 fullWidth
                 variant='outlined'
@@ -394,7 +405,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
       {/* Metrics Cards */}
       {metrics && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box
@@ -418,7 +429,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box
@@ -439,7 +450,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box
@@ -462,7 +473,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Box
@@ -492,7 +503,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
 
       {/* Charts */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>
@@ -518,7 +529,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Typography variant='h6' gutterBottom>
@@ -644,19 +655,19 @@ const AdminTransactionMonitoringPage: React.FC = () => {
           {selectedOrder && (
             <Box sx={{ mt: 1 }}>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>Empresa</Typography>
                   <Typography variant='body2' sx={{ mb: 2 }}>
                     {selectedOrder.user.companyName}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>Email</Typography>
                   <Typography variant='body2' sx={{ mb: 2 }}>
                     {selectedOrder.user.email}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>Status</Typography>
                   <Chip
                     label={getStatusLabel(selectedOrder.status)}
@@ -665,13 +676,13 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                     sx={{ mb: 2 }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>Valor Total</Typography>
                   <Typography variant='h6' color='primary' sx={{ mb: 2 }}>
                     {formatCurrency(selectedOrder.totalAmount)}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>
                     {t('transactionMonitoring.createdAt')}
                   </Typography>
@@ -679,7 +690,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                     {formatDate(selectedOrder.createdAt)}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>Data de Entrega Estimada</Typography>
                   <Typography variant='body2' sx={{ mb: 2 }}>
                     {selectedOrder.estimatedDeliveryDate
@@ -687,7 +698,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                       : t('common.notDefined')}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>
                     {t('transactionMonitoring.trackingNumber')}
                   </Typography>
@@ -695,7 +706,7 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                     {selectedOrder.trackingNumber || t('common.notAvailable')}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant='subtitle2'>
                     {t('transactionMonitoring.quotationId')}
                   </Typography>

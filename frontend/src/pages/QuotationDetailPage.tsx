@@ -640,7 +640,7 @@ const QuotationDetailPage: React.FC = () => {
           </Box>
           <Grid container spacing={1.5}>
             {isAdmin && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button
                   fullWidth
                   variant='contained'
@@ -661,7 +661,7 @@ const QuotationDetailPage: React.FC = () => {
               </Grid>
             )}
             {canCreateOrder && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button
                   fullWidth
                   variant='contained'
