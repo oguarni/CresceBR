@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import type { Product } from '@shared/types';
 import QuoteComparisonPage from '../QuoteComparisonPage';
 import { productsService } from '../../services/productsService';
-import { quotationsService } from '../../services/quotationsService';
+import {
+  quotationsService,
+  type CompareSupplierQuotesResponse,
+} from '../../services/quotationsService';
 
 vi.mock('../../services/productsService', () => ({
   productsService: {
@@ -21,7 +25,7 @@ vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), __esModule: true },
 }));
 
-const mockProducts = [
+const mockProducts: Product[] = [
   {
     id: 1,
     name: 'Parafuso M8',
@@ -29,8 +33,13 @@ const mockProducts = [
     price: 2.5,
     category: 'Fixadores',
     imageUrl: '/img/parafuso.jpg',
-    companyId: 10,
+    supplierId: 10,
+    tierPricing: [],
+    specifications: {},
+    unitPrice: 2.5,
     minimumOrderQuantity: 50,
+    leadTime: 7,
+    availability: 'in_stock',
   },
   {
     id: 2,
@@ -39,12 +48,21 @@ const mockProducts = [
     price: 1.0,
     category: 'Fixadores',
     imageUrl: '/img/porca.jpg',
-    companyId: 10,
-    minimumOrderQuantity: null,
+    supplierId: 10,
+    tierPricing: [],
+    specifications: {},
+    unitPrice: 1,
+    minimumOrderQuantity: 1,
+    leadTime: 7,
+    availability: 'in_stock',
   },
 ];
 
-const mockQuotes = {
+const mockQuotes: CompareSupplierQuotesResponse = {
+  productId: 1,
+  quantity: 100,
+  buyerLocation: 'Curitiba',
+  shippingMethod: 'standard',
   quotes: [
     {
       supplier: {
@@ -199,7 +217,10 @@ describe('QuoteComparisonPage', () => {
       products: mockProducts,
       pagination: { total: 2, page: 1, limit: 100, totalPages: 1 },
     });
-    vi.mocked(quotationsService.compareSupplierQuotes).mockResolvedValue({ quotes: [] });
+    vi.mocked(quotationsService.compareSupplierQuotes).mockResolvedValue({
+      ...mockQuotes,
+      quotes: [],
+    });
 
     const toast = (await import('react-hot-toast')).default;
 
@@ -238,7 +259,8 @@ describe('QuoteComparisonPage', () => {
       products: mockProducts,
       pagination: { total: 2, page: 1, limit: 100, totalPages: 1 },
     });
-    const quotesWithNoRating = {
+    const quotesWithNoRating: CompareSupplierQuotesResponse = {
+      ...mockQuotes,
       quotes: [
         {
           ...mockQuotes.quotes[0],
@@ -277,7 +299,8 @@ describe('QuoteComparisonPage', () => {
       products: mockProducts,
       pagination: { total: 2, page: 1, limit: 100, totalPages: 1 },
     });
-    const quotesWithError = {
+    const quotesWithError: CompareSupplierQuotesResponse = {
+      ...mockQuotes,
       quotes: [
         {
           supplier: mockQuotes.quotes[0].supplier,

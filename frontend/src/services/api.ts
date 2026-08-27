@@ -1,10 +1,14 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
 import { authService } from './authService';
+import { installDemoApi } from '../demo';
 
 const api = axios.create({
   baseURL: '/api/v1', // Use relative path for proxy; matches backend API_PREFIX
 });
+
+// No-op unless VITE_DEMO_MODE is on, which is the hosted static build only.
+installDemoApi(api);
 
 api.interceptors.request.use(config => {
   const token = authService.getToken();

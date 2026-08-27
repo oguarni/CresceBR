@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import type { Company, Order, OrderItem, Product } from '@shared/types';
 import SupplierOrdersPage from '../SupplierOrdersPage';
-import { ordersService } from '../../services/ordersService';
+import { ordersService, type OrderHistory } from '../../services/ordersService';
 import toast from 'react-hot-toast';
 
 // Mock services
@@ -30,66 +31,120 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-const mockOrders = [
+const makeProduct = (id: number, name: string): Product => ({
+  id,
+  name,
+  description: `${name} description`,
+  price: 100,
+  imageUrl: '',
+  category: 'Industrial',
+  supplierId: 1,
+  tierPricing: [],
+  specifications: {},
+  unitPrice: 100,
+  minimumOrderQuantity: 1,
+  leadTime: 7,
+  availability: 'in_stock',
+});
+
+const makeOrderItem = (id: number, name: string, quantity: number, price: number): OrderItem => ({
+  id,
+  orderId: id,
+  productId: id,
+  product: makeProduct(id, name),
+  quantity,
+  price,
+  totalPrice: quantity * price,
+});
+
+const mockBuyer: Company = {
+  id: 2,
+  email: 'buyer@corp.com',
+  cpf: '12345678901',
+  address: '123 Main St',
+  role: 'customer',
+  status: 'approved',
+  companyName: 'Buyer Corp',
+  corporateName: 'Buyer Corp',
+  cnpj: '12345678000190',
+  cnpjValidated: true,
+  industrySector: 'Industrial',
+  companyType: 'buyer',
+};
+
+const mockOrders: Order[] = [
   {
     id: 'ORD-001',
+    companyId: 2,
     status: 'pending',
     totalAmount: 5000,
-    createdAt: '2026-03-15T10:00:00Z',
+    createdAt: new Date('2026-03-15T10:00:00Z'),
     trackingNumber: '',
-    items: [
-      {
-        product: { name: 'Industrial Pump', supplierId: 1 },
-        quantity: 2,
-        price: 2500,
-        totalPrice: 5000,
-      },
-    ],
-    company: { companyName: 'Buyer Corp', email: 'buyer@corp.com' },
+    items: [makeOrderItem(1, 'Industrial Pump', 2, 2500)],
+    company: mockBuyer,
     shippingAddress: '123 Main St',
+    notes: null,
   },
   {
     id: 'ORD-002',
+    companyId: 3,
     status: 'processing',
     totalAmount: 3200,
-    createdAt: '2026-03-14T10:00:00Z',
+    createdAt: new Date('2026-03-14T10:00:00Z'),
     trackingNumber: 'TRK-123',
-    items: [
-      {
-        product: { name: 'Safety Valve', supplierId: 1 },
-        quantity: 5,
-        price: 640,
-        totalPrice: 3200,
-      },
-    ],
-    company: { companyName: 'Another Buyer', email: 'another@buyer.com' },
+    items: [makeOrderItem(2, 'Safety Valve', 5, 640)],
+    company: {
+      ...mockBuyer,
+      id: 3,
+      companyName: 'Another Buyer',
+      corporateName: 'Another Buyer',
+      email: 'another@buyer.com',
+    },
     shippingAddress: '456 Second Ave',
+    notes: null,
   },
   {
     id: 'ORD-003',
+    companyId: 4,
     status: 'shipped',
     totalAmount: 1200,
-    createdAt: '2026-03-13T10:00:00Z',
+    createdAt: new Date('2026-03-13T10:00:00Z'),
     trackingNumber: 'TRK-456',
-    items: [
-      { product: { name: 'Helmet', supplierId: 1 }, quantity: 10, price: 120, totalPrice: 1200 },
-    ],
-    company: { companyName: 'Third Buyer', email: 'third@buyer.com' },
+    items: [makeOrderItem(3, 'Helmet', 10, 120)],
+    company: {
+      ...mockBuyer,
+      id: 4,
+      companyName: 'Third Buyer',
+      corporateName: 'Third Buyer',
+      email: 'third@buyer.com',
+    },
     shippingAddress: '789 Third Blvd',
+    notes: null,
   },
 ];
 
-const mockOrderHistory = {
+const mockOrderHistory: OrderHistory = {
+  order: mockOrders[0],
   timeline: [
     {
-      fromStatus: null,
-      toStatus: 'pending',
-      createdAt: '2026-03-15T10:00:00Z',
-      notes: 'Order placed',
+      status: 'pending',
+      description: 'Order placed',
+      date: new Date('2026-03-15T10:00:00Z'),
+      canTransitionTo: ['processing', 'cancelled'],
     },
-    { fromStatus: 'pending', toStatus: 'processing', createdAt: '2026-03-16T10:00:00Z', notes: '' },
+    {
+      status: 'processing',
+      description: 'Order processing',
+      date: new Date('2026-03-16T10:00:00Z'),
+      canTransitionTo: ['shipped', 'cancelled'],
+    },
   ],
 };
+
+const ordersResponse = (orders: Order[]) => ({
+  orders,
+  pagination: { total: orders.length, page: 1, limit: 10, totalPages: orders.length ? 1 : 0 },
+});
 
 const renderPage = async () => {
   let renderResult;
@@ -106,15 +161,15 @@ const renderPage = async () => {
 describe('SupplierOrdersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({ orders: mockOrders });
-    vi.mocked(ordersService.updateOrderStatus).mockResolvedValue({});
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(ordersResponse(mockOrders));
+    vi.mocked(ordersService.updateOrderStatus).mockResolvedValue(mockOrders[0]);
     vi.mocked(ordersService.getOrderHistory).mockResolvedValue(mockOrderHistory);
   });
 
   it('shows loading spinner initially', async () => {
     // Delay the resolution to catch loading state
     vi.mocked(ordersService.getUserOrders).mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve({ orders: mockOrders }), 100))
+      () => new Promise(resolve => setTimeout(() => resolve(ordersResponse(mockOrders)), 100))
     );
 
     await act(async () => {
@@ -203,6 +258,10 @@ describe('SupplierOrdersPage', () => {
       expect(screen.getByText('Customer Information')).toBeInTheDocument();
       expect(screen.getByText('Order Items')).toBeInTheDocument();
     });
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.querySelector('p .MuiChip-root')).toBeNull();
+    expect(dialog.querySelector('.MuiListItemText-secondary p')).toBeNull();
   });
 
   it('shows trackingNumber in details dialog for order with tracking', async () => {
@@ -231,7 +290,7 @@ describe('SupplierOrdersPage', () => {
         notes: 'Handle with care',
       },
     ];
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({ orders: ordersWithNotes });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(ordersResponse(ordersWithNotes));
 
     await renderPage();
     const user = userEvent.setup();
@@ -252,13 +311,13 @@ describe('SupplierOrdersPage', () => {
     const orderWith4Items = {
       ...mockOrders[0],
       items: [
-        { product: { name: 'Item 1', supplierId: 1 }, quantity: 1, price: 100, totalPrice: 100 },
-        { product: { name: 'Item 2', supplierId: 1 }, quantity: 1, price: 100, totalPrice: 100 },
-        { product: { name: 'Item 3', supplierId: 1 }, quantity: 1, price: 100, totalPrice: 100 },
-        { product: { name: 'Item 4', supplierId: 1 }, quantity: 1, price: 100, totalPrice: 100 },
+        makeOrderItem(11, 'Item 1', 1, 100),
+        makeOrderItem(12, 'Item 2', 1, 100),
+        makeOrderItem(13, 'Item 3', 1, 100),
+        makeOrderItem(14, 'Item 4', 1, 100),
       ],
     };
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({ orders: [orderWith4Items] });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(ordersResponse([orderWith4Items]));
 
     await renderPage();
 
@@ -285,7 +344,7 @@ describe('SupplierOrdersPage', () => {
   });
 
   it('shows empty state alert for all orders tab when no orders', async () => {
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({ orders: [] });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(ordersResponse([]));
 
     await renderPage();
 
@@ -324,7 +383,7 @@ describe('SupplierOrdersPage', () => {
     expect(screen.getByLabelText('Notes (optional)')).toHaveValue('Handle with care');
   });
 
-  it('changes status in status update dialog and shows tracking number field', async () => {
+  it('requires tracking and an NF-e key before marking an order as shipped', async () => {
     await renderPage();
     const user = userEvent.setup();
 
@@ -348,17 +407,36 @@ describe('SupplierOrdersPage', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText('Tracking Number')).toBeInTheDocument();
+      expect(screen.getByLabelText(/NF-e Access Key/i)).toBeInTheDocument();
     });
 
+    const submitButton = screen.getByRole('button', { name: 'Update Status' });
+    expect(submitButton).toBeDisabled();
+
     await user.type(screen.getByLabelText('Tracking Number'), 'TRK-NEW-001');
+    await user.type(
+      screen.getByLabelText(/NF-e Access Key/i),
+      '35240312345678000195550010000014761000047680'
+    );
     expect(screen.getByLabelText('Tracking Number')).toHaveValue('TRK-NEW-001');
+    expect(submitButton).toBeEnabled();
+
+    await user.click(submitButton);
+    await waitFor(() => {
+      expect(ordersService.updateOrderStatus).toHaveBeenCalledWith('ORD-001', {
+        status: 'shipped',
+        notes: undefined,
+        trackingNumber: 'TRK-NEW-001',
+        nfeAccessKey: '35240312345678000195550010000014761000047680',
+      });
+    });
   });
 
   it('shows No pending orders found when pending tab is empty', async () => {
     // Only non-pending orders
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({
-      orders: [mockOrders[1], mockOrders[2]], // processing and shipped only
-    });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(
+      ordersResponse([mockOrders[1], mockOrders[2]]) // processing and shipped only
+    );
     await renderPage();
     const user = userEvent.setup();
 
@@ -375,9 +453,9 @@ describe('SupplierOrdersPage', () => {
   });
 
   it('shows No processing orders found when processing tab is empty', async () => {
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({
-      orders: [mockOrders[0]], // only pending
-    });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(
+      ordersResponse([mockOrders[0]]) // only pending
+    );
     await renderPage();
     const user = userEvent.setup();
 
@@ -394,9 +472,9 @@ describe('SupplierOrdersPage', () => {
   });
 
   it('shows No shipped orders found when shipped tab is empty', async () => {
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({
-      orders: [mockOrders[0]], // only pending
-    });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(
+      ordersResponse([mockOrders[0]]) // only pending
+    );
     await renderPage();
     const user = userEvent.setup();
 
@@ -413,11 +491,11 @@ describe('SupplierOrdersPage', () => {
   });
 
   it('renders orders with delivered and cancelled status to cover switch branches', async () => {
-    const allStatusOrders = [
+    const allStatusOrders: Order[] = [
       { ...mockOrders[0], id: 'ORD-DEL', status: 'delivered', trackingNumber: 'TRK-DEL' },
       { ...mockOrders[0], id: 'ORD-CAN', status: 'cancelled', trackingNumber: '' },
     ];
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({ orders: allStatusOrders });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(ordersResponse(allStatusOrders));
     await renderPage();
 
     await waitFor(() => {
@@ -449,10 +527,10 @@ describe('SupplierOrdersPage', () => {
     const ordersWithPhone = [
       {
         ...mockOrders[0],
-        company: { companyName: 'Buyer Corp', email: 'buyer@corp.com', phone: '11999999999' },
+        company: { ...mockBuyer, phone: '11999999999' },
       },
     ];
-    vi.mocked(ordersService.getUserOrders).mockResolvedValue({ orders: ordersWithPhone });
+    vi.mocked(ordersService.getUserOrders).mockResolvedValue(ordersResponse(ordersWithPhone));
 
     await renderPage();
     const user = userEvent.setup();

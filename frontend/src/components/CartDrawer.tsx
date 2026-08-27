@@ -106,6 +106,7 @@ const CartDrawer: React.FC = () => {
                         />
                       </ListItemAvatar>
                       <ListItemText
+                        disableTypography
                         primary={
                           <Typography variant='subtitle2' noWrap>
                             {item.product.name}

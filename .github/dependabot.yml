@@ -1,0 +1,29 @@
+version: 2
+
+updates:
+  # npm workspaces: the root manifest covers frontend, backend and shared.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    # Grouped so a week of updates is one reviewable PR, not twenty rubber stamps.
+    # Security advisories are always opened separately by Dependabot.
+    groups:
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore(ci)

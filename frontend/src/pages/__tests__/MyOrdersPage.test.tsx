@@ -2,8 +2,9 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import type { Order, User } from '@shared/types';
 import MyOrdersPage from '../MyOrdersPage';
-import { ordersService } from '../../services/ordersService';
+import { ordersService, type OrderHistory } from '../../services/ordersService';
 
 // Mock MUI Chip to prevent ripple/animation state updates in React 19 act()
 vi.mock('@mui/material/Chip', () => ({
@@ -79,7 +80,7 @@ vi.mock('../../contexts/AuthContext', () => {
 
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
-const mockOrders = [
+const mockOrders: Order[] = [
   {
     id: 'abc12345-6789-0000-1111-222233334444',
     companyId: 1,
@@ -89,8 +90,6 @@ const mockOrders = [
     status: 'pending',
     shippingAddress: 'Rua Teste, 123',
     notes: null,
-    trackingNumber: null,
-    estimatedDeliveryDate: null,
     createdAt: new Date('2026-01-15T10:00:00Z'),
   },
   {
@@ -108,7 +107,7 @@ const mockOrders = [
   },
 ];
 
-const mockOrderHistory = {
+const mockOrderHistory: OrderHistory = {
   order: mockOrders[0],
   timeline: [
     {
@@ -251,7 +250,7 @@ describe('MyOrdersPage', () => {
       trackingNumber: 'TRACK001',
       estimatedDeliveryDate: new Date('2026-03-01T00:00:00Z'),
     };
-    const historyWithTracking = {
+    const historyWithTracking: OrderHistory = {
       order: orderWithTracking,
       timeline: [
         {
@@ -348,11 +347,17 @@ describe('MyOrdersPage', () => {
   });
 
   it('renders orders with all status types to cover getStatusIcon branches', async () => {
-    const allStatusOrders = [
+    // Deliberately malformed API data exercises the defensive unknown-status branch.
+    const unknownStatusOrder = {
+      ...mockOrders[0],
+      id: 'id-unknown',
+      status: 'unknown_status',
+    } as unknown as Order;
+    const allStatusOrders: Order[] = [
       { ...mockOrders[0], id: 'id-processing', status: 'processing' },
       { ...mockOrders[0], id: 'id-delivered', status: 'delivered' },
       { ...mockOrders[0], id: 'id-cancelled', status: 'cancelled' },
-      { ...mockOrders[0], id: 'id-unknown', status: 'unknown_status' },
+      unknownStatusOrder,
     ];
     vi.mocked(ordersService.getUserOrders).mockResolvedValue({
       orders: allStatusOrders,
@@ -402,9 +407,28 @@ describe('MyOrdersPage', () => {
   it('shows access denied for non-customer users', async () => {
     const authModule = await import('../../contexts/AuthContext');
     vi.spyOn(authModule, 'useAuth').mockReturnValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      user: { id: 1, role: 'supplier' } as any,
+      user: {
+        id: 1,
+        email: 'supplier@example.com',
+        cpf: '12345678901',
+        address: 'Rua Teste, 123',
+        role: 'supplier',
+        status: 'approved',
+        companyName: 'Supplier Ltda',
+        corporateName: 'Supplier Ltda',
+        cnpj: '12345678000190',
+        cnpjValidated: true,
+        industrySector: 'Industrial',
+        companyType: 'supplier',
+      } satisfies User,
+      token: 'test-token',
       isAuthenticated: true,
+      isLoading: false,
+      login: vi.fn(),
+      loginWithEmail: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      fetchUser: vi.fn(),
     });
 
     renderPage();

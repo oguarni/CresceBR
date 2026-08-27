@@ -17,16 +17,20 @@ interface UpdateOrderStatusRequest {
   trackingNumber?: string;
   estimatedDeliveryDate?: string;
   notes?: string;
+  nfeAccessKey?: string;
+  nfeUrl?: string;
 }
 
-interface OrderHistory {
+export interface OrderTimelineEntry {
+  status: Order['status'];
+  description: string;
+  date: Date;
+  canTransitionTo: Order['status'][];
+}
+
+export interface OrderHistory {
   order: Order;
-  timeline: Array<{
-    status: string;
-    description: string;
-    date: Date;
-    canTransitionTo: string[];
-  }>;
+  timeline: OrderTimelineEntry[];
 }
 
 interface OrderStats {

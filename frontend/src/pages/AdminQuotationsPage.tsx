@@ -113,7 +113,7 @@ const AdminQuotationsPage: React.FC = () => {
       case 'rejected':
         return <Cancel />;
       default:
-        return null;
+        return undefined;
     }
   };
 
