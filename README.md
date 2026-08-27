@@ -200,6 +200,7 @@ Design specs, operational history, and tooling references live in [`docs/`](docs
 
 | Document | Purpose |
 | -------- | ------- |
+| [Security Operations](docs/SECURITY.md) | JWT incident record, remediation status, and deployment requirements |
 | [Maturity Improvements](docs/MATURITY_IMPROVEMENTS.md) | Security fixes, testing, and business logic enhancements |
 | [Prioritized Action Plan](docs/prioritized-action-plan.md) | Current backlog ranked by priority |
 | [Frontend Design Spec](docs/design-prompt.md) | Visual language and page layouts |
