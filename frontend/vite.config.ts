@@ -3,7 +3,18 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // The public site is hosted as static files with no API behind it, so a
+  // production build answers its own requests from `src/demo`. This lives here
+  // rather than in `.env.production` because that file is gitignored, and the
+  // flag has to survive a fresh clone. Build against a real Express API with
+  // `VITE_DEMO_MODE=false npm run build`.
+  define:
+    command === 'build'
+      ? {
+          'import.meta.env.VITE_DEMO_MODE': JSON.stringify(process.env.VITE_DEMO_MODE ?? 'true'),
+        }
+      : {},
   plugins: [react()],
   resolve: {
     alias: {
@@ -58,4 +69,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

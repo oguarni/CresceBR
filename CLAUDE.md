@@ -228,6 +228,40 @@ After completing any refactoring task:
 1. **Backend tests OOM**: `jest --runInBand` hits heap limit without `--max-old-space-size=4096` in `backend/package.json` test script (CI has it via `NODE_OPTIONS`)
 2. **Architecture (intentional)**: Services use direct Sequelize model access — this is the accepted pattern (KISS/YAGNI). `quotation.service.ts` uses repositories as an example, not a mandate. `order.repository.ts` exists but no service uses it — document and leave as-is.
 
+## Hosted demo runs without a backend (2026-08-20)
+
+Billing was disabled on GCP project `crescebr-portfolio-9048`, so Google deleted the Cloud Run
+service and the Cloud SQL instance (`gcloud run services list` and `sql instances list` both return
+0 items). Firebase Hosting survived on the free Spark tier, which is why the site loaded while every
+`/api/v1/*` call returned 404 — `firebase.json` was still rewriting `/api/**` to a Cloud Run service
+that no longer exists. That rewrite has been removed.
+
+Cloud Run and Cloud SQL both require an active billing account, and Cloud SQL has no free tier, so
+the public site now answers its own API calls in the browser:
+
+- `frontend/src/demo/` is an axios **adapter**, not a mock library. Installing it replaces transport,
+  so no request leaves the page and the app's interceptors (auth header, 401 logout) still run.
+- It is opt-in via `VITE_DEMO_MODE`, defaulted to `true` for `vite build` in `vite.config.ts`.
+  **Not** `.env.production` — that file is gitignored and would not survive a fresh clone. Build
+  against a real API with `VITE_DEMO_MODE=false npm run build`. `npm run dev` is unaffected and still
+  proxies to Express.
+- `src/demo/data.ts` is **generated** — `npm run demo:data` replays `backend/seeders/` against a stub
+  `queryInterface`. Do not hand-edit it; change the seeder and regenerate.
+- `src/demo/pricing.ts` is a line-for-line port of `backend/src/services/quoteService.ts`. If that
+  service changes, this must change with it.
+
+Two traps worth keeping in mind:
+
+- **The adapter must JSON round-trip its response** (`toWireFormat`). Handlers hold live `Date`
+  objects, but the Express API delivers ISO strings, and pages like
+  `AdminTransactionMonitoringPage` call `createdAt.split('T')`. Skipping serialization crashes those
+  pages against the demo only — it was caught in a browser, not by unit tests.
+- **Route order is load-bearing.** `/quotations/supplier` and `/orders/admin/all` must precede their
+  `:id` siblings, since matching is first-wins.
+
+Backend, seeders, migrations and jest suites are untouched and still the reference implementation —
+they are simply not hosted.
+
 ## End-to-End Tests (Playwright, added 2026-08-07)
 
 `e2e/` covers the seam the existing suites cannot reach. vitest tests the React app against mocked
