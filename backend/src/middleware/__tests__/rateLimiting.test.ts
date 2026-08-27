@@ -590,6 +590,69 @@ describe('Rate Limiting Middleware', () => {
       devRateLimiter.destroy();
       process.env.NODE_ENV = prevEnv;
     });
+
+    it('should let AUTH_RATE_LIMIT_MAX override the environment default', async () => {
+      const prevOverride = process.env.AUTH_RATE_LIMIT_MAX;
+      process.env.AUTH_RATE_LIMIT_MAX = '500';
+
+      let overriddenAuthRateLimit: any;
+      let overriddenRateLimiter: any;
+
+      jest.isolateModules(() => {
+        const mod = require('../rateLimiting');
+        overriddenAuthRateLimit = mod.authRateLimit;
+        overriddenRateLimiter = mod.rateLimiter;
+      });
+
+      const req = createMockReq({ ip: '201.0.0.101' });
+      const res = createMockRes();
+
+      await runMiddleware(overriddenAuthRateLimit, req, res, mockNext);
+
+      const setCall = (res.set as jest.Mock).mock.calls[0][0];
+      expect(setCall['X-RateLimit-Limit']).toBe('500');
+
+      overriddenRateLimiter.destroy();
+      if (prevOverride === undefined) {
+        delete process.env.AUTH_RATE_LIMIT_MAX;
+      } else {
+        process.env.AUTH_RATE_LIMIT_MAX = prevOverride;
+      }
+    });
+
+    it.each([['0'], ['-1'], ['abc'], ['']])(
+      'should ignore a non-positive-integer AUTH_RATE_LIMIT_MAX (%s)',
+      async value => {
+        const prevOverride = process.env.AUTH_RATE_LIMIT_MAX;
+        process.env.AUTH_RATE_LIMIT_MAX = value;
+
+        let limiterUnderTest: any;
+        let limiterModule: any;
+
+        jest.isolateModules(() => {
+          const mod = require('../rateLimiting');
+          limiterUnderTest = mod.authRateLimit;
+          limiterModule = mod.rateLimiter;
+        });
+
+        const req = createMockReq({ ip: `201.0.1.${value.length}` });
+        const res = createMockRes();
+
+        await runMiddleware(limiterUnderTest, req, res, mockNext);
+
+        // Falls through to the NODE_ENV=test default rather than to 0, which
+        // would lock every account out on the first attempt.
+        const setCall = (res.set as jest.Mock).mock.calls[0][0];
+        expect(setCall['X-RateLimit-Limit']).toBe('5');
+
+        limiterModule.destroy();
+        if (prevOverride === undefined) {
+          delete process.env.AUTH_RATE_LIMIT_MAX;
+        } else {
+          process.env.AUTH_RATE_LIMIT_MAX = prevOverride;
+        }
+      }
+    );
   });
 
   // ---------------------------------------------------------------
