@@ -43,6 +43,24 @@ As of August 26, 2026:
 
 No additional local JWT rotation is currently required.
 
+## Continuous A-Grade Requirement
+
+The public site must maintain an external HTTP security grade of **A or better** after every merge and deployment. A+ satisfies this requirement and remains the preferred result.
+
+The live site was independently verified on August 26, 2026:
+
+- SecurityHeaders: **A+**
+- MDN HTTP Observatory: **A+**, score 110, with 10 tests passed and none failed
+
+The repository verifies this requirement at two levels:
+
+- Pull-request and main-branch CI validates the Firebase and Nginx policies before a change can pass the `Security Grade` job.
+- The `Live Security Grade` workflow checks the deployed site after every main-branch push and once per day. It fails when MDN Observatory reports anything below A or when required live headers are missing or weakened.
+
+The main branch must require the `Security Grade` status check before merging and apply that rule to administrators. Until that repository rule is enabled, the workflow detects regressions but cannot independently block an authorized user from merging them.
+
+A failed grade check is a security regression until investigated. Do not suppress, skip, or lower the minimum grade to make the workflow pass.
+
 ## Requirements Before the Next Backend Deployment
 
 1. Generate a new production-only signing key with a cryptographically secure generator, for example `openssl rand -base64 64`.

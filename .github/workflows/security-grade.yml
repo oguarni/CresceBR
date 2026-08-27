@@ -1,0 +1,36 @@
+name: Live Security Grade
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-security-grade
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  MIN_SECURITY_GRADE: A
+  SECURITY_GRADE_HOST: crescebr.com.br
+
+jobs:
+  live-grade:
+    name: Live A Grade
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Require live grade A or better
+        run: npm run security:grade

@@ -10,6 +10,24 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  security-grade:
+    name: Security Grade
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test security grade validator
+        run: npm run security:test
+
+      - name: Validate A-grade deployment headers
+        run: npm run security:headers
+
   backend:
     name: Backend
     runs-on: ubuntu-latest

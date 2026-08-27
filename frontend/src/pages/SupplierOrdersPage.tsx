@@ -54,7 +54,6 @@ import {
 } from '@mui/icons-material';
 import { Order } from '@shared/types';
 import { ordersService, type OrderTimelineEntry } from '../services/ordersService';
-import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { formatBRL } from '../utils/currency';
 import { browserLogger } from '../utils/browserLogger';
@@ -245,24 +244,24 @@ const SupplierOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>('');
 
-  const { user } = useAuth();
-
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
+      // Deliberately not filtered by supplier here. getUserOrders is already
+      // scoped server-side — OrderStatusService resolves a supplier's orders
+      // through QuotationItem -> Product.supplierId so other suppliers' orders
+      // never reach the client. The filter that used to sit here read
+      // order.items, a field this endpoint does not return, so it discarded
+      // every order and the screen was permanently empty.
       const result = await ordersService.getUserOrders();
-      // Filter to only show orders for products from this supplier
-      const supplierOrders = result.orders.filter((order: Order) =>
-        order.items?.some(item => item.product?.supplierId === user?.id)
-      );
-      setOrders(supplierOrders);
+      setOrders(result.orders);
     } catch (_error) {
       browserLogger.error('Failed to load orders', { error: _error });
       toast.error('Error loading orders');
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -613,7 +612,11 @@ const SupplierOrdersPage: React.FC = () => {
                     nfeAccessKey: e.target.value.replace(/\D/g, '').slice(0, 44),
                   })
                 }
-                inputProps={{ inputMode: 'numeric', maxLength: 44 }}
+                // No maxLength: it counts raw characters, so pasting a key
+                // written with separators truncated it mid-key and left the
+                // gate shut with nothing on screen to explain why. onChange
+                // already strips non-digits and caps the result at 44.
+                inputProps={{ inputMode: 'numeric' }}
                 helperText='44-digit invoice access key'
                 sx={{ mb: 2 }}
               />
