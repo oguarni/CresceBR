@@ -3,7 +3,7 @@ jest.mock('../../config/database', () => {
   const { Sequelize } = require('sequelize');
   return {
     __esModule: true,
-    default: new Sequelize('sqlite::memory:', { logging: false }),
+    default: new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false }),
   };
 });
 

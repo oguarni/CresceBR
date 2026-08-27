@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import type { Product } from '@shared/types';
 import SupplierProductsPage from '../SupplierProductsPage';
 import { LanguageProvider } from '../../contexts/LanguageContext';
 import { productsService } from '../../services/productsService';
@@ -39,7 +40,7 @@ Object.defineProperty(window, 'confirm', {
   value: vi.fn(),
 });
 
-const mockProducts = [
+const mockProducts: Product[] = [
   {
     id: 1,
     name: 'Industrial Pump',
@@ -94,6 +95,10 @@ const mockProducts = [
 ];
 
 const mockCategories = ['Industrial Equipment', 'Safety Equipment', 'Construction Materials'];
+const productsResponse = (products: Product[]) => ({
+  products,
+  pagination: { total: products.length, page: 1, limit: 100, totalPages: products.length ? 1 : 0 },
+});
 
 // Defaults to English so the assertions below can stay in the source language of
 // the screen's copy; the localization test at the bottom passes 'pt' explicitly.
@@ -114,11 +119,11 @@ const renderPage = async (language: 'pt' | 'en' = 'en') => {
 describe('SupplierProductsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(productsService.getAllProducts).mockResolvedValue({ products: mockProducts });
+    vi.mocked(productsService.getAllProducts).mockResolvedValue(productsResponse(mockProducts));
     vi.mocked(productsService.getCategories).mockResolvedValue(mockCategories);
-    vi.mocked(productsService.createProduct).mockResolvedValue({ id: 4 });
-    vi.mocked(productsService.updateProduct).mockResolvedValue({});
-    vi.mocked(productsService.deleteProduct).mockResolvedValue({});
+    vi.mocked(productsService.createProduct).mockResolvedValue({ ...mockProducts[0], id: 4 });
+    vi.mocked(productsService.updateProduct).mockResolvedValue(mockProducts[0]);
+    vi.mocked(productsService.deleteProduct).mockResolvedValue(undefined);
   });
 
   it('renders page header and product statistics', async () => {
@@ -336,15 +341,15 @@ describe('SupplierProductsPage', () => {
   }, 15000);
 
   it('shows no active products alert when active tab is empty', async () => {
-    vi.mocked(productsService.getAllProducts).mockResolvedValue({
-      products: [
+    vi.mocked(productsService.getAllProducts).mockResolvedValue(
+      productsResponse([
         {
           ...mockProducts[2], // out_of_stock
           id: 99,
           name: 'Only OOS Product',
         },
-      ],
-    });
+      ])
+    );
     await renderPage();
     const user = userEvent.setup();
 
@@ -361,9 +366,9 @@ describe('SupplierProductsPage', () => {
   }, 15000);
 
   it('shows no out of stock alert when out-of-stock tab is empty', async () => {
-    vi.mocked(productsService.getAllProducts).mockResolvedValue({
-      products: [mockProducts[0]], // only in_stock product
-    });
+    vi.mocked(productsService.getAllProducts).mockResolvedValue(
+      productsResponse([mockProducts[0]]) // only in_stock product
+    );
     await renderPage();
     const user = userEvent.setup();
 
@@ -380,9 +385,8 @@ describe('SupplierProductsPage', () => {
   }, 15000);
 
   it('shows no products found message on All tab when all products filtered out', async () => {
-    vi.mocked(productsService.getAllProducts).mockResolvedValue({ products: [] });
+    vi.mocked(productsService.getAllProducts).mockResolvedValue(productsResponse([]));
     await renderPage();
-    const _user = userEvent.setup();
 
     await waitFor(() => {
       expect(
@@ -398,9 +402,9 @@ describe('SupplierProductsPage', () => {
       name: 'Custom Order Product',
       availability: 'custom_order' as const,
     };
-    vi.mocked(productsService.getAllProducts).mockResolvedValue({
-      products: [customOrderProduct],
-    });
+    vi.mocked(productsService.getAllProducts).mockResolvedValue(
+      productsResponse([customOrderProduct])
+    );
     await renderPage();
 
     await waitFor(() => {
@@ -522,9 +526,9 @@ describe('SupplierProductsPage', () => {
       name: 'Unknown Availability Product',
       availability: 'unknown_value' as unknown as (typeof mockProducts)[0]['availability'],
     };
-    vi.mocked(productsService.getAllProducts).mockResolvedValue({
-      products: [unknownAvailabilityProduct],
-    });
+    vi.mocked(productsService.getAllProducts).mockResolvedValue(
+      productsResponse([unknownAvailabilityProduct])
+    );
     await renderPage();
 
     await waitFor(() => {
