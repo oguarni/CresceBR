@@ -37,14 +37,14 @@
     "csv-parser": "^3.2.0",
     "express": "^5.1.0",
     "express-validator": "^7.3.1",
-    "helmet": "^8.1.0",
+    "helmet": "^8.3.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
-    "pg": "^8.16.3",
+    "pg": "^8.23.0",
     "sequelize": "^6.37.7",
-    "tsx": "^4.20.3"
+    "tsx": "^4.23.12"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
