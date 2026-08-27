@@ -21,7 +21,7 @@ interface CompareSupplierQuotesRequest {
   shippingMethod?: 'standard' | 'express' | 'economy';
 }
 
-interface SupplierQuote {
+export interface SupplierQuote {
   supplier: {
     id: number;
     companyName: string;
@@ -46,7 +46,7 @@ interface SupplierQuote {
   error?: string;
 }
 
-interface CompareSupplierQuotesResponse {
+export interface CompareSupplierQuotesResponse {
   quotes: SupplierQuote[];
   productId: number;
   quantity: number;
