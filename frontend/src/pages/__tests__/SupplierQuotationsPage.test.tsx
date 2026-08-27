@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import type { Company, Product, Quotation, QuotationItem } from '@shared/types';
 import SupplierQuotationsPage from '../SupplierQuotationsPage';
 import { LanguageProvider } from '../../contexts/LanguageContext';
 import { quotationsService } from '../../services/quotationsService';
@@ -30,87 +31,98 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-const mockQuotations = [
+const makeProduct = (
+  id: number,
+  name: string,
+  price: number,
+  category: string,
+  leadTime: number,
+  availability: Product['availability']
+): Product => ({
+  id,
+  name,
+  description: `${name} description`,
+  price,
+  imageUrl: '',
+  category,
+  supplierId: 1,
+  tierPricing: [],
+  specifications: {},
+  unitPrice: price,
+  minimumOrderQuantity: 1,
+  leadTime,
+  availability,
+});
+
+const makeItem = (
+  id: number,
+  quotationId: number,
+  quantity: number,
+  product: Product
+): QuotationItem => ({ id, quotationId, productId: product.id, quantity, product });
+
+const mockBuyer: Company = {
+  id: 2,
+  email: 'buyer@corp.com',
+  cpf: '12345678901',
+  address: 'Rua Teste, 123',
+  phone: '11999999999',
+  role: 'customer',
+  status: 'approved',
+  companyName: 'Buyer Corp',
+  corporateName: 'Buyer Corp',
+  cnpj: '12345678000190',
+  cnpjValidated: true,
+  industrySector: 'Industrial',
+  companyType: 'buyer',
+};
+
+const mockQuotations: Quotation[] = [
   {
     id: 1,
+    companyId: 2,
     status: 'pending',
-    createdAt: '2026-03-15T10:00:00Z',
+    adminNotes: null,
+    createdAt: new Date('2026-03-15T10:00:00Z'),
     totalAmount: 15000,
     requestedDeliveryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now (urgent)
-    company: {
-      companyName: 'Buyer Corp',
-      email: 'buyer@corp.com',
-      phone: '11999999999',
-    },
+    company: mockBuyer,
     items: [
-      {
-        productId: 1,
-        quantity: 10,
-        product: {
-          name: 'Industrial Pump',
-          price: 1500,
-          supplierId: 1,
-          category: 'Industrial',
-          unitPrice: 1500,
-          leadTime: 7,
-          availability: 'in_stock',
-          specifications: {},
-        },
-      },
+      makeItem(1, 1, 10, makeProduct(1, 'Industrial Pump', 1500, 'Industrial', 7, 'in_stock')),
     ],
   },
   {
     id: 2,
+    companyId: 3,
     status: 'processed',
-    createdAt: '2026-03-14T10:00:00Z',
+    adminNotes: null,
+    createdAt: new Date('2026-03-14T10:00:00Z'),
     totalAmount: 5000,
     requestedDeliveryDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days (low)
     company: {
+      ...mockBuyer,
+      id: 3,
       companyName: 'Another Buyer',
+      corporateName: 'Another Buyer',
       email: 'another@buyer.com',
     },
-    items: [
-      {
-        productId: 2,
-        quantity: 20,
-        product: {
-          name: 'Safety Valve',
-          price: 250,
-          supplierId: 1,
-          category: 'Safety',
-          unitPrice: 250,
-          leadTime: 3,
-          availability: 'in_stock',
-          specifications: {},
-        },
-      },
-    ],
+    items: [makeItem(2, 2, 20, makeProduct(2, 'Safety Valve', 250, 'Safety', 3, 'in_stock'))],
   },
   {
     id: 3,
+    companyId: 4,
     status: 'completed',
-    createdAt: '2026-03-10T10:00:00Z',
+    adminNotes: null,
+    createdAt: new Date('2026-03-10T10:00:00Z'),
     totalAmount: 8000,
     company: {
+      ...mockBuyer,
+      id: 4,
       companyName: 'Third Buyer',
+      corporateName: 'Third Buyer',
       email: 'third@buyer.com',
     },
-    items: [
-      {
-        productId: 3,
-        quantity: 5,
-        product: {
-          name: 'Concrete Mix',
-          price: 1600,
-          supplierId: 1,
-          category: 'Construction',
-          unitPrice: 1600,
-          leadTime: 14,
-          availability: 'limited',
-          specifications: {},
-        },
-      },
-    ],
+    items: [makeItem(3, 3, 5, makeProduct(3, 'Concrete Mix', 1600, 'Construction', 14, 'limited'))],
   },
 ];
 
@@ -467,7 +479,7 @@ describe('SupplierQuotationsPage', () => {
   });
 
   it('shows Not specified when quotation has no requestedDeliveryDate in response dialog', async () => {
-    const quotationWithoutDeliveryDate = {
+    const quotationWithoutDeliveryDate: Quotation = {
       ...mockQuotations[0],
       requestedDeliveryDate: undefined,
     };
@@ -547,7 +559,7 @@ describe('SupplierQuotationsPage', () => {
   });
 
   it('shows adminNotes in details dialog', async () => {
-    const quotationWithNotes = {
+    const quotationWithNotes: Quotation = {
       ...mockQuotations[0],
       adminNotes: 'Approved by admin',
     };
@@ -569,7 +581,7 @@ describe('SupplierQuotationsPage', () => {
   });
 
   it('shows product specifications in details dialog', async () => {
-    const quotationWithSpecs = {
+    const quotationWithSpecs: Quotation = {
       ...mockQuotations[0],
       items: [
         {
@@ -622,22 +634,11 @@ describe('SupplierQuotationsPage', () => {
   });
 
   it('shows +N more chip when quotation has more than 3 items', async () => {
-    const quotationWith4Items = {
+    const quotationWith4Items: Quotation = {
       ...mockQuotations[0],
-      items: Array.from({ length: 4 }, (_, i) => ({
-        productId: i + 1,
-        quantity: 10,
-        product: {
-          name: `Product ${i + 1}`,
-          price: 100,
-          supplierId: 1,
-          category: 'Test',
-          unitPrice: 100,
-          leadTime: 7,
-          availability: 'in_stock',
-          specifications: {},
-        },
-      })),
+      items: Array.from({ length: 4 }, (_, i) =>
+        makeItem(i + 1, 1, 10, makeProduct(i + 1, `Product ${i + 1}`, 100, 'Test', 7, 'in_stock'))
+      ),
     };
     vi.mocked(quotationsService.getSupplierQuotations).mockResolvedValue([quotationWith4Items]);
 
@@ -692,9 +693,9 @@ describe('SupplierQuotationsPage', () => {
   });
 
   it('filters quotations by date range "today" and shows matching quotations', async () => {
-    const todayQuotation = {
+    const todayQuotation: Quotation = {
       ...mockQuotations[0],
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     };
     vi.mocked(quotationsService.getSupplierQuotations).mockResolvedValue([todayQuotation]);
 
@@ -718,8 +719,8 @@ describe('SupplierQuotationsPage', () => {
 
   it('filters quotations by date range "week"', async () => {
     // Create a quotation from 3 days ago (within the week)
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-    const recentQuotation = {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const recentQuotation: Quotation = {
       ...mockQuotations[0],
       createdAt: threeDaysAgo,
     };
@@ -751,15 +752,15 @@ describe('SupplierQuotationsPage', () => {
 
   it('filters quotations by date range "month"', async () => {
     // Create a quotation from 10 days ago (within the month)
-    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-    const recentQuotation = {
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    const recentQuotation: Quotation = {
       ...mockQuotations[0],
       createdAt: tenDaysAgo,
     };
     // Create a quotation from 60 days ago (outside the month)
-    const oldQuotation = {
+    const oldQuotation: Quotation = {
       ...mockQuotations[1],
-      createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
     };
     vi.mocked(quotationsService.getSupplierQuotations).mockResolvedValue([
       recentQuotation,

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import type { Product, Quotation } from '@shared/types';
 import MyQuotationsPage from '../MyQuotationsPage';
 import { quotationsService } from '../../services/quotationsService';
 import { ordersService } from '../../services/ordersService';
@@ -33,7 +34,29 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
-const mockQuotations = [
+const makeProduct = (
+  id: number,
+  name: string,
+  imageUrl: string,
+  price: number,
+  description: string
+): Product => ({
+  id,
+  name,
+  imageUrl,
+  price,
+  description,
+  category: 'Fixadores',
+  supplierId: 2,
+  tierPricing: [],
+  specifications: {},
+  unitPrice: price,
+  minimumOrderQuantity: 1,
+  leadTime: 7,
+  availability: 'in_stock',
+});
+
+const mockQuotations: Quotation[] = [
   {
     id: 1,
     companyId: 1,
@@ -44,15 +67,7 @@ const mockQuotations = [
         id: 1,
         quotationId: 1,
         productId: 10,
-        product: {
-          id: 10,
-          name: 'Parafuso M8',
-          imageUrl: '/img/parafuso.jpg',
-          price: 2.5,
-          description: 'Parafuso de aço',
-          category: 'Fixadores',
-          companyId: 2,
-        },
+        product: makeProduct(10, 'Parafuso M8', '/img/parafuso.jpg', 2.5, 'Parafuso de aço'),
         quantity: 100,
       },
     ],
@@ -68,15 +83,7 @@ const mockQuotations = [
         id: 2,
         quotationId: 2,
         productId: 20,
-        product: {
-          id: 20,
-          name: 'Porca Sextavada',
-          imageUrl: '/img/porca.jpg',
-          price: 1.0,
-          description: 'Porca de aço',
-          category: 'Fixadores',
-          companyId: 2,
-        },
+        product: makeProduct(20, 'Porca Sextavada', '/img/porca.jpg', 1, 'Porca de aço'),
         quantity: 200,
       },
     ],
@@ -92,15 +99,7 @@ const mockQuotations = [
         id: 3,
         quotationId: 3,
         productId: 30,
-        product: {
-          id: 30,
-          name: 'Arruela Lisa',
-          imageUrl: '/img/arruela.jpg',
-          price: 0.5,
-          description: 'Arruela de aço',
-          category: 'Fixadores',
-          companyId: 2,
-        },
+        product: makeProduct(30, 'Arruela Lisa', '/img/arruela.jpg', 0.5, 'Arruela de aço'),
         quantity: 500,
       },
     ],
@@ -261,20 +260,21 @@ describe('MyQuotationsPage', () => {
   });
 
   it('renders completed and unknown status quotations', async () => {
-    const completedQuotation = {
+    const completedQuotation: Quotation = {
       ...mockQuotations[0],
       id: 10,
       status: 'completed',
       adminNotes: null,
       items: [{ ...mockQuotations[0].items[0] }],
     };
+    // Deliberately malformed API data exercises the defensive status fallback.
     const unknownStatusQuotation = {
       ...mockQuotations[0],
       id: 11,
       status: 'unknown_status',
       adminNotes: null,
       items: [{ ...mockQuotations[0].items[0] }],
-    };
+    } as unknown as Quotation;
     vi.mocked(quotationsService.getCustomerQuotations).mockResolvedValue([
       completedQuotation,
       unknownStatusQuotation,
@@ -291,67 +291,35 @@ describe('MyQuotationsPage', () => {
   });
 
   it('shows +N more items when quotation has more than 3 items', async () => {
-    const quotationWith4Items = {
+    const quotationWith4Items: Quotation = {
       ...mockQuotations[0],
       items: [
         {
           id: 1,
           quotationId: 1,
           productId: 10,
-          product: {
-            id: 10,
-            name: 'Item 1',
-            imageUrl: '/img/1.jpg',
-            price: 1,
-            description: '',
-            category: '',
-            companyId: 2,
-          },
+          product: makeProduct(10, 'Item 1', '/img/1.jpg', 1, ''),
           quantity: 1,
         },
         {
           id: 2,
           quotationId: 1,
           productId: 11,
-          product: {
-            id: 11,
-            name: 'Item 2',
-            imageUrl: '/img/2.jpg',
-            price: 1,
-            description: '',
-            category: '',
-            companyId: 2,
-          },
+          product: makeProduct(11, 'Item 2', '/img/2.jpg', 1, ''),
           quantity: 1,
         },
         {
           id: 3,
           quotationId: 1,
           productId: 12,
-          product: {
-            id: 12,
-            name: 'Item 3',
-            imageUrl: '/img/3.jpg',
-            price: 1,
-            description: '',
-            category: '',
-            companyId: 2,
-          },
+          product: makeProduct(12, 'Item 3', '/img/3.jpg', 1, ''),
           quantity: 1,
         },
         {
           id: 4,
           quotationId: 1,
           productId: 13,
-          product: {
-            id: 13,
-            name: 'Item 4',
-            imageUrl: '/img/4.jpg',
-            price: 1,
-            description: '',
-            category: '',
-            companyId: 2,
-          },
+          product: makeProduct(13, 'Item 4', '/img/4.jpg', 1, ''),
           quantity: 1,
         },
       ],
@@ -368,9 +336,9 @@ describe('MyQuotationsPage', () => {
   });
 
   it('shows N/A when quotation has no createdAt date', async () => {
-    const quotationWithoutDate = {
+    const quotationWithoutDate: Quotation = {
       ...mockQuotations[0],
-      createdAt: undefined as unknown as Date,
+      createdAt: undefined,
     };
     vi.mocked(quotationsService.getCustomerQuotations).mockResolvedValue([quotationWithoutDate]);
 
@@ -405,21 +373,13 @@ describe('MyQuotationsPage', () => {
   });
 
   it('shows "s" plural suffix when quotation has more than 4 items (5+ extra)', async () => {
-    const quotationWith5Items = {
+    const quotationWith5Items: Quotation = {
       ...mockQuotations[0],
       items: Array.from({ length: 5 }, (_, i) => ({
         id: i + 1,
         quotationId: 1,
         productId: 10 + i,
-        product: {
-          id: 10 + i,
-          name: `Item ${i + 1}`,
-          imageUrl: `/img/${i + 1}.jpg`,
-          price: 1,
-          description: '',
-          category: '',
-          companyId: 2,
-        },
+        product: makeProduct(10 + i, `Item ${i + 1}`, `/img/${i + 1}.jpg`, 1, ''),
         quantity: 1,
       })),
     };
