@@ -58,33 +58,39 @@ src/
 
 ---
 
-## Coverage Report (2026-03-26)
+## Coverage Report (2026-08-28)
 
-**Overall**: 94.16% statements | 89.53% branches | 93.93% functions | 94.15% lines
+**Suite**: 42 test suites, **1,281 tests, all passing**.
+
+**Overall**: 99.49% statements (1,763/1,772) | 98.16% branches (1,013/1,032) | 99.11% functions (335/338).
+
+Basis: the Clover totals written by the coverage run below. Do not copy these numbers into
+another document — regenerate them, because they move with every merge.
 
 ### By Layer
 
-| Layer        | Stmts  | Branch | Funcs  | Lines  | Status       |
-| ------------ | ------ | ------ | ------ | ------ | ------------ |
-| Middleware   | 100%   | 99.4%  | 100%   | 100%   | EXCELLENT    |
-| Models       | 100%   | 100%   | 100%   | 100%   | EXCELLENT    |
-| Validators   | 100%   | 88.9%  | 100%   | 100%   | EXCELLENT    |
-| Services     | 98.75% | 95.2%  | 100%   | 98.9%  | EXCELLENT    |
-| Utils        | 98.59% | 94.6%  | 97.6%  | 98.5%  | EXCELLENT    |
-| Controllers  | 84.16% | 74.1%  | 80.3%  | 84.1%  | GOOD         |
-| Repositories | 83.33% | 100%   | 84.2%  | 90.9%  | GOOD         |
-| Routes       | 0%     | 100%   | 0%     | 0%     | N/A (wiring) |
+| Layer        | Stmts   | Branch | Funcs   | Covered/total stmts |
+| ------------ | ------- | ------ | ------- | ------------------- |
+| Controllers  | 100%    | 98.54% | 100%    | 407/407             |
+| Repositories | 100%    | 100%   | 100%    | 29/29               |
+| Models       | 100%    | 91.67% | 100%    | 49/49               |
+| Utils        | 99.63%  | 98.69% | 98.46%  | 266/267             |
+| Services     | 99.52%  | 99.14% | 99.21%  | 619/622             |
+| Middleware   | 99.41%  | 96.09% | 100%    | 335/337             |
+| Validators   | 95.08%  | 86.67% | 83.33%  | 58/61               |
 
-### Zero-Coverage Files
-
-1. **repositories/index.ts** - 0% (re-export barrel, low priority)
+`validators` is the only layer below 99% statements; `product.validators.ts` carries the gap.
+Routes no longer appear as a separate zero-coverage row, and `repositories/index.ts` — previously
+the one zero-coverage file — is now fully covered.
 
 ### Known Test Issues
 
-1. **OOM**: Default heap size insufficient for full test suite. Run with: `NODE_ENV=test node --max-old-space-size=4096 ../node_modules/.bin/jest --runInBand --forceExit`
+1. ~~**OOM**: default heap size insufficient, needs an explicit `--max-old-space-size=4096`~~ →
+   Fixed: `backend/package.json`'s `test` script now sets `NODE_OPTIONS=--max-old-space-size=4096`,
+   so `npm test` from `backend/` is enough.
 2. ~~**Lint errors in tests**: `ratingsService.test.ts` uses `fail()` (8 occurrences)~~ → Fixed (2026-04-04)
 
-Check current status: `cd backend && NODE_ENV=test node --max-old-space-size=4096 ../node_modules/.bin/jest --runInBand --forceExit`
+Check current status: `cd backend && npm test`
 
 ---
 

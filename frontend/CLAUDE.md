@@ -636,31 +636,28 @@ npm run lint         # Lint code
 
 ---
 
-## Test Coverage (2026-04-04)
+## Test Suite (2026-08-28)
 
-**Framework**: Vitest 3.2 + React Testing Library
+**Framework**: Vitest + React Testing Library
 
-**45 test files**, 703 tests (699 pass, 4 fail across 3 suites)
+**54 test files, 911 tests, all passing** (`cd frontend && npx vitest run`, ~4 min).
 
-### Failing Test Suites
+Regenerate rather than copy: this count moves with every merge.
 
-- `RegisterPage` — 1 fail (flaky timeout on error toast — `act` wrap added, 2026-04-04)
-- 2 other suites — 3 remaining fails under investigation
+### Previously Failing, Now Green
 
-### Previously Fixed
-
-- `SupplierProductsPage` — dialog label + timeout issues resolved
-- `QuoteComparisonPage` — dropdown interaction fixed
-- `CheckoutPage` — shipping validation fixed
-- `SupplierDashboardPage` — error handling timeout fixed
-- `HomePage` — category filter button query fixed
+The suites this file used to list as failing — `RegisterPage`, `SupplierProductsPage`,
+`QuoteComparisonPage`, `CheckoutPage`, `SupplierDashboardPage`, `HomePage` — all pass. The 2026-04-04
+entry recorded 703 tests with 4 failures and, in the same block, a target of "fix 12 failing tests";
+neither figure survived contact with the current suite.
 
 ### Coverage Status
 
-Previously most pages had 0% coverage. Now 36 test files cover pages, services, hooks, components, and contexts. Specific coverage percentages require `--coverage` with c8/istanbul reporter configured.
+Pages, services, hooks, components and contexts are covered. Percentages need `--coverage` with a
+c8/istanbul reporter configured; the backend is the layer with a reported coverage number
+(`backend/src/__tests__/CLAUDE.md`).
 
 ### Priority Test Targets
 
-1. Fix 12 failing tests (mostly timeout and label mismatch issues)
-2. Hooks layer — ensure useProducts, useOrders, useQuotations have dedicated tests
-3. QuotationContext — verify coverage
+1. Hooks layer — ensure useProducts, useOrders, useQuotations have dedicated tests
+2. QuotationContext — verify coverage
