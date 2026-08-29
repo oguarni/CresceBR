@@ -6,7 +6,9 @@
 - Config: `backend/jest.config.js`
 - Setup: `backend/src/__tests__/setup.ts`
 - Test timeout: 30s
-- Run: `cd backend && NODE_ENV=test npx jest --runInBand --forceExit --detectOpenHandles`
+- Run: `cd backend && npm test` — the script sets `NODE_ENV=test`, the coverage flags and
+  `NODE_OPTIONS=--max-old-space-size=4096`. Calling `npx jest` directly omits the heap setting and
+  can hit the OOM recorded under Known Test Issues.
 
 ---
 
