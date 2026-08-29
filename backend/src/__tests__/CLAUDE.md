@@ -64,22 +64,26 @@ src/
 
 **Suite**: 42 test suites, **1,281 tests, all passing**.
 
-**Overall**: 99.49% statements (1,763/1,772) | 98.16% branches (1,013/1,032) | 99.11% functions (335/338).
+**Overall**: 99.41% statements (1,879/1,890) | 98.15% branches (1,013/1,032) | 99.11% functions
+(335/338) | 99.49% lines (1,763/1,772).
 
-Basis: the Clover totals written by the coverage run below. Do not copy these numbers into
-another document — regenerate them, because they move with every merge.
+Basis: Istanbul's `json-summary` reporter — `npm test -- --coverageReporters=json-summary`, then read
+`coverage/coverage-summary.json`. **Statements and lines are different metrics** and the two totals
+are close enough to swap by accident: the Clover reporter's `statements` attribute carries Istanbul's
+*line* data, which is how 99.49% was previously published as a statement figure. Quote the
+json-summary, and regenerate rather than copy — these move with every merge.
 
 ### By Layer
 
-| Layer        | Stmts   | Branch | Funcs   | Covered/total stmts |
-| ------------ | ------- | ------ | ------- | ------------------- |
-| Controllers  | 100%    | 98.54% | 100%    | 407/407             |
-| Repositories | 100%    | 100%   | 100%    | 29/29               |
-| Models       | 100%    | 91.67% | 100%    | 49/49               |
-| Utils        | 99.63%  | 98.69% | 98.46%  | 266/267             |
-| Services     | 99.52%  | 99.14% | 99.21%  | 619/622             |
-| Middleware   | 99.41%  | 96.09% | 100%    | 335/337             |
-| Validators   | 95.08%  | 86.67% | 83.33%  | 58/61               |
+| Layer        | Stmts   | Branch | Funcs   | Lines   | Covered/total stmts |
+| ------------ | ------- | ------ | ------- | ------- | ------------------- |
+| Controllers  | 100%    | 98.54% | 100%    | 100%    | 411/411             |
+| Repositories | 100%    | 100%   | 100%    | 100%    | 32/32               |
+| Models       | 100%    | 91.67% | 100%    | 100%    | 49/49               |
+| Middleware   | 99.46%  | 96.09% | 100%    | 99.41%  | 366/368             |
+| Services     | 99.40%  | 99.14% | 99.21%  | 99.52%  | 664/668             |
+| Utils        | 99.33%  | 98.69% | 98.46%  | 99.63%  | 297/299             |
+| Validators   | 95.24%  | 86.67% | 83.33%  | 95.08%  | 60/63               |
 
 `validators` is the only layer below 99% statements; `product.validators.ts` carries the gap.
 Routes no longer appear as a separate zero-coverage row, and `repositories/index.ts` — previously
