@@ -29,8 +29,12 @@ describe('Product Validators', () => {
     it('should pass with all optional fields included', async () => {
       const result = await runValidators(productValidation, {
         ...validBody,
+        unitPrice: 99.99,
         specifications: { Weight: '500g', Material: 'Steel' },
+        tierPricing: [{ minQuantity: 10, price: 89.99 }],
         minimumOrderQuantity: 10,
+        leadTime: 7,
+        availability: 'limited',
       });
       expect(result.isEmpty()).toBe(true);
     });
@@ -132,6 +136,35 @@ describe('Product Validators', () => {
         price: '150.50',
       });
       expect(result.isEmpty()).toBe(true);
+    });
+
+    it.each([0, '0', 49.95])('should pass with non-negative unitPrice %p', async unitPrice => {
+      const result = await runValidators(productValidation, {
+        ...validBody,
+        unitPrice,
+      });
+
+      expect(result.isEmpty()).toBe(true);
+    });
+
+    it.each([
+      ['unitPrice', -0.01, 'Unit price cannot be negative'],
+      ['unitPrice', 'not-a-number', 'Unit price must be a number'],
+      ['imageUrl', `https://example.com/${'a'.repeat(2048)}`, 'Image URL is too long'],
+      ['tierPricing', {}, 'Tier pricing must be an array of at most 50 tiers'],
+      ['leadTime', -1, 'Lead time must be a non-negative integer'],
+      ['leadTime', 1.5, 'Lead time must be a non-negative integer'],
+      ['availability', 'discontinued', 'Invalid availability value'],
+    ])('should reject invalid optional field %s', async (field, value, expectedMessage) => {
+      const result = await runValidators(productValidation, {
+        ...validBody,
+        [field]: value,
+      });
+
+      const error = result
+        .array()
+        .find(validationError => (validationError as FieldValidationError).path === field);
+      expect(error?.msg).toBe(expectedMessage);
     });
 
     // imageUrl validation
