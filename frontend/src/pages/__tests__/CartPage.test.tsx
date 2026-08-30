@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import type { CartItem } from '@shared/types';
 import CartPage from '../CartPage';
 
 // Mock navigate
@@ -60,7 +61,7 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-const mockCartItemsList = [
+const mockCartItemsList: CartItem[] = [
   {
     id: 101,
     productId: 1,
@@ -72,6 +73,12 @@ const mockCartItemsList = [
       imageUrl: 'https://example.com/pump.jpg',
       category: 'Industrial Equipment',
       supplierId: 1,
+      tierPricing: [],
+      specifications: {},
+      unitPrice: 1500,
+      minimumOrderQuantity: 1,
+      leadTime: 7,
+      availability: 'in_stock',
     },
     quantity: 2,
     totalPrice: 3000.0,
@@ -87,6 +94,12 @@ const mockCartItemsList = [
       imageUrl: 'https://example.com/helmet.jpg',
       category: 'Safety Equipment',
       supplierId: 1,
+      tierPricing: [],
+      specifications: {},
+      unitPrice: 25,
+      minimumOrderQuantity: 1,
+      leadTime: 3,
+      availability: 'in_stock',
     },
     quantity: 5,
     totalPrice: 125.0,

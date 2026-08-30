@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import type { Order } from '@shared/types';
 import { useOrders, useOrder } from '../useOrders';
 
 vi.mock('../../services/ordersService', () => ({
@@ -11,24 +12,28 @@ vi.mock('../../services/ordersService', () => ({
 
 import { ordersService } from '../../services/ordersService';
 
-const mockOrders = [
+const mockOrders: Order[] = [
   {
-    id: 1,
-    userId: 1,
+    id: '1',
+    companyId: 1,
     quotationId: 1,
     status: 'pending' as const,
     totalAmount: 1000,
-    items: [{ productId: 1, quantity: 10, unitPrice: 100 }],
+    shippingAddress: 'Rua A, 100',
+    notes: null,
+    items: [{ id: 1, orderId: 1, productId: 1, quantity: 10, price: 100, totalPrice: 1000 }],
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
   },
   {
-    id: 2,
-    userId: 1,
+    id: '2',
+    companyId: 1,
     quotationId: 2,
     status: 'processing' as const,
     totalAmount: 500,
-    items: [{ productId: 2, quantity: 5, unitPrice: 100 }],
+    shippingAddress: 'Rua B, 200',
+    notes: null,
+    items: [{ id: 2, orderId: 2, productId: 2, quantity: 5, price: 100, totalPrice: 500 }],
     createdAt: new Date('2026-01-02'),
     updatedAt: new Date('2026-01-02'),
   },

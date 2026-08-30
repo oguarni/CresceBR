@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 
 // Store original NODE_ENV so we can restore it
 const originalNodeEnv = process.env.NODE_ENV;
+const originalDisableRateLimit = process.env.DISABLE_RATE_LIMIT;
+const originalTrustedProxyHops = process.env.TRUSTED_PROXY_HOPS;
 
 // Stateful per-key counter mock for Redis
 let mockStore: Record<string, number> = {};
@@ -79,6 +81,7 @@ import {
   progressiveRateLimit,
   rateLimiter,
   getClientIp,
+  trustedProxyHops,
 } from '../rateLimiting';
 
 describe('Rate Limiting Middleware', () => {
@@ -95,10 +98,22 @@ describe('Rate Limiting Middleware', () => {
     });
     mockRedis.expire.mockResolvedValue(1);
     mockRedis.ttl.mockResolvedValue(3600);
+    delete process.env.DISABLE_RATE_LIMIT;
+    delete process.env.TRUSTED_PROXY_HOPS;
   });
 
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    if (originalDisableRateLimit === undefined) {
+      delete process.env.DISABLE_RATE_LIMIT;
+    } else {
+      process.env.DISABLE_RATE_LIMIT = originalDisableRateLimit;
+    }
+    if (originalTrustedProxyHops === undefined) {
+      delete process.env.TRUSTED_PROXY_HOPS;
+    } else {
+      process.env.TRUSTED_PROXY_HOPS = originalTrustedProxyHops;
+    }
   });
 
   afterAll(() => {
@@ -142,6 +157,48 @@ describe('Rate Limiting Middleware', () => {
       expect(getClientIp(req)).toBe('203.0.113.7');
     });
 
+    it('should use the configured trusted proxy hop count', () => {
+      process.env.TRUSTED_PROXY_HOPS = '2';
+      const req = createMockReq({
+        ip: undefined,
+        headers: { 'x-forwarded-for': '198.18.0.1, 203.0.113.7, 10.0.0.1' },
+      });
+
+      expect(trustedProxyHops()).toBe(2);
+      expect(getClientIp(req)).toBe('198.18.0.1');
+    });
+
+    it.each(['-1', 'not-a-number'])(
+      'should fall back to one trusted proxy hop for invalid configuration (%s)',
+      configuredHops => {
+        process.env.TRUSTED_PROXY_HOPS = configuredHops;
+
+        expect(trustedProxyHops()).toBe(1);
+      }
+    );
+
+    it('should use the first forwarded address when the chain is shorter than the trusted hop count', () => {
+      process.env.TRUSTED_PROXY_HOPS = '3';
+      const req = createMockReq({
+        ip: undefined,
+        headers: { 'x-forwarded-for': '203.0.113.9' },
+      });
+
+      expect(getClientIp(req)).toBe('203.0.113.9');
+    });
+
+    it('should ignore an empty forwarded chain and fall back to the socket address', () => {
+      const req = createMockReq({
+        ip: undefined,
+        headers: { 'x-forwarded-for': '   ' },
+      });
+      Object.defineProperty(req, 'socket', {
+        value: { remoteAddress: '192.0.2.45' },
+      });
+
+      expect(getClientIp(req)).toBe('192.0.2.45');
+    });
+
     it('handles X-Forwarded-For provided as an array', () => {
       const req = createMockReq({
         ip: undefined,
@@ -181,6 +238,19 @@ describe('Rate Limiting Middleware', () => {
 
       expect(mockNext).toHaveBeenCalledTimes(1);
       expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('should bypass Redis entirely when rate limiting is disabled', async () => {
+      process.env.DISABLE_RATE_LIMIT = 'true';
+      const limiter = createCustomRateLimit({ windowMs: 60000, maxRequests: 1 });
+      const req = createMockReq({ ip: '200.0.0.17' });
+      const res = createMockRes();
+
+      await runMiddleware(limiter, req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockRedis.incr).not.toHaveBeenCalled();
+      expect(res.set).not.toHaveBeenCalled();
     });
 
     it('should set rate limit headers on every request', async () => {
@@ -551,7 +621,7 @@ describe('Rate Limiting Middleware', () => {
       expect(mockNext).toHaveBeenCalledTimes(1);
     });
 
-    it('should have environment-dependent limit (100 in dev, 5 in prod)', async () => {
+    it('should use five requests in the test environment', async () => {
       const req = createMockReq({ ip: '201.0.0.5' });
       const res = createMockRes();
 
@@ -559,11 +629,7 @@ describe('Rate Limiting Middleware', () => {
 
       const setCall = (res.set as jest.Mock).mock.calls[0][0];
       const limit = parseInt(setCall['X-RateLimit-Limit'], 10);
-      if (process.env.NODE_ENV === 'development') {
-        expect(limit).toBe(100);
-      } else {
-        expect(limit).toBe(5);
-      }
+      expect(limit).toBe(5);
     });
 
     it('should use 100 max requests when NODE_ENV is development', async () => {
@@ -590,6 +656,91 @@ describe('Rate Limiting Middleware', () => {
       devRateLimiter.destroy();
       process.env.NODE_ENV = prevEnv;
     });
+
+    it('should use 200 max requests when NODE_ENV is production', async () => {
+      process.env.NODE_ENV = 'production';
+
+      let productionAuthRateLimit!: typeof authRateLimit;
+      let productionRateLimiter!: typeof rateLimiter;
+
+      jest.isolateModules(() => {
+        const mod = require('../rateLimiting') as typeof import('../rateLimiting');
+        productionAuthRateLimit = mod.authRateLimit;
+        productionRateLimiter = mod.rateLimiter;
+      });
+
+      const req = createMockReq({ ip: '201.0.0.100' });
+      const res = createMockRes();
+
+      await runMiddleware(productionAuthRateLimit, req, res, mockNext);
+
+      expect(res.set).toHaveBeenCalledWith(expect.objectContaining({ 'X-RateLimit-Limit': '200' }));
+
+      productionRateLimiter.destroy();
+    });
+
+    it('should let AUTH_RATE_LIMIT_MAX override the environment default', async () => {
+      const prevOverride = process.env.AUTH_RATE_LIMIT_MAX;
+      process.env.AUTH_RATE_LIMIT_MAX = '500';
+
+      let overriddenAuthRateLimit: any;
+      let overriddenRateLimiter: any;
+
+      jest.isolateModules(() => {
+        const mod = require('../rateLimiting');
+        overriddenAuthRateLimit = mod.authRateLimit;
+        overriddenRateLimiter = mod.rateLimiter;
+      });
+
+      const req = createMockReq({ ip: '201.0.0.101' });
+      const res = createMockRes();
+
+      await runMiddleware(overriddenAuthRateLimit, req, res, mockNext);
+
+      const setCall = (res.set as jest.Mock).mock.calls[0][0];
+      expect(setCall['X-RateLimit-Limit']).toBe('500');
+
+      overriddenRateLimiter.destroy();
+      if (prevOverride === undefined) {
+        delete process.env.AUTH_RATE_LIMIT_MAX;
+      } else {
+        process.env.AUTH_RATE_LIMIT_MAX = prevOverride;
+      }
+    });
+
+    it.each([['0'], ['-1'], ['abc'], ['']])(
+      'should ignore a non-positive-integer AUTH_RATE_LIMIT_MAX (%s)',
+      async value => {
+        const prevOverride = process.env.AUTH_RATE_LIMIT_MAX;
+        process.env.AUTH_RATE_LIMIT_MAX = value;
+
+        let limiterUnderTest: any;
+        let limiterModule: any;
+
+        jest.isolateModules(() => {
+          const mod = require('../rateLimiting');
+          limiterUnderTest = mod.authRateLimit;
+          limiterModule = mod.rateLimiter;
+        });
+
+        const req = createMockReq({ ip: `201.0.1.${value.length}` });
+        const res = createMockRes();
+
+        await runMiddleware(limiterUnderTest, req, res, mockNext);
+
+        // Falls through to the NODE_ENV=test default rather than to 0, which
+        // would lock every account out on the first attempt.
+        const setCall = (res.set as jest.Mock).mock.calls[0][0];
+        expect(setCall['X-RateLimit-Limit']).toBe('5');
+
+        limiterModule.destroy();
+        if (prevOverride === undefined) {
+          delete process.env.AUTH_RATE_LIMIT_MAX;
+        } else {
+          process.env.AUTH_RATE_LIMIT_MAX = prevOverride;
+        }
+      }
+    );
   });
 
   // ---------------------------------------------------------------

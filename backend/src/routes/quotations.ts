@@ -73,6 +73,13 @@ router.put(
 
 // Admin routes - only admins can access admin endpoints
 router.get('/admin/all', requireRole('admin'), getAllQuotations);
+router.put(
+  '/admin/:id',
+  requireRole('admin'),
+  updateQuotationValidation,
+  handleValidationErrors,
+  updateQuotation
+);
 router.post('/admin/:id/process', requireRole('admin'), processQuotationWithCalculations);
 
 export default router;

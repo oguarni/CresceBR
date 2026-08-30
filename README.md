@@ -184,13 +184,16 @@ npm run test     # Vitest suite
 
 ## Demo Credentials
 
-These accounts are seeded automatically in the development database. **Do not use these credentials in any production environment.**
+These accounts are seeded into the local development database by `backend/seeders/`, and the same
+three are published on the hosted demo as one-click sign-in cards — the demo answers its own API in
+the browser, so there is no server to authenticate against. They are fixtures, not secrets.
+**Do not use these credentials in any real environment.**
 
 | Role     | Email                  | Password      | CNPJ                 |
 | -------- | ---------------------- | ------------- | -------------------- |
-| Admin    | `admin@crescebr.com`   | `admin123`    | `11.222.333/0001-81` |
-| Supplier | `supplier@example.com` | `supplier123` | `12.345.678/0001-90` |
-| Buyer    | `buyer@example.com`    | `buyer123`    | `98.765.432/0001-10` |
+| Admin    | `admin@crescebr.com`   | `admin123`    | `00.000.000/0001-00` |
+| Supplier | `supplier@example.com` | `supplier123` | `22.222.222/0001-22` |
+| Buyer    | `buyer@example.com`    | `buyer123`    | `33.333.333/0001-33` |
 
 ---
 
@@ -200,6 +203,7 @@ Design specs, operational history, and tooling references live in [`docs/`](docs
 
 | Document | Purpose |
 | -------- | ------- |
+| [Security Operations](docs/SECURITY.md) | JWT incident record, remediation status, and deployment requirements |
 | [Maturity Improvements](docs/MATURITY_IMPROVEMENTS.md) | Security fixes, testing, and business logic enhancements |
 | [Prioritized Action Plan](docs/prioritized-action-plan.md) | Current backlog ranked by priority |
 | [Frontend Design Spec](docs/design-prompt.md) | Visual language and page layouts |

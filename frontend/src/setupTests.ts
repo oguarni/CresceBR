@@ -65,22 +65,8 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-window.getComputedStyle = (element: Element) => {
-  return {
-    ...element,
-    getPropertyValue: (prop: string) => {
-      const htmlElement = element as HTMLElement;
-      if (htmlElement.style && typeof htmlElement.style.getPropertyValue === 'function') {
-        const val = htmlElement.style.getPropertyValue(prop);
-        if (val) return val;
-        // Fallback for some inline styles accessed as camelCase
-        const camelProp = prop.replace(/-([a-z])/g, g => g[1].toUpperCase());
-        return (htmlElement.style as unknown as Record<string, string>)[camelProp] || '';
-      }
-      return '';
-    },
-  } as unknown as Record<string, unknown>;
-};
+window.getComputedStyle = (element: Element) =>
+  element instanceof HTMLElement ? element.style : document.documentElement.style;
 
 // Suppress React Router warnings in tests
 const originalError = console.error;

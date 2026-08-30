@@ -3,6 +3,9 @@ import Order from '../../models/Order';
 import User from '../../models/User';
 import Quotation from '../../models/Quotation';
 import QuotationItem from '../../models/QuotationItem';
+import Product from '../../models/Product';
+import { Op } from 'sequelize';
+import type { FindAndCountOptions } from 'sequelize';
 import { logger } from '../../utils/structuredLogger';
 
 // Mock the models
@@ -16,6 +19,9 @@ const MockOrder = Order as jest.Mocked<typeof Order>;
 const MockUser = User as jest.Mocked<typeof User>;
 const MockQuotation = Quotation as jest.Mocked<typeof Quotation>;
 const MockQuotationItem = QuotationItem as jest.Mocked<typeof QuotationItem>;
+const mockFindAndCountAll = MockOrder.findAndCountAll as unknown as jest.MockedFunction<
+  (options?: FindAndCountOptions) => Promise<{ count: number; rows: Order[] }>
+>;
 
 // Supplier identities used by the order-ownership tests. A supplier is "related"
 // to an order only through the products it sells inside the quotation.
@@ -599,6 +605,41 @@ describe('OrderStatusService', () => {
       expect(MockOrder.findAndCountAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { status: 'pending', companyId: 1 },
+        })
+      );
+    });
+
+    it('should scope supplier orders to unique quotations containing their products', async () => {
+      MockQuotationItem.findAll.mockResolvedValue([
+        { quotationId: 10 },
+        { quotationId: 10 },
+        { quotationId: 20 },
+      ] as unknown as QuotationItem[]);
+      mockFindAndCountAll.mockResolvedValue({ count: 2, rows: [] });
+
+      await OrderStatusService.getOrdersByStatus('processing', {
+        supplierId: RELATED_SUPPLIER_ID,
+      });
+
+      expect(MockQuotationItem.findAll).toHaveBeenCalledWith({
+        attributes: ['quotationId'],
+        include: [
+          expect.objectContaining({
+            model: Product,
+            as: 'product',
+            where: { supplierId: RELATED_SUPPLIER_ID },
+            required: true,
+          }),
+        ],
+        raw: true,
+      });
+
+      expect(mockFindAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: 'processing',
+            quotationId: { [Op.in]: [10, 20] },
+          },
         })
       );
     });

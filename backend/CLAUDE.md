@@ -669,5 +669,9 @@ npm run lint         # Lint code
 - Docker: `USER node` in backend Dockerfile; DB/Redis ports bound to `127.0.0.1` — fixed (2026-04-04)
 
 ### Open
-1. **Tests OOM**: `jest --runInBand` hits heap limit without `--max-old-space-size=4096` in `backend/package.json` test script (CI has it via `NODE_OPTIONS`)
-2. **Architecture (intentional)**: Services use direct model access — see Phase 1 note above. `order.repository.ts` is intentionally unused.
+1. **Architecture (intentional)**: Services use direct model access — see Phase 1 note above. `order.repository.ts` is intentionally unused.
+
+### Closed since (2026-08-28)
+- **Tests OOM** — the `test` script in `backend/package.json` now sets
+  `NODE_OPTIONS=--max-old-space-size=4096`, so `npm test` from `backend/` no longer needs the flag
+  passed by hand. Verified by running it: 42 suites, 1,281 tests, all passing.

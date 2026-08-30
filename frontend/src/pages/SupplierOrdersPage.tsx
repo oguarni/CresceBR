@@ -52,9 +52,8 @@ import {
   Info,
   PlayArrow,
 } from '@mui/icons-material';
-import { Order, OrderStatusHistory } from '@shared/types';
-import { ordersService } from '../services/ordersService';
-import { useAuth } from '../contexts/AuthContext';
+import { Order } from '@shared/types';
+import { ordersService, type OrderTimelineEntry } from '../services/ordersService';
 import toast from 'react-hot-toast';
 import { formatBRL } from '../utils/currency';
 import { browserLogger } from '../utils/browserLogger';
@@ -64,6 +63,7 @@ interface StatusUpdateDialog {
   order: Order | null;
   newStatus: string;
   trackingNumber: string;
+  nfeAccessKey: string;
   notes: string;
 }
 
@@ -232,10 +232,11 @@ const SupplierOrdersPage: React.FC = () => {
     order: null,
     newStatus: '',
     trackingNumber: '',
+    nfeAccessKey: '',
     notes: '',
   });
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [orderHistory, setOrderHistory] = useState<OrderStatusHistory[]>([]);
+  const [orderHistory, setOrderHistory] = useState<OrderTimelineEntry[]>([]);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   // Filters
@@ -243,24 +244,24 @@ const SupplierOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>('');
 
-  const { user } = useAuth();
-
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
+      // Deliberately not filtered by supplier here. getUserOrders is already
+      // scoped server-side — OrderStatusService resolves a supplier's orders
+      // through QuotationItem -> Product.supplierId so other suppliers' orders
+      // never reach the client. The filter that used to sit here read
+      // order.items, a field this endpoint does not return, so it discarded
+      // every order and the screen was permanently empty.
       const result = await ordersService.getUserOrders();
-      // Filter to only show orders for products from this supplier
-      const supplierOrders = result.orders.filter((order: Order) =>
-        order.items?.some(item => item.product?.supplierId === user?.id)
-      );
-      setOrders(supplierOrders);
+      setOrders(result.orders);
     } catch (_error) {
       browserLogger.error('Failed to load orders', { error: _error });
       toast.error('Error loading orders');
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -269,7 +270,7 @@ const SupplierOrdersPage: React.FC = () => {
   const loadOrderHistory = async (orderId: string) => {
     try {
       const result = await ordersService.getOrderHistory(orderId);
-      setOrderHistory(result.timeline as unknown as OrderStatusHistory[]);
+      setOrderHistory(result.timeline);
     } catch (_error) {
       browserLogger.error('Failed to load order history', { error: _error });
     }
@@ -288,6 +289,7 @@ const SupplierOrdersPage: React.FC = () => {
           | 'cancelled',
         notes: statusUpdateDialog.notes || undefined,
         trackingNumber: statusUpdateDialog.trackingNumber || undefined,
+        nfeAccessKey: statusUpdateDialog.nfeAccessKey || undefined,
       };
 
       await ordersService.updateOrderStatus(statusUpdateDialog.order.id, updateData);
@@ -298,6 +300,7 @@ const SupplierOrdersPage: React.FC = () => {
         order: null,
         newStatus: '',
         trackingNumber: '',
+        nfeAccessKey: '',
         notes: '',
       });
       loadOrders();
@@ -321,6 +324,7 @@ const SupplierOrdersPage: React.FC = () => {
       order,
       newStatus,
       trackingNumber: order.trackingNumber || '',
+      nfeAccessKey: order.nfeAccessKey || '',
       notes: '',
     });
   };
@@ -596,6 +600,28 @@ const SupplierOrdersPage: React.FC = () => {
               />
             )}
 
+            {statusUpdateDialog.newStatus === 'shipped' && (
+              <TextField
+                fullWidth
+                required
+                label='NF-e Access Key'
+                value={statusUpdateDialog.nfeAccessKey}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setStatusUpdateDialog({
+                    ...statusUpdateDialog,
+                    nfeAccessKey: e.target.value.replace(/\D/g, '').slice(0, 44),
+                  })
+                }
+                // No maxLength: it counts raw characters, so pasting a key
+                // written with separators truncated it mid-key and left the
+                // gate shut with nothing on screen to explain why. onChange
+                // already strips non-digits and caps the result at 44.
+                inputProps={{ inputMode: 'numeric' }}
+                helperText='44-digit invoice access key'
+                sx={{ mb: 2 }}
+              />
+            )}
+
             <TextField
               fullWidth
               multiline
@@ -615,7 +641,15 @@ const SupplierOrdersPage: React.FC = () => {
           <Button onClick={() => setStatusUpdateDialog({ ...statusUpdateDialog, open: false })}>
             Cancel
           </Button>
-          <Button onClick={handleStatusUpdate} variant='contained'>
+          <Button
+            onClick={handleStatusUpdate}
+            variant='contained'
+            disabled={
+              statusUpdateDialog.newStatus === 'shipped' &&
+              (!statusUpdateDialog.trackingNumber.trim() ||
+                statusUpdateDialog.nfeAccessKey.length !== 44)
+            }
+          >
             Update Status
           </Button>
         </DialogActions>
@@ -666,7 +700,7 @@ const SupplierOrdersPage: React.FC = () => {
                   <Typography variant='body2' color='text.secondary'>
                     Created: {new Date(selectedOrder.createdAt!).toLocaleString()}
                   </Typography>
-                  <Typography variant='body2' color='text.secondary'>
+                  <Typography component='div' variant='body2' color='text.secondary'>
                     Status:{' '}
                     <Chip
                       label={selectedOrder.status}
@@ -725,25 +759,21 @@ const SupplierOrdersPage: React.FC = () => {
                 {orderHistory.map((entry, index) => (
                   <ListItem key={index} divider={index < orderHistory.length - 1}>
                     <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: `${getStatusColor(entry.toStatus)}.main` }}>
-                        {getStatusIcon(entry.toStatus)}
+                      <Avatar sx={{ bgcolor: `${getStatusColor(entry.status)}.main` }}>
+                        {getStatusIcon(entry.status)}
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
-                      primary={
-                        <Typography variant='body1'>
-                          {entry.fromStatus && `${entry.fromStatus} → `}
-                          {entry.toStatus}
-                        </Typography>
-                      }
+                      disableTypography
+                      primary={<Typography variant='body1'>{entry.status}</Typography>}
                       secondary={
                         <Box>
                           <Typography variant='body2' color='text.secondary'>
-                            {new Date(entry.createdAt!).toLocaleString()}
+                            {new Date(entry.date).toLocaleString()}
                           </Typography>
-                          {entry.notes && (
+                          {entry.description && (
                             <Typography variant='body2' color='text.secondary'>
-                              {entry.notes}
+                              {entry.description}
                             </Typography>
                           )}
                         </Box>

@@ -23,10 +23,22 @@ test.describe('authentication', () => {
     await openEmailTab(page);
     await page.locator('#email').fill(ACCOUNTS.buyer.email);
     await page.locator('#password').fill('definitely-not-the-password');
+
+    const login = page.waitForResponse(
+      response =>
+        response.url().includes('/auth/login-email') && response.request().method() === 'POST'
+    );
     await page.locator('form button[type="submit"]').click();
 
-    // Staying put is the assertion. The error copy is i18n and would make this
-    // a translation test rather than an authentication one.
+    // Pin the status rather than only the URL. A throttled login answers 429
+    // and also leaves the visitor on /login with the password field showing, so
+    // the URL alone cannot tell a rejected credential from a rate limit — and
+    // this suite signs in often enough to meet one. A throttle should fail as a
+    // throttle instead of passing as a successful rejection.
+    expect((await login).status()).toBe(401);
+
+    // Staying put is still the assertion that matters. The error copy is i18n
+    // and would make this a translation test rather than an authentication one.
     await expect(page).toHaveURL(/\/login/);
     await expect(page.locator('#password')).toBeVisible();
   });
