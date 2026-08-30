@@ -136,10 +136,37 @@ export const generalRateLimit = rateLimiter.createLimiter({
 // Rate limiter for auth endpoints. Demo credentials are public so brute-force is
 // moot; production stays generous (followers may share a carrier-grade NAT IP)
 // while still capping scripted login floods. Test (5) and dev (100) are unchanged.
+/**
+ * Authentication attempts allowed per window.
+ *
+ * Any NODE_ENV outside production/development gets 5, which is deliberate for
+ * unit tests but wrong for the end-to-end suite: it signs in about ten times
+ * per run through the real login form, on purpose, because the login round
+ * trip is one of the seams that suite exists to cover. Under NODE_ENV=test it
+ * would fail on the sixth sign-in with a 429 — and since a throttled login and
+ * a rejected password both leave the visitor on /login, the failure reads as
+ * broken credentials rather than as a limit.
+ *
+ * AUTH_RATE_LIMIT_MAX is the explicit opt-out for that run. It is ignored
+ * unless set to a positive integer, so every existing environment keeps the
+ * limits below. Do not set it in production to paper over lockouts.
+ */
+const authMaxRequests = (): number => {
+  const override = Number(process.env.AUTH_RATE_LIMIT_MAX);
+  if (Number.isInteger(override) && override > 0) {
+    return override;
+  }
+
+  return process.env.NODE_ENV === 'production'
+    ? 200
+    : process.env.NODE_ENV === 'development'
+      ? 100
+      : 5;
+};
+
 export const authRateLimit = rateLimiter.createLimiter({
   windowMs: 15 * 60 * 1000,
-  maxRequests:
-    process.env.NODE_ENV === 'production' ? 200 : process.env.NODE_ENV === 'development' ? 100 : 5,
+  maxRequests: authMaxRequests(),
   message: 'Too many authentication attempts. Please try again in 15 minutes.',
   keyGenerator: (req: Request) => `auth:${getClientIp(req)}`,
 });

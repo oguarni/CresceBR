@@ -513,14 +513,11 @@ const AdminTransactionMonitoringPage: React.FC = () => {
                 <ResponsiveContainer width='100%' height='100%'>
                   <LineChart data={revenueChartData}>
                     <CartesianGrid strokeDasharray='3 3' />
-                    {/* @ts-expect-error recharts v3 JSX type compatibility */}
                     <XAxis dataKey='date' />
-                    {/* @ts-expect-error recharts v3 JSX type compatibility */}
                     <YAxis tickFormatter={(value: number) => `R$ ${(value / 1000).toFixed(0)}k`} />
                     <Tooltip
                       formatter={(value: unknown) => [formatCurrency(value as number), 'Receita']}
                     />
-                    {/* @ts-expect-error recharts v3 JSX type compatibility */}
                     <Line type='monotone' dataKey='revenue' stroke='#1976d2' strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -538,16 +535,13 @@ const AdminTransactionMonitoringPage: React.FC = () => {
               <Box sx={{ height: 300 }}>
                 <ResponsiveContainer width='100%' height='100%'>
                   <PieChart>
-                    {/* @ts-expect-error recharts v3 JSX type compatibility */}
                     <Pie
                       data={statusPieData}
                       cx='50%'
                       cy='50%'
                       outerRadius={80}
                       dataKey='value'
-                      label={(entry: { name: string; value: number }) =>
-                        `${entry.name}: ${entry.value}`
-                      }
+                      label={entry => `${entry.name ?? ''}: ${entry.value ?? 0}`}
                     >
                       {statusPieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.fill} />

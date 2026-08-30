@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import type { Product } from '@shared/types';
 import { useProducts, useProduct } from '../useProducts';
 
 vi.mock('../../services/productsService', () => ({
@@ -11,7 +12,7 @@ vi.mock('../../services/productsService', () => ({
 
 import { productsService } from '../../services/productsService';
 
-const mockProducts = [
+const mockProducts: Product[] = [
   {
     id: 1,
     name: 'Product A',

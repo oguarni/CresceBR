@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -70,7 +69,7 @@ function setupMocks(
 
 function renderCartDrawer() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <CartDrawer />
     </MemoryRouter>
   );
@@ -114,6 +113,7 @@ describe('CartDrawer', () => {
       renderCartDrawer();
 
       expect(screen.getByText('Test Product')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('2').closest('p')).toBeNull();
     });
 
     it('displays formatted price for each item', () => {
@@ -139,7 +139,6 @@ describe('CartDrawer', () => {
 
       const decrementButtons = screen.getAllByRole('button');
       // Find the decrement button (Remove icon)
-      const _removeButton = decrementButtons.find(btn => btn.querySelector('[data-testid]') || btn);
       // Click the first quantity decrease button
       const quantityButtons = decrementButtons.filter(
         btn => btn.closest('[class*="ListItem"]') !== null

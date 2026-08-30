@@ -270,7 +270,15 @@ const QuoteComparisonPage: React.FC = () => {
                 <Select
                   value={shippingMethod}
                   label='Entrega'
-                  onChange={(e: SelectChangeEvent<string>) => setShippingMethod(e.target.value)}
+                  onChange={(e: SelectChangeEvent<string>) => {
+                    switch (e.target.value) {
+                      case 'standard':
+                      case 'express':
+                      case 'economy':
+                        setShippingMethod(e.target.value);
+                        break;
+                    }
+                  }}
                 >
                   <MenuItem value='economy'>{t('quoteComparison.shippingEconomy')}</MenuItem>
                   <MenuItem value='standard'>{t('quoteComparison.shippingStandard')}</MenuItem>

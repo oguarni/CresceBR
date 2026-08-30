@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import type { Product, Quotation } from '@shared/types';
 import { useQuotations, useQuotation } from '../useQuotations';
 
 vi.mock('../../services/quotationsService', () => ({
@@ -11,21 +12,39 @@ vi.mock('../../services/quotationsService', () => ({
 
 import { quotationsService } from '../../services/quotationsService';
 
-const mockQuotations = [
+const mockProduct: Product = {
+  id: 1,
+  name: 'Product A',
+  description: 'Description A',
+  price: 100,
+  imageUrl: 'https://example.com/product.jpg',
+  category: 'Industrial',
+  supplierId: 2,
+  tierPricing: [],
+  specifications: {},
+  unitPrice: 100,
+  minimumOrderQuantity: 1,
+  leadTime: 7,
+  availability: 'in_stock',
+};
+
+const mockQuotations: Quotation[] = [
   {
     id: 1,
-    userId: 1,
+    companyId: 1,
     status: 'pending' as const,
-    items: [{ productId: 1, quantity: 10 }],
+    adminNotes: null,
+    items: [{ id: 1, quotationId: 1, productId: 1, product: mockProduct, quantity: 10 }],
     totalAmount: 1000,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
   },
   {
     id: 2,
-    userId: 1,
+    companyId: 1,
     status: 'processed' as const,
-    items: [{ productId: 2, quantity: 5 }],
+    adminNotes: null,
+    items: [{ id: 2, quotationId: 2, productId: 1, product: mockProduct, quantity: 5 }],
     totalAmount: 500,
     createdAt: new Date('2026-01-02'),
     updatedAt: new Date('2026-01-02'),

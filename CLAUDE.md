@@ -119,10 +119,16 @@ Copy `.env.example` to `.env` and configure:
 ## Test Accounts
 
 ```
-Admin:     admin@crescebr.com / admin123
-Supplier:  supplier@example.com / supplier123
-Buyer:     buyer@example.com / buyer123
+Admin:     admin@crescebr.com / admin123     CNPJ 00.000.000/0001-00
+Supplier:  supplier@example.com / supplier123  CNPJ 22.222.222/0001-22
+Buyer:     buyer@example.com / buyer123      CNPJ 33.333.333/0001-33
 ```
+
+These are seeded into the local development database by `backend/seeders/`, and the same accounts are
+**deliberately published on the hosted demo**: `LoginPage.tsx` renders them as one-click cards, and
+`src/demo/data.ts` is generated from those seeders, so the two stay in step. They are demo fixtures,
+not secrets — the hosted build has no backend to authenticate against. Change them in the seeder and
+run `npm run demo:data`; never treat them as credentials for anything real.
 
 ## Conventions
 
@@ -221,12 +227,17 @@ After completing any refactoring task:
 - Bundle size: `manualChunks` added to Vite config — fixed (2026-04-04)
 - Vulnerabilities: `sqlite3` upgraded to v6, root `overrides` added — 0 findings (2026-04-04)
 - Docker security: `USER node` in backend Dockerfile; DB/Redis ports bound to `127.0.0.1` — fixed (2026-04-04)
-- Test credentials visible in LoginPage UI — wrapped in `import.meta.env.DEV` (2026-04-04)
+- ~~Test credentials visible in LoginPage UI — wrapped in `import.meta.env.DEV` (2026-04-04)~~ —
+  **no longer true, and no longer a defect** (corrected 2026-08-29). `LoginPage.tsx` renders the demo
+  accounts unconditionally, with no `import.meta.env.DEV` guard, and that is deliberate: since the
+  hosted build answers its own API in the browser (see "Hosted demo runs without a backend"), the
+  cards are the way a visitor gets into the demo. They authenticate against `DEMO_PASSWORDS` in the
+  bundle, not against any server. Do not re-add a `DEV` guard — it would lock visitors out of the
+  public demo without protecting anything.
 - Supplier RBAC: suppliers blocked from quotations (they hit the admin-only `GET /quotations/admin/all`, and the Supplier Dashboard failed with "Access denied"). Added supplier-scoped `GET /quotations/supplier` (server-side filtered to the supplier's products), made `PUT /quotations/supplier/:id` ownership-checked, scoped `getById` for suppliers, fixed the dashboard's broken detail/order navigation, and added the `supplier/quotations/:id` route — fixed (2026-05-29)
 
 ### Open
-1. **Backend tests OOM**: `jest --runInBand` hits heap limit without `--max-old-space-size=4096` in `backend/package.json` test script (CI has it via `NODE_OPTIONS`)
-2. **Architecture (intentional)**: Services use direct Sequelize model access — this is the accepted pattern (KISS/YAGNI). `quotation.service.ts` uses repositories as an example, not a mandate. `order.repository.ts` exists but no service uses it — document and leave as-is.
+1. **Architecture (intentional)**: Services use direct Sequelize model access — this is the accepted pattern (KISS/YAGNI). `quotation.service.ts` uses repositories as an example, not a mandate. `order.repository.ts` exists but no service uses it — document and leave as-is.
 
 ## Hosted demo runs without a backend (2026-08-20)
 

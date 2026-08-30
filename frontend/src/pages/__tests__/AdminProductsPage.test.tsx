@@ -572,7 +572,6 @@ describe('AdminProductsPage', () => {
     });
 
     it('should handle create product error gracefully', async () => {
-      const _user = userEvent.setup();
       vi.mocked(productsService.createProduct).mockRejectedValue(new Error('Server error'));
 
       await renderAdminProductsPage();
