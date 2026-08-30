@@ -6,7 +6,9 @@
 - Config: `backend/jest.config.js`
 - Setup: `backend/src/__tests__/setup.ts`
 - Test timeout: 30s
-- Run: `cd backend && NODE_ENV=test npx jest --runInBand --forceExit --detectOpenHandles`
+- Run: `cd backend && npm test` — the script sets `NODE_ENV=test`, the coverage flags and
+  `NODE_OPTIONS=--max-old-space-size=4096`. Calling `npx jest` directly omits the heap setting and
+  can hit the OOM recorded under Known Test Issues.
 
 ---
 
@@ -58,33 +60,42 @@ src/
 
 ---
 
-## Coverage Report (2026-03-26)
+## Coverage Report (2026-08-30)
 
-**Overall**: 94.16% statements | 89.53% branches | 93.93% functions | 94.15% lines
+**Suite**: 42 test suites, **1,299 tests, all passing**.
+
+**Overall**: 99.89% statements (1,888/1,890) | 99.03% branches (1,022/1,032) | 99.70% functions
+(337/338) | 99.94% lines (1,771/1,772).
+
+Basis: Istanbul's `json-summary` reporter — `npm test -- --coverageReporters=json-summary`, then read
+`coverage/coverage-summary.json`. **Statements and lines are different metrics** and the two totals
+are close enough to swap by accident: the Clover reporter's `statements` attribute carries Istanbul's
+*line* data, which is how 99.49% was previously published as a statement figure. Quote the
+json-summary, and regenerate rather than copy — these move with every merge.
 
 ### By Layer
 
-| Layer        | Stmts  | Branch | Funcs  | Lines  | Status       |
-| ------------ | ------ | ------ | ------ | ------ | ------------ |
-| Middleware   | 100%   | 99.4%  | 100%   | 100%   | EXCELLENT    |
-| Models       | 100%   | 100%   | 100%   | 100%   | EXCELLENT    |
-| Validators   | 100%   | 88.9%  | 100%   | 100%   | EXCELLENT    |
-| Services     | 98.75% | 95.2%  | 100%   | 98.9%  | EXCELLENT    |
-| Utils        | 98.59% | 94.6%  | 97.6%  | 98.5%  | EXCELLENT    |
-| Controllers  | 84.16% | 74.1%  | 80.3%  | 84.1%  | GOOD         |
-| Repositories | 83.33% | 100%   | 84.2%  | 90.9%  | GOOD         |
-| Routes       | 0%     | 100%   | 0%     | 0%     | N/A (wiring) |
+| Layer        | Stmts   | Branch | Funcs   | Lines   | Covered/total stmts |
+| ------------ | ------- | ------ | ------- | ------- | ------------------- |
+| Controllers  | 100%    | 98.54% | 100%    | 100%    | 411/411             |
+| Repositories | 100%    | 100%   | 100%    | 100%    | 32/32               |
+| Models       | 100%    | 91.67% | 100%    | 100%    | 49/49               |
+| Middleware   | 100%    | 99.44% | 100%    | 100%    | 368/368             |
+| Services     | 100%    | 99.36% | 100%    | 100%    | 668/668             |
+| Utils        | 99.33%  | 98.69% | 98.46%  | 99.63%  | 297/299             |
+| Validators   | 100%    | 100%   | 100%    | 100%    | 63/63               |
 
-### Zero-Coverage Files
-
-1. **repositories/index.ts** - 0% (re-export barrel, low priority)
+Middleware, services, and validators now have 100% statement coverage. The two remaining uncovered
+statements are isolated utility fallbacks; routes remain intentionally excluded from collection.
 
 ### Known Test Issues
 
-1. **OOM**: Default heap size insufficient for full test suite. Run with: `NODE_ENV=test node --max-old-space-size=4096 ../node_modules/.bin/jest --runInBand --forceExit`
+1. ~~**OOM**: default heap size insufficient, needs an explicit `--max-old-space-size=4096`~~ →
+   Fixed: `backend/package.json`'s `test` script now sets `NODE_OPTIONS=--max-old-space-size=4096`,
+   so `npm test` from `backend/` is enough.
 2. ~~**Lint errors in tests**: `ratingsService.test.ts` uses `fail()` (8 occurrences)~~ → Fixed (2026-04-04)
 
-Check current status: `cd backend && NODE_ENV=test node --max-old-space-size=4096 ../node_modules/.bin/jest --runInBand --forceExit`
+Check current status: `cd backend && npm test`
 
 ---
 
