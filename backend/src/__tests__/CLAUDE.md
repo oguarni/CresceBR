@@ -60,12 +60,12 @@ src/
 
 ---
 
-## Coverage Report (2026-08-28)
+## Coverage Report (2026-08-30)
 
-**Suite**: 42 test suites, **1,281 tests, all passing**.
+**Suite**: 42 test suites, **1,299 tests, all passing**.
 
-**Overall**: 99.41% statements (1,879/1,890) | 98.15% branches (1,013/1,032) | 99.11% functions
-(335/338) | 99.49% lines (1,763/1,772).
+**Overall**: 99.89% statements (1,888/1,890) | 99.03% branches (1,022/1,032) | 99.70% functions
+(337/338) | 99.94% lines (1,771/1,772).
 
 Basis: Istanbul's `json-summary` reporter — `npm test -- --coverageReporters=json-summary`, then read
 `coverage/coverage-summary.json`. **Statements and lines are different metrics** and the two totals
@@ -80,14 +80,13 @@ json-summary, and regenerate rather than copy — these move with every merge.
 | Controllers  | 100%    | 98.54% | 100%    | 100%    | 411/411             |
 | Repositories | 100%    | 100%   | 100%    | 100%    | 32/32               |
 | Models       | 100%    | 91.67% | 100%    | 100%    | 49/49               |
-| Middleware   | 99.46%  | 96.09% | 100%    | 99.41%  | 366/368             |
-| Services     | 99.40%  | 99.14% | 99.21%  | 99.52%  | 664/668             |
+| Middleware   | 100%    | 99.44% | 100%    | 100%    | 368/368             |
+| Services     | 100%    | 99.36% | 100%    | 100%    | 668/668             |
 | Utils        | 99.33%  | 98.69% | 98.46%  | 99.63%  | 297/299             |
-| Validators   | 95.24%  | 86.67% | 83.33%  | 95.08%  | 60/63               |
+| Validators   | 100%    | 100%   | 100%    | 100%    | 63/63               |
 
-`validators` is the only layer below 99% statements; `product.validators.ts` carries the gap.
-Routes no longer appear as a separate zero-coverage row, and `repositories/index.ts` — previously
-the one zero-coverage file — is now fully covered.
+Middleware, services, and validators now have 100% statement coverage. The two remaining uncovered
+statements are isolated utility fallbacks; routes remain intentionally excluded from collection.
 
 ### Known Test Issues
 
