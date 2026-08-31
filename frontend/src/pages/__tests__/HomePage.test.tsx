@@ -120,7 +120,7 @@ const renderHomePage = async () => {
   let renderResult;
   await act(async () => {
     renderResult = render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <LanguageProvider initialLanguage='en'>
           <HomePage />
         </LanguageProvider>
@@ -164,7 +164,7 @@ describe('HomePage', () => {
     );
 
     render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <HomePage />
       </BrowserRouter>
     );
@@ -589,7 +589,7 @@ describe('HomePage', () => {
 
     await act(async () => {
       render(
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter>
           <LanguageProvider initialLanguage='en'>
             <HomePage />
           </LanguageProvider>

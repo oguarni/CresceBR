@@ -118,7 +118,7 @@ const mockQuotes: CompareSupplierQuotesResponse = {
 const renderPage = async () => {
   await act(async () => {
     render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <QuoteComparisonPage />
       </BrowserRouter>
     );
@@ -390,7 +390,7 @@ describe('QuoteComparisonPage', () => {
 
     await act(async () => {
       render(
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter>
           <QuoteComparisonPage />
         </BrowserRouter>
       );

@@ -110,7 +110,7 @@ const renderCartPage = async () => {
   let renderResult;
   await act(async () => {
     renderResult = render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <CartPage />
       </BrowserRouter>
     );

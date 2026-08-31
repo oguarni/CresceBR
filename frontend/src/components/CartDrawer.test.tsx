@@ -69,7 +69,7 @@ function setupMocks(
 
 function renderCartDrawer() {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <CartDrawer />
     </MemoryRouter>
   );

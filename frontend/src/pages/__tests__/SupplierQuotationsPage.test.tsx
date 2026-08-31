@@ -133,7 +133,7 @@ const renderPage = async (language: 'pt' | 'en' = 'en') => {
   await act(async () => {
     renderResult = render(
       <LanguageProvider initialLanguage={language}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter>
           <SupplierQuotationsPage />
         </BrowserRouter>
       </LanguageProvider>
@@ -156,7 +156,7 @@ describe('SupplierQuotationsPage', () => {
     await act(async () => {
       render(
         <LanguageProvider initialLanguage='en'>
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <BrowserRouter>
             <SupplierQuotationsPage />
           </BrowserRouter>
         </LanguageProvider>
