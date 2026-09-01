@@ -12,11 +12,13 @@ on:
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Dependabot pull requests run with GitHub's separate Dependabot secret
+    # store, so CLAUDE_CODE_OAUTH_TOKEN resolves empty and the action fails on
+    # every one of them. Skip instead of mirroring the token into that store:
+    # the split exists because Dependabot branches carry third-party dependency
+    # code at a lower trust level, and a review comment is not worth handing a
+    # privileged token to that context.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
 
     runs-on: ubuntu-latest
     permissions:
