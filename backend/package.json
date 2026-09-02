@@ -31,7 +31,7 @@
   "author": "",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "axios": "^1.18.0",
+    "axios": "^1.20.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
@@ -40,11 +40,11 @@
     "helmet": "^8.3.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "multer": "^2.2.0",
+    "morgan": "^1.12.0",
+    "multer": "^2.3.0",
     "pg": "^8.23.0",
     "sequelize": "^6.37.7",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
