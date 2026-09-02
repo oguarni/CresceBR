@@ -58,15 +58,29 @@ export default defineConfig(({ command }) => ({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'json-summary'],
-      // Set just below the levels actually measured (97.44 stmts/lines /
-      // 90.10 branches / 87.82 funcs) so a regression fails the build instead
-      // of going unnoticed. Raise these when coverage rises; never lower them
-      // to make a build pass.
+      // Set just below the levels actually measured (93.35-93.41 lines /
+      // 92.41-92.47 stmts / 85.79-85.88 branches / 89.00 funcs, over repeated
+      // runs) so a regression fails the build instead of going unnoticed.
+      // Raise these when coverage rises; never lower them to make a build
+      // pass. The ranges are real: consecutive runs of the identical suite
+      // vary by up to ~0.09pp, so the margin here absorbs that rather than
+      // sitting flush against a single measurement and going flaky.
+      //
+      // Re-baselined for vitest 4. The previous numbers (97.44 lines+stmts /
+      // 90.10 branches / 87.82 funcs) were measured by v8's line-range
+      // remapping. Vitest 4 makes AST-aware remapping mandatory -- the
+      // `experimentalAstAwareRemapping` opt-out no longer exists -- so it
+      // counts statements and branches from the real AST and reports lower
+      // percentages for identical code. Nothing became less covered: the same
+      // 942 tests in 56 files pass, no source changed, and *function* coverage
+      // rose (87.82 -> 89.00), which a real regression cannot do. Lines and
+      // statements also diverge now, where line-range remapping made them
+      // identical. These are the same tests measured with a stricter ruler.
       thresholds: {
-        lines: 97.4,
-        statements: 97.4,
-        functions: 87.8,
-        branches: 90,
+        lines: 93.2,
+        statements: 92.3,
+        functions: 88.9,
+        branches: 85.6,
       },
     },
   },
