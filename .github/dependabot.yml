@@ -20,6 +20,15 @@ updates:
       development:
         dependency-type: development
         update-types: [minor, patch]
+    ignore:
+      # @vitejs/plugin-react 6 requires vite ^8; this repo is on vite ^7.
+      # Taking it means a Vite 7 -> 8 major migration, which is its own piece
+      # of work and must not ride in on a dev-dependency bump (see #44, where
+      # it broke the build with ERR_PACKAGE_PATH_NOT_EXPORTED for 'vite/internal').
+      # 5.2.0 already spans vite ^7 and ^8, so nothing is lost by waiting.
+      # Drop this entry as part of the Vite 8 migration, not before.
+      - dependency-name: '@vitejs/plugin-react'
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
