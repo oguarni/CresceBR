@@ -5,8 +5,14 @@ import { beforeEach, afterEach } from 'vitest';
 
 // Configure testing library to better handle async updates
 configure({
-  // Automatically wrap async operations in act()
-  asyncUtilTimeout: 5000,
+  // 5000 was tight enough to go flaky. Two full runs on 2026-09-02 each failed
+  // a different `waitFor` -- SupplierOrdersPage on one, HomePage on the next --
+  // and both files passed when run alone, so nothing was actually broken: the
+  // suite is 56 isolated jsdom files competing for CPU, and whichever one lost
+  // the race overran the budget. 15000 absorbs that while staying well under
+  // the 30000 testTimeout, so a genuinely hanging query still fails the test
+  // rather than the run.
+  asyncUtilTimeout: 15000,
 });
 
 // Global act wrapper for all tests

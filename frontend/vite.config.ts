@@ -50,11 +50,15 @@ export default defineConfig(({ command }) => ({
     setupFiles: './src/setupTests.ts',
     testTimeout: 30000,
     css: false,
-    poolOptions: {
-      threads: {
-        isolate: false,
-      },
-    },
+    // Test files MUST stay isolated. This block used to be
+    // `poolOptions.threads.isolate: false`, which Vitest 4 silently ignores
+    // because `poolOptions` was removed and its contents became top-level
+    // options -- so the suite has in fact been running isolated. Migrating it
+    // to a working top-level `isolate: false` was tried on 2026-09-02 and
+    // fails hard: 47 of 367 tests in the first shard blow up with
+    // `getMultipleElementsFoundError`, because a shared jsdom document leaks
+    // rendered components from one file into the next file's queries. The
+    // dead option was removed rather than migrated. Do not reintroduce it.
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'json-summary'],
